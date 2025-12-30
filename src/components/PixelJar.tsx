@@ -42,12 +42,15 @@ export function PixelJar({ jarValue, maxValue = 50000, size = "normal" }: PixelJ
 
   return (
     <div className="pixel-jar-container relative flex flex-col items-center">
-      {/* Glow effect behind jar */}
+      {/* Glow effect behind jar - more visible */}
       <div 
-        className="absolute inset-0 blur-2xl opacity-40"
+        className="absolute blur-3xl opacity-60"
         style={{
-          background: 'radial-gradient(ellipse at center, rgba(255,0,122,0.6) 0%, rgba(255,95,162,0.3) 40%, transparent 70%)',
-          transform: 'scale(1.2)',
+          background: 'radial-gradient(ellipse at center, rgba(255,0,122,0.8) 0%, rgba(255,95,162,0.5) 30%, rgba(255,0,122,0.2) 60%, transparent 80%)',
+          width: '150%',
+          height: '120%',
+          top: '-10%',
+          left: '-25%',
         }}
       />
       <Image
@@ -58,7 +61,7 @@ export function PixelJar({ jarValue, maxValue = 50000, size = "normal" }: PixelJ
         className="pixel-sprite relative z-10"
         style={{
           imageRendering: "pixelated",
-          filter: 'drop-shadow(0 0 15px rgba(255,0,122,0.4))',
+          filter: 'drop-shadow(0 0 20px rgba(255,0,122,0.6)) drop-shadow(0 0 40px rgba(255,0,122,0.3))',
         }}
         priority
       />
@@ -185,10 +188,10 @@ export default function JarVisualization({
             alt="Arrow"
             width={48}
             height={24}
-            className="pixel-sprite opacity-60"
+            className="pixel-sprite opacity-70"
             style={{ imageRendering: "pixelated" }}
           />
-          <span className="text-[7px] text-gray-500 text-center leading-tight">
+          <span className="text-[9px] text-gray-400 text-center leading-tight font-medium tracking-wide">
             BURN<br />TO<br />CLAIM
           </span>
         </div>
@@ -206,9 +209,9 @@ export default function JarVisualization({
       {/* Comparison bar - improved labels */}
       <div className="mt-6">
         <div className="flex items-center justify-between mb-2">
-          <span className="text-[8px] text-red-400/80">{burnPercent.toFixed(0)}% burn</span>
-          <span className="text-[8px] text-gray-600 uppercase tracking-wider">Burn vs Reward</span>
-          <span className={`text-[8px] ${isProfitable ? 'text-green-400/80' : 'text-yellow-400/80'}`}>
+          <span className="text-[10px] text-red-400/90 font-medium">{burnPercent.toFixed(0)}% burn</span>
+          <span className="text-[9px] text-gray-500 uppercase tracking-wider">Burn vs Reward</span>
+          <span className={`text-[10px] font-medium ${isProfitable ? 'text-green-400/90' : 'text-yellow-400/90'}`}>
             {jarPercent.toFixed(0)}% reward
           </span>
         </div>

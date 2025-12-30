@@ -249,23 +249,30 @@ export default function Home() {
       {/* Header */}
       <header className="card mb-6 p-4 md:p-5">
         <div className="flex items-center justify-between w-full">
-          {/* Logo & Title */}
-          <div className="flex items-center gap-3">
-            <Image
-              src="/assets/logo.png"
-              alt="UNI JAR"
-              width={48}
-              height={48}
-              className="pixel-sprite logo-bounce"
-              style={{ imageRendering: 'pixelated' }}
-              priority
-            />
-            <div>
-              <h1 className="text-sm md:text-base text-[#FF007A]" style={{ textShadow: '0 0 20px rgba(255,0,122,0.5)' }}>
+          {/* Logo & Title - larger logo with glow, tighter text stack */}
+          <div className="flex items-center gap-4">
+            <div className="relative">
+              {/* Logo glow */}
+              <div 
+                className="absolute inset-0 blur-xl opacity-50"
+                style={{ background: 'radial-gradient(circle, rgba(255,0,122,0.6) 0%, transparent 70%)' }}
+              />
+              <Image
+                src="/assets/logo.png"
+                alt="UNI JAR"
+                width={56}
+                height={56}
+                className="pixel-sprite logo-bounce relative z-10"
+                style={{ imageRendering: 'pixelated', filter: 'drop-shadow(0 0 8px rgba(255,0,122,0.5))' }}
+                priority
+              />
+            </div>
+            <div className="flex flex-col">
+              <h1 className="text-lg md:text-xl font-bold text-[#FF007A] leading-tight" style={{ textShadow: '0 0 20px rgba(255,0,122,0.5)' }}>
                 UNI JAR
               </h1>
-              <p className="text-[7px] text-gray-500 mt-0.5 tracking-wider">
-                UNISWAP FEE BURN MONITOR
+              <p className="text-[9px] text-gray-400 tracking-wider">
+                Uniswap Fee Burn Monitor
               </p>
             </div>
           </div>
@@ -362,7 +369,7 @@ export default function Home() {
           {/* Net Profit Card */}
           <div className="card p-6">
             <div className="text-center">
-              <span className="text-[9px] text-gray-500 uppercase tracking-wider">Net Profit</span>
+              <span className="text-[11px] text-gray-400 uppercase tracking-wider font-medium">Net Profit</span>
               <div 
                 className={`text-3xl md:text-4xl font-bold mt-2 mb-4 ${
                   data.isProfitable ? 'text-green-400' : 'text-red-400'
@@ -464,15 +471,15 @@ export default function Home() {
               )}
 
               {(data.otherTokensCount > 0 || data.unpricedTokensCount > 0) && (
-                <div className="mt-auto pt-3 border-t border-gray-800/50 text-[8px] text-gray-500">
+                <div className="mt-auto pt-3 border-t border-gray-800/50 text-[9px] text-gray-400">
                   {data.otherTokensCount > 0 && (
                     <div className="flex justify-between">
                       <span>Other x{data.otherTokensCount}</span>
-                      <span className="text-yellow-400/60">{formatUsd(data.otherTokensValueUsd)}</span>
+                      <span className="text-yellow-400/70">{formatUsd(data.otherTokensValueUsd)}</span>
                     </div>
                   )}
                   {data.unpricedTokensCount > 0 && (
-                    <div className="mt-1 text-gray-600">Unpriced: {data.unpricedTokensCount}</div>
+                    <div className="mt-1 text-gray-500">Unpriced: {data.unpricedTokensCount}</div>
                   )}
                 </div>
               )}
