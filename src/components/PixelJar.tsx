@@ -194,24 +194,27 @@ export default function JarVisualization({
         </div>
       </div>
 
-      {/* Comparison bar */}
+      {/* Comparison bar - improved labels */}
       <div className="mt-6">
         <div className="flex items-center justify-between mb-2">
-          <span className="text-[8px] text-gray-500 uppercase tracking-wider">Burn vs Reward</span>
-          <span className="text-[8px] text-gray-600">{burnPercent.toFixed(0)}% / {jarPercent.toFixed(0)}%</span>
+          <span className="text-[8px] text-red-400/80">{burnPercent.toFixed(0)}% burn</span>
+          <span className="text-[8px] text-gray-600 uppercase tracking-wider">Burn vs Reward</span>
+          <span className={`text-[8px] ${isProfitable ? 'text-green-400/80' : 'text-yellow-400/80'}`}>
+            {jarPercent.toFixed(0)}% reward
+          </span>
         </div>
-        <div className="h-3 flex rounded-sm overflow-hidden bg-gray-800/50">
+        <div className="h-2.5 flex rounded-sm overflow-hidden bg-gray-900">
           {/* Burn portion (red) */}
           <div
-            className="bg-gradient-to-r from-red-600/80 to-red-500/80 transition-all duration-500"
+            className="bg-gradient-to-r from-red-600/70 to-red-500/70 transition-all duration-500"
             style={{ width: `${burnPercent}%` }}
           />
           {/* Jar portion (green/gold) */}
           <div
             className={`transition-all duration-500 ${
               isProfitable 
-                ? 'bg-gradient-to-r from-green-500/80 to-green-400/80' 
-                : 'bg-gradient-to-r from-yellow-600/80 to-yellow-500/80'
+                ? 'bg-gradient-to-r from-green-500/70 to-green-400/70' 
+                : 'bg-gradient-to-r from-yellow-600/70 to-yellow-500/70'
             }`}
             style={{ width: `${jarPercent}%` }}
           />

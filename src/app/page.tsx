@@ -68,14 +68,6 @@ function formatUsd(value: number, showSign = false): string {
   return `${sign}$${absValue.toFixed(0)}`;
 }
 
-function formatNumber(value: string | number, decimals = 2): string {
-  const num = typeof value === "string" ? parseFloat(value) : value;
-  if (num >= 1_000_000) return `${(num / 1_000_000).toFixed(2)}M`;
-  if (num >= 1_000) return `${(num / 1_000).toFixed(2)}K`;
-  if (num < 0.01) return num.toExponential(1);
-  return num.toFixed(decimals);
-}
-
 function formatTimeAgo(timestamp: number): string {
   const seconds = Math.floor((Date.now() - timestamp) / 1000);
   if (seconds < 60) return `${seconds}s`;
@@ -83,6 +75,11 @@ function formatTimeAgo(timestamp: number): string {
   if (minutes < 60) return `${minutes}m`;
   const hours = Math.floor(minutes / 60);
   return `${hours}h`;
+}
+
+// Truncate address for display
+function truncateAddress(address: string): string {
+  return `${address.slice(0, 6)}...${address.slice(-4)}`;
 }
 
 // Pixel heart - Uniswap pink
@@ -132,37 +129,39 @@ function FloatingEmbers() {
   );
 }
 
-// Profit Threshold Gauge - Full width, prominent
+// Profit Threshold Gauge
 function ProfitGauge({ currentValue, burnCost }: { currentValue: number; burnCost: number }) {
   const needed = burnCost - currentValue;
   const progress = Math.min(100, Math.max(0, (currentValue / burnCost) * 100));
   const isProfitable = progress >= 100;
   
   return (
-    <div className="gauge-container">
+    <div className="mt-6 pt-6 border-t border-gray-800/50">
       <div className="flex justify-between items-center mb-3">
-        <span className="text-label text-gray-400">PROFIT THRESHOLD</span>
-        <span className={`text-[11px] font-bold ${isProfitable ? 'text-green' : 'text-pink'}`}>
+        <span className="text-[9px] text-gray-500 uppercase tracking-wider">Profit Threshold</span>
+        <span className={`text-[10px] font-bold ${isProfitable ? 'text-green-400' : 'text-pink'}`}>
           {progress.toFixed(1)}%
         </span>
       </div>
       
-      <div className="gauge-track">
+      <div className="h-3 bg-gray-900 rounded-full overflow-hidden">
         <div 
-          className="gauge-fill"
+          className="h-full rounded-full transition-all duration-500"
           style={{ 
             width: `${progress}%`,
             background: isProfitable 
               ? 'linear-gradient(90deg, #27AE60, #58d858)' 
               : 'linear-gradient(90deg, #FF007A, #ff5fa2)',
-            color: isProfitable ? '#27AE60' : '#FF007A'
+            boxShadow: isProfitable 
+              ? '0 0 10px rgba(39, 174, 96, 0.5)' 
+              : '0 0 10px rgba(255, 0, 122, 0.5)'
           }}
         />
       </div>
       
-      <div className="gauge-markers text-[8px]">
+      <div className="flex justify-between mt-2 text-[8px]">
         <span className="text-gray-600">$0</span>
-        <span className={isProfitable ? 'text-green' : 'text-yellow-400'}>
+        <span className={isProfitable ? 'text-green-400' : 'text-yellow-400'}>
           {needed > 0 ? `${formatUsd(needed)} needed` : '✓ PROFITABLE'}
         </span>
         <span className="text-gray-600">{formatUsd(burnCost)}</span>
@@ -171,30 +170,35 @@ function ProfitGauge({ currentValue, burnCost }: { currentValue: number; burnCos
   );
 }
 
-// Status message based on profitability
-function StatusMessage({ netProfit, burnCost }: { netProfit: number; burnCost: number }) {
+// Status badge based on profitability
+function StatusBadge({ netProfit, burnCost }: { netProfit: number; burnCost: number }) {
   const ratio = netProfit / burnCost;
   
   let message: string;
-  let className: string;
+  let bgClass: string;
+  let textClass: string;
   
   if (netProfit >= 0) {
     message = '✨ READY TO CLAIM';
-    className = 'text-green badge-success';
+    bgClass = 'bg-green-500/20 border-green-500/40';
+    textClass = 'text-green-400';
   } else if (ratio > -0.1) {
     message = '🔥 ALMOST THERE';
-    className = 'text-yellow-400 bg-yellow-400/10 border-yellow-400/30';
+    bgClass = 'bg-yellow-500/20 border-yellow-500/40';
+    textClass = 'text-yellow-400';
   } else if (ratio > -0.5) {
     message = '⏳ ACCUMULATING';
-    className = 'text-gray-400 bg-gray-400/10 border-gray-400/30';
+    bgClass = 'bg-gray-500/20 border-gray-500/40';
+    textClass = 'text-gray-400';
   } else {
     message = '💀 VERY UNPROFITABLE';
-    className = 'text-red badge-danger';
+    bgClass = 'bg-red-500/20 border-red-500/40';
+    textClass = 'text-red-400';
   }
   
   return (
-    <div className={`badge ${className}`}>
-      {message}
+    <div className={`inline-flex items-center gap-2 px-4 py-2 rounded-full border ${bgClass}`}>
+      <span className={`text-[10px] font-medium ${textClass}`}>{message}</span>
     </div>
   );
 }
@@ -241,43 +245,43 @@ export default function Home() {
   const hearts = [healthPercent > 66, healthPercent > 33, healthPercent > 0];
 
   return (
-    <main className="min-h-screen p-6 md:p-8 max-w-6xl mx-auto">
+    <main className="min-h-screen p-4 md:p-8 max-w-4xl mx-auto">
       {/* Header */}
-      <header className="header mb-8">
+      <header className="card mb-6 p-4 md:p-5">
         <div className="flex items-center justify-between w-full">
           {/* Logo & Title */}
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-3">
             <Image
               src="/assets/logo.png"
               alt="UNI JAR"
-              width={56}
-              height={56}
+              width={48}
+              height={48}
               className="pixel-sprite logo-bounce"
               style={{ imageRendering: 'pixelated' }}
               priority
             />
             <div>
-              <h1 className="text-base md:text-lg text-pink text-glow-pink">
+              <h1 className="text-sm md:text-base text-[#FF007A]" style={{ textShadow: '0 0 20px rgba(255,0,122,0.5)' }}>
                 UNI JAR
               </h1>
-              <p className="text-[8px] text-gray-500 mt-1">
+              <p className="text-[7px] text-gray-500 mt-0.5 tracking-wider">
                 UNISWAP FEE BURN MONITOR
               </p>
             </div>
           </div>
           
           {/* Status & Controls */}
-          <div className="flex items-center gap-6">
-            <div className="flex gap-1">
+          <div className="flex items-center gap-4">
+            <div className="hidden sm:flex gap-1">
               {hearts.map((filled, i) => (
                 <PixelHeart key={i} filled={filled} />
               ))}
             </div>
             
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2">
               <StatusIndicator status={status} />
               {lastFetch && (
-                <span className="text-[9px] text-gray-600">
+                <span className="text-[8px] text-gray-600">
                   {formatTimeAgo(lastFetch)}
                 </span>
               )}
@@ -286,7 +290,7 @@ export default function Home() {
             <button
               onClick={fetchData}
               disabled={isRefreshing}
-              className="retro-btn"
+              className="retro-btn text-[9px] px-3 py-2"
             >
               {isRefreshing ? "..." : "SCOUT"}
             </button>
@@ -296,12 +300,12 @@ export default function Home() {
 
       {/* Error State */}
       {error && (
-        <div className="card p-card mb-6 border-red-500/30">
+        <div className="card p-5 mb-6 border-red-500/30">
           <div className="flex items-center gap-4">
             <span className="text-2xl">💀</span>
             <div>
-              <h2 className="text-red text-[11px] mb-1">ERROR</h2>
-              <p className="text-red/70 text-[10px]">{error}</p>
+              <h2 className="text-red-400 text-[11px] mb-1">ERROR</h2>
+              <p className="text-red-400/70 text-[10px]">{error}</p>
             </div>
           </div>
         </div>
@@ -318,7 +322,7 @@ export default function Home() {
             className="pixel-sprite animate-bounce mb-6"
             style={{ imageRendering: 'pixelated' }}
           />
-          <div className="text-pink text-sm animate-pulse">
+          <div className="text-[#FF007A] text-sm animate-pulse">
             LOADING JAR...
           </div>
         </div>
@@ -326,180 +330,178 @@ export default function Home() {
 
       {/* Main Content */}
       {data && (
-        <div className="grid lg:grid-cols-5 gap-6">
-          {/* Left Column - Visualization (3/5 width) */}
-          <div className="lg:col-span-3 space-y-6">
-            {/* Jar Visualization Card */}
-            <div className="card-glow p-card relative overflow-hidden">
-              <FloatingEmbers />
-              
-              <h2 className="text-label text-center mb-6 text-pink">
-                BURN vs VAULT
-              </h2>
+        <div className="space-y-5">
+          {/* Jar Visualization Card */}
+          <div className="card p-6 md:p-8 relative overflow-hidden">
+            <FloatingEmbers />
+            
+            <h2 className="text-[10px] text-center mb-4 text-[#FF007A] tracking-widest">
+              BURN vs VAULT
+            </h2>
 
-              {/* Larger Jar Visualization */}
-              <div className="flex justify-center">
-                <JarVisualization
-                  tokens={data.displayTokens.map((t) => ({
-                    symbol: t.symbol,
-                    valueUsd: t.valueUsd,
-                  }))}
-                  totalValue={data.totalJarValueUsd}
-                  burnCost={data.burnCostUsd}
-                  isProfitable={data.isProfitable}
-                />
-              </div>
-            </div>
-
-            {/* Net Profit Card */}
-            <div className="card p-card">
-              <div className="text-center">
-                <span className="text-label text-gray-500">NET PROFIT</span>
-                <div 
-                  className={`text-display mt-3 mb-4 ${
-                    data.isProfitable ? 'text-green treasure-glow' : 'text-red danger-pulse'
-                  }`}
-                  style={{ fontSize: '2rem' }}
-                >
-                  {formatUsd(data.netProfitUsd, true)}
-                </div>
-                
-                <StatusMessage netProfit={data.netProfitUsd} burnCost={data.burnCostUsd} />
-              </div>
-              
-              {/* Profit Gauge */}
-              <ProfitGauge currentValue={data.totalJarValueUsd} burnCost={data.burnCostUsd} />
+            {/* Jar with glow effect */}
+            <div className="flex justify-center relative">
+              <div 
+                className="absolute inset-0 flex justify-center items-center pointer-events-none"
+                style={{
+                  background: 'radial-gradient(ellipse at center, rgba(255,0,122,0.15) 0%, transparent 60%)',
+                }}
+              />
+              <JarVisualization
+                tokens={data.displayTokens.map((t) => ({
+                  symbol: t.symbol,
+                  valueUsd: t.valueUsd,
+                }))}
+                totalValue={data.totalJarValueUsd}
+                burnCost={data.burnCostUsd}
+                isProfitable={data.isProfitable}
+              />
             </div>
           </div>
 
-          {/* Right Column - Unified Sidebar (2/5 width) */}
-          <div className="lg:col-span-2">
-            <div className="card-sidebar p-card space-y-0">
-              {/* Breakdown Section */}
-              <div>
-                <h2 className="text-label text-pink mb-4">BREAKDOWN</h2>
-                <div className="space-y-3">
-                  <div className="flex justify-between items-center">
-                    <Tooltip text="Total value of tokens in the jar">
-                      <span className="text-[10px] text-gray-400">JAR VALUE</span>
-                    </Tooltip>
-                    <span className="text-[11px] text-gold font-bold">
-                      {formatUsd(data.totalJarValueUsd)}
+          {/* Net Profit Card */}
+          <div className="card p-6">
+            <div className="text-center">
+              <span className="text-[9px] text-gray-500 uppercase tracking-wider">Net Profit</span>
+              <div 
+                className={`text-3xl md:text-4xl font-bold mt-2 mb-4 ${
+                  data.isProfitable ? 'text-green-400' : 'text-red-400'
+                }`}
+                style={{
+                  textShadow: data.isProfitable 
+                    ? '0 0 30px rgba(39,174,96,0.5)' 
+                    : '0 0 30px rgba(253,64,64,0.5)'
+                }}
+              >
+                {formatUsd(data.netProfitUsd, true)}
+              </div>
+              
+              <StatusBadge netProfit={data.netProfitUsd} burnCost={data.burnCostUsd} />
+            </div>
+            
+            {/* Profit Gauge */}
+            <ProfitGauge currentValue={data.totalJarValueUsd} burnCost={data.burnCostUsd} />
+          </div>
+
+          {/* Stats Grid - Separate Cards */}
+          <div className="grid md:grid-cols-2 gap-5">
+            {/* Breakdown Card */}
+            <div className="card p-5">
+              <h2 className="text-[9px] text-[#FF007A] mb-4 tracking-widest">BREAKDOWN</h2>
+              <div className="space-y-3">
+                <div className="flex justify-between items-center">
+                  <Tooltip text="Total value of tokens in the jar">
+                    <span className="text-[10px] text-gray-400">JAR VALUE</span>
+                  </Tooltip>
+                  <span className="text-[11px] text-yellow-400 font-medium">
+                    {formatUsd(data.totalJarValueUsd)}
+                  </span>
+                </div>
+                
+                <div className="flex justify-between items-center">
+                  <Tooltip text="Cost to burn 4000 UNI tokens">
+                    <span className="text-[10px] text-gray-400">
+                      BURN COST <span className="text-gray-600">({data.burnThreshold.toLocaleString()} UNI)</span>
                     </span>
-                  </div>
-                  
-                  <div className="flex justify-between items-center">
-                    <Tooltip text="Cost to burn 4000 UNI tokens">
-                      <span className="text-[10px] text-gray-400">
-                        BURN COST ({data.burnThreshold.toLocaleString()} UNI)
-                      </span>
-                    </Tooltip>
-                    <span className="text-[11px] text-red">
-                      -{formatUsd(data.burnCostUsd)}
-                    </span>
-                  </div>
-                  
-                  <div className="flex justify-between items-center">
-                    <Tooltip text="Estimated gas for transaction">
-                      <span className="text-[10px] text-gray-400">GAS EST.</span>
-                    </Tooltip>
-                    <span className="text-[11px] text-red">
-                      -{formatUsd(data.gasEstimateUsd)}
-                    </span>
-                  </div>
+                  </Tooltip>
+                  <span className="text-[11px] text-red-400 font-medium">
+                    -{formatUsd(data.burnCostUsd)}
+                  </span>
+                </div>
+                
+                <div className="flex justify-between items-center">
+                  <Tooltip text="Estimated gas for transaction">
+                    <span className="text-[10px] text-gray-400">GAS EST.</span>
+                  </Tooltip>
+                  <span className="text-[11px] text-red-400 font-medium">
+                    -{formatUsd(data.gasEstimateUsd)}
+                  </span>
                 </div>
               </div>
-
-              <div className="card-divider" />
-
-              {/* Tokens Section */}
-              <div>
-                <h2 className="text-label text-pink mb-4">
-                  TOKENS
-                  <span className="text-gray-600 text-[8px] ml-2">(&gt;$1K)</span>
-                </h2>
-
-                {data.displayTokens.length === 0 ? (
-                  <div className="text-center py-4">
-                    <p className="text-gray-500 text-[10px]">NO LARGE HOLDINGS</p>
-                    <p className="text-gray-600 text-[8px] mt-1">(small balances only)</p>
-                  </div>
-                ) : (
-                  <div className="space-y-2 max-h-32 overflow-y-auto">
-                    {data.displayTokens.map((token) => (
-                      <div
-                        key={token.address}
-                        className="flex justify-between items-center py-1 text-[10px]"
-                      >
-                        <div className="flex items-center gap-2">
-                          <span
-                            className="w-2 h-2 rounded-sm"
-                            style={{ background: getTokenColor(token.symbol) }}
-                          />
-                          <span className="text-white">{token.symbol}</span>
-                        </div>
-                        <span className="text-green text-[9px]">
-                          {token.valueUsd ? formatUsd(token.valueUsd) : "-"}
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-                )}
-
-                {(data.otherTokensCount > 0 || data.unpricedTokensCount > 0) && (
-                  <div className="mt-3 pt-3 border-t border-gray-800 text-[8px] text-gray-600">
-                    {data.otherTokensCount > 0 && (
-                      <div className="flex justify-between">
-                        <span>Other x{data.otherTokensCount}</span>
-                        <span className="text-gold/60">{formatUsd(data.otherTokensValueUsd)}</span>
-                      </div>
-                    )}
-                    {data.unpricedTokensCount > 0 && (
-                      <div className="mt-1">Unpriced: {data.unpricedTokensCount}</div>
-                    )}
-                  </div>
-                )}
-              </div>
-
-              <div className="card-divider" />
-
-              {/* UNI Price Section */}
-              <div className="flex justify-between items-center">
-                <span className="text-label text-gray-400">UNI PRICE</span>
-                <span className="text-[13px] text-pink font-bold">
+              
+              {/* UNI Price - integrated into breakdown */}
+              <div className="mt-4 pt-4 border-t border-gray-800/50 flex justify-between items-center">
+                <span className="text-[10px] text-gray-400">UNI PRICE</span>
+                <span className="text-[13px] text-[#FF007A] font-bold">
                   ${data.uniPriceUsd.toFixed(2)}
                 </span>
               </div>
+            </div>
 
-              <div className="card-divider" />
+            {/* Tokens Card */}
+            <div className="card p-5">
+              <h2 className="text-[9px] text-[#FF007A] mb-4 tracking-widest">
+                TOKENS <span className="text-gray-600">(&gt;$1K)</span>
+              </h2>
 
-              {/* Contracts Section */}
-              <div>
-                <h2 className="text-label text-pink mb-3">CONTRACTS</h2>
-                <div className="space-y-2 text-[8px]">
-                  <div>
-                    <span className="text-gray-600">TOKENJAR</span>
-                    <a
-                      href={`https://etherscan.io/address/${TOKENJAR_ADDRESS}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="block text-blue-400 hover:text-blue-300 truncate mt-0.5"
-                    >
-                      {TOKENJAR_ADDRESS}
-                    </a>
-                  </div>
-                  <div>
-                    <span className="text-gray-600">FIREPIT</span>
-                    <a
-                      href={`https://etherscan.io/address/${FIREPIT_ADDRESS}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="block text-blue-400 hover:text-blue-300 truncate mt-0.5"
-                    >
-                      {FIREPIT_ADDRESS}
-                    </a>
-                  </div>
+              {data.displayTokens.length === 0 ? (
+                <div className="text-center py-6">
+                  <p className="text-gray-500 text-[10px]">NO LARGE HOLDINGS</p>
+                  <p className="text-gray-600 text-[8px] mt-1">(small balances only)</p>
                 </div>
+              ) : (
+                <div className="space-y-2 max-h-28 overflow-y-auto">
+                  {data.displayTokens.map((token) => (
+                    <div
+                      key={token.address}
+                      className="flex justify-between items-center py-1 text-[10px]"
+                    >
+                      <div className="flex items-center gap-2">
+                        <span
+                          className="w-2 h-2 rounded-sm"
+                          style={{ background: getTokenColor(token.symbol) }}
+                        />
+                        <span className="text-white">{token.symbol}</span>
+                      </div>
+                      <span className="text-green-400 text-[9px]">
+                        {token.valueUsd ? formatUsd(token.valueUsd) : "-"}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {(data.otherTokensCount > 0 || data.unpricedTokensCount > 0) && (
+                <div className="mt-4 pt-3 border-t border-gray-800/50 text-[8px] text-gray-500">
+                  {data.otherTokensCount > 0 && (
+                    <div className="flex justify-between">
+                      <span>Other x{data.otherTokensCount}</span>
+                      <span className="text-yellow-400/60">{formatUsd(data.otherTokensValueUsd)}</span>
+                    </div>
+                  )}
+                  {data.unpricedTokensCount > 0 && (
+                    <div className="mt-1 text-gray-600">Unpriced: {data.unpricedTokensCount}</div>
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Contracts Card - Separate, cleaner */}
+          <div className="card p-5">
+            <h2 className="text-[9px] text-[#FF007A] mb-4 tracking-widest">CONTRACTS</h2>
+            <div className="grid md:grid-cols-2 gap-4">
+              <div className="flex items-center justify-between">
+                <span className="text-[9px] text-gray-500 font-medium">TOKENJAR</span>
+                <a
+                  href={`https://etherscan.io/address/${TOKENJAR_ADDRESS}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-[10px] text-blue-400 hover:text-blue-300 font-mono transition-colors"
+                >
+                  {truncateAddress(TOKENJAR_ADDRESS)}
+                </a>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-[9px] text-gray-500 font-medium">FIREPIT</span>
+                <a
+                  href={`https://etherscan.io/address/${FIREPIT_ADDRESS}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-[10px] text-blue-400 hover:text-blue-300 font-mono transition-colors"
+                >
+                  {truncateAddress(FIREPIT_ADDRESS)}
+                </a>
               </div>
             </div>
           </div>
@@ -507,7 +509,7 @@ export default function Home() {
       )}
 
       {/* Footer */}
-      <footer className="mt-10 text-center text-[8px] text-gray-600">
+      <footer className="mt-12 text-center text-[8px] text-gray-600">
         <p>Auto-refreshes every 30 seconds • Prices via CoinGecko</p>
         <p className="mt-1 text-gray-700">Not financial advice</p>
       </footer>
