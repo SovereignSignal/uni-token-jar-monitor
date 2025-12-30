@@ -247,34 +247,19 @@ export default function Home() {
   return (
     <main className="min-h-screen p-4 md:p-8 max-w-4xl mx-auto">
       {/* Header */}
-      <header className="card mb-6 p-4 md:p-5">
+      <header className="card mb-6 p-3 md:p-4">
         <div className="flex items-center justify-between w-full">
-          {/* Logo & Title - larger logo with glow, tighter text stack */}
-          <div className="flex items-center gap-4">
-            <div className="relative">
-              {/* Logo glow */}
-              <div 
-                className="absolute inset-0 blur-xl opacity-50"
-                style={{ background: 'radial-gradient(circle, rgba(255,0,122,0.6) 0%, transparent 70%)' }}
-              />
-              <Image
-                src="/assets/logo-clean.png"
-                alt="UNI JAR"
-                width={56}
-                height={56}
-                className="pixel-sprite logo-bounce relative z-10"
-                style={{ imageRendering: 'pixelated', filter: 'drop-shadow(0 0 8px rgba(255,0,122,0.5))' }}
-                priority
-              />
-            </div>
-            <div className="flex flex-col">
-              <h1 className="text-lg md:text-xl font-bold text-[#FF007A] leading-tight" style={{ textShadow: '0 0 20px rgba(255,0,122,0.5)' }}>
-                UNI JAR
-              </h1>
-              <p className="text-[9px] text-gray-400 tracking-wider">
-                Uniswap Fee Burn Monitor
-              </p>
-            </div>
+          {/* Glowing Logo Sprite - single image with text baked in */}
+          <div className="relative">
+            <Image
+              src="/assets/logo-glow.png"
+              alt="UNI JAR - Uniswap Fee Burn Monitor"
+              width={220}
+              height={80}
+              className="pixel-sprite"
+              style={{ imageRendering: 'pixelated' }}
+              priority
+            />
           </div>
           
           {/* Status & Controls */}
