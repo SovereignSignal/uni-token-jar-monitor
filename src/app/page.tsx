@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
+import Image from "next/image";
 import { REFRESH_INTERVAL_MS, TOKENJAR_ADDRESS, FIREPIT_ADDRESS } from "@/lib/constants";
 import type { TokenJarApiResponse } from "./api/tokenjar/route";
 import type { ProfitabilityData } from "@/lib/profitability";
@@ -37,199 +38,7 @@ const NOT_PROFITABLE_MESSAGES = [
   "BEWARE THE VOID! YOUR TOKENS WOULD VANISH.",
 ];
 
-// Large animated torch component - bigger flames
-function PixelTorch() {
-  const [frame, setFrame] = useState(0);
-  
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setFrame(f => (f + 1) % 4);
-    }, 150);
-    return () => clearInterval(interval);
-  }, []);
-  
-  const flameHeights = [14, 18, 16, 15];
-  const flameOffsets = [0, 1, -1, 0];
-  const h = flameHeights[frame];
-  const xOff = flameOffsets[frame];
-  
-  return (
-    <svg viewBox="0 0 24 56" width="48" height="112" style={{ imageRendering: "pixelated" }}>
-      {/* Torch mount/bracket */}
-      <rect x="8" y="32" width="8" height="4" fill="#5c3317" />
-      <rect x="10" y="36" width="4" height="18" fill="#8b4513" />
-      <rect x="8" y="52" width="8" height="4" fill="#5c3317" />
-      
-      {/* Flame base glow */}
-      <rect x="4" y="24" width="16" height="12" fill="#fc6c18" opacity="0.8" />
-      
-      {/* Flame base */}
-      <rect x="6" y="26" width="12" height="8" fill="#fc6c18" />
-      
-      {/* Animated flame layers */}
-      <rect x={7 + xOff} y={34 - h} width="10" height={h - 4} fill="#fcbc18" />
-      <rect x={8 + xOff} y={32 - h} width="8" height={h - 6} fill="#fc9090" />
-      <rect x={9 + xOff} y={30 - h} width="6" height={h - 8} fill="#fcfcfc" />
-      <rect x={10 + xOff} y={28 - h} width="4" height={h - 10} fill="#fcfcfc" />
-      
-      {/* Sparks */}
-      {frame % 2 === 0 && (
-        <>
-          <rect x={6 + xOff} y={20 - h} width="2" height="2" fill="#fcbc18" opacity="0.8" />
-          <rect x={16 - xOff} y={18 - h} width="2" height="2" fill="#fc9090" opacity="0.6" />
-        </>
-      )}
-    </svg>
-  );
-}
-
-// Old man/sage character - larger
-function PixelOldMan({ isProfitable }: { isProfitable: boolean }) {
-  return (
-    <svg viewBox="0 0 16 24" width="80" height="120" style={{ imageRendering: "pixelated" }}>
-      {/* Robe - brown like original Zelda */}
-      <rect x="4" y="8" width="8" height="12" fill="#8b4513" />
-      <rect x="3" y="10" width="10" height="10" fill="#a0522d" />
-      <rect x="2" y="12" width="12" height="8" fill="#8b4513" />
-      
-      {/* Hood */}
-      <rect x="5" y="2" width="6" height="2" fill="#8b4513" />
-      <rect x="4" y="4" width="8" height="4" fill="#a0522d" />
-      
-      {/* Face */}
-      <rect x="5" y="5" width="6" height="4" fill="#fcbcb0" />
-      {/* Eyes */}
-      <rect x="6" y="6" width="1" height="1" fill="#000" />
-      <rect x="9" y="6" width="1" height="1" fill="#000" />
-      {/* Beard */}
-      <rect x="6" y="8" width="4" height="2" fill="#e0e0e0" />
-      <rect x="7" y="10" width="2" height="1" fill="#c0c0c0" />
-      
-      {/* Arms extended outward */}
-      <rect x="0" y="11" width="4" height="4" fill="#a0522d" />
-      <rect x="12" y="11" width="4" height="4" fill="#a0522d" />
-      {/* Hands */}
-      <rect x="0" y="12" width="2" height="3" fill="#fcbcb0" />
-      <rect x="14" y="12" width="2" height="3" fill="#fcbcb0" />
-      
-      {/* Feet */}
-      <rect x="5" y="20" width="2" height="2" fill="#5c3317" />
-      <rect x="9" y="20" width="2" height="2" fill="#5c3317" />
-      
-      {/* Glow if profitable */}
-      {isProfitable && (
-        <rect x="5" y="14" width="6" height="5" fill="#FFD700" opacity="0.5" />
-      )}
-    </svg>
-  );
-}
-
-// Token Jar on pedestal - LARGER and more prominent
-function PixelJarPedestal({ jarValue, isProfitable }: { jarValue: number; isProfitable: boolean }) {
-  const fillLevel = Math.min(6, Math.max(1, Math.floor(jarValue / 150) + 1));
-  
-  return (
-    <svg viewBox="0 0 32 40" width="96" height="120" style={{ imageRendering: "pixelated" }}>
-      {/* Stone pedestal - more detailed */}
-      <rect x="4" y="30" width="24" height="4" fill="#7c7c7c" />
-      <rect x="2" y="34" width="28" height="6" fill="#5c5c5c" />
-      <rect x="6" y="28" width="20" height="2" fill="#9c9c9c" />
-      {/* Pedestal highlight */}
-      <rect x="4" y="30" width="2" height="4" fill="#9c9c9c" />
-      
-      {/* Jar - larger and more detailed */}
-      {/* Jar rim */}
-      <rect x="9" y="4" width="14" height="3" fill="#fcbcb0" />
-      <rect x="8" y="6" width="16" height="2" fill="#e0a090" />
-      {/* Jar neck */}
-      <rect x="10" y="8" width="12" height="3" fill="#fcbcb0" />
-      {/* Jar body */}
-      <rect x="7" y="11" width="18" height="17" fill="#fcbcb0" />
-      
-      {/* Jar contents - fill based on value */}
-      <rect 
-        x="8" 
-        y={28 - fillLevel * 2.5} 
-        width="16" 
-        height={fillLevel * 2.5} 
-        fill={isProfitable ? "#5ce65c" : "#e4464b"} 
-      />
-      
-      {/* Jar shine/highlight */}
-      <rect x="8" y="12" width="3" height="14" fill="#fff" opacity="0.35" />
-      <rect x="9" y="5" width="2" height="2" fill="#fff" opacity="0.4" />
-      
-      {/* Jar shadow */}
-      <rect x="22" y="12" width="2" height="14" fill="#000" opacity="0.2" />
-      
-      {/* Sparkles if profitable */}
-      {isProfitable && (
-        <>
-          <rect x="2" y="2" width="3" height="3" fill="#FFD700" className="animate-pulse" />
-          <rect x="27" y="6" width="3" height="3" fill="#FFD700" className="animate-pulse" />
-          <rect x="0" y="14" width="2" height="2" fill="#fcfcfc" className="animate-pulse" />
-          <rect x="30" y="18" width="2" height="2" fill="#fcfcfc" className="animate-pulse" />
-        </>
-      )}
-    </svg>
-  );
-}
-
-// Uniswap Unicorn - MUCH LARGER like Link in the original
-function PixelUnicorn() {
-  const [frame, setFrame] = useState(0);
-  
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setFrame(f => (f + 1) % 2);
-    }, 600);
-    return () => clearInterval(interval);
-  }, []);
-  
-  const yOffset = frame === 1 ? -2 : 0;
-  
-  return (
-    <svg 
-      viewBox="0 0 16 16" 
-      width="64" 
-      height="64" 
-      style={{ imageRendering: "pixelated", transform: `translateY(${yOffset}px)` }}
-    >
-      {/* Back view - facing old man */}
-      {/* Horn */}
-      <rect x="7" y="0" width="2" height="3" fill="#FFD700" />
-      <rect x="7" y="0" width="1" height="1" fill="#fff" opacity="0.5" />
-      
-      {/* Head/Mane from back */}
-      <rect x="5" y="3" width="6" height="4" fill="#FF007A" />
-      <rect x="4" y="4" width="2" height="3" fill="#7B61FF" />
-      <rect x="10" y="4" width="2" height="3" fill="#7B61FF" />
-      
-      {/* Ears */}
-      <rect x="4" y="2" width="2" height="2" fill="#FF007A" />
-      <rect x="10" y="2" width="2" height="2" fill="#FF007A" />
-      
-      {/* Body */}
-      <rect x="4" y="7" width="8" height="5" fill="#FF007A" />
-      <rect x="3" y="8" width="10" height="3" fill="#c7005f" />
-      
-      {/* Legs */}
-      <rect x="4" y="12" width="2" height="3" fill="#c7005f" />
-      <rect x="10" y="12" width="2" height="3" fill="#c7005f" />
-      
-      {/* Hooves */}
-      <rect x="4" y="15" width="2" height="1" fill="#FFD700" />
-      <rect x="10" y="15" width="2" height="1" fill="#FFD700" />
-      
-      {/* Tail */}
-      <rect x="2" y="8" width="2" height="2" fill="#7B61FF" />
-      <rect x="1" y="9" width="2" height="2" fill="#7B61FF" />
-      <rect x="0" y="10" width="2" height="2" fill="#7B61FF" />
-    </svg>
-  );
-}
-
-// Blinking cursor
+// Blinking cursor for typewriter effect
 function BlinkingCursor() {
   const [visible, setVisible] = useState(true);
   
@@ -243,6 +52,78 @@ function BlinkingCursor() {
       className="inline-block w-2 h-4 ml-1"
       style={{ backgroundColor: visible ? '#fcfcfc' : 'transparent' }}
     />
+  );
+}
+
+// Animated torch component using PNG sprite
+function AnimatedTorch({ flipped = false }: { flipped?: boolean }) {
+  const [frame, setFrame] = useState(0);
+  
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setFrame(f => (f + 1) % 4);
+    }, 150);
+    return () => clearInterval(interval);
+  }, []);
+  
+  // Subtle animation by changing scale/position
+  const transforms = [
+    'scale(1) translateY(0)',
+    'scale(1.02) translateY(-2px)',
+    'scale(0.98) translateY(1px)',
+    'scale(1.01) translateY(-1px)',
+  ];
+  
+  return (
+    <div 
+      className="relative"
+      style={{ 
+        transform: `${transforms[frame]} ${flipped ? 'scaleX(-1)' : ''}`,
+        transition: 'transform 0.1s ease-out',
+        imageRendering: 'pixelated',
+      }}
+    >
+      <Image
+        src="/assets/zelda/torch.png"
+        alt="Torch"
+        width={80}
+        height={160}
+        className="drop-shadow-[0_0_20px_rgba(252,188,24,0.6)]"
+        style={{ imageRendering: 'pixelated' }}
+        priority
+      />
+    </div>
+  );
+}
+
+// Animated unicorn with idle bounce
+function AnimatedUnicorn() {
+  const [frame, setFrame] = useState(0);
+  
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setFrame(f => (f + 1) % 2);
+    }, 600);
+    return () => clearInterval(interval);
+  }, []);
+  
+  return (
+    <div 
+      style={{ 
+        transform: `translateY(${frame === 1 ? -4 : 0}px)`,
+        transition: 'transform 0.3s ease-out',
+        imageRendering: 'pixelated',
+      }}
+    >
+      <Image
+        src="/assets/zelda/unicorn.png"
+        alt="Uniswap Unicorn"
+        width={80}
+        height={80}
+        style={{ imageRendering: 'pixelated' }}
+        priority
+      />
+    </div>
   );
 }
 
@@ -331,9 +212,9 @@ export default function Home() {
         <div className="zelda-game-screen w-full max-w-3xl aspect-[256/240] relative bg-[#0c0c0c] border-4 border-[#fcbcb0] overflow-hidden">
           
           {/* === CAVE WALLS === */}
-          {/* Top wall - thicker */}
+          {/* Top wall */}
           <div 
-            className="absolute top-0 left-0 right-0 h-16"
+            className="absolute top-0 left-0 right-0 h-20"
             style={{
               background: `
                 repeating-linear-gradient(90deg, #5a4a3a 0px, #5a4a3a 30px, #3a2a1a 30px, #3a2a1a 32px),
@@ -345,7 +226,7 @@ export default function Home() {
           
           {/* Left wall */}
           <div 
-            className="absolute top-16 left-0 w-16 bottom-20"
+            className="absolute top-20 left-0 w-20 bottom-24"
             style={{
               background: `
                 repeating-linear-gradient(90deg, #5a4a3a 0px, #5a4a3a 14px, #3a2a1a 14px, #3a2a1a 16px),
@@ -357,7 +238,7 @@ export default function Home() {
           
           {/* Right wall */}
           <div 
-            className="absolute top-16 right-0 w-16 bottom-20"
+            className="absolute top-20 right-0 w-20 bottom-24"
             style={{
               background: `
                 repeating-linear-gradient(90deg, #5a4a3a 0px, #5a4a3a 14px, #3a2a1a 14px, #3a2a1a 16px),
@@ -369,7 +250,7 @@ export default function Home() {
           
           {/* Bottom wall with entrance opening */}
           <div 
-            className="absolute bottom-0 left-0 right-0 h-20"
+            className="absolute bottom-0 left-0 right-0 h-24"
             style={{
               background: `
                 repeating-linear-gradient(90deg, #5a4a3a 0px, #5a4a3a 30px, #3a2a1a 30px, #3a2a1a 32px),
@@ -380,29 +261,29 @@ export default function Home() {
           />
           
           {/* Cave entrance opening at bottom center */}
-          <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-28 h-20 bg-[#0c0c0c]" />
+          <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-32 h-24 bg-[#0c0c0c]" />
           
           {/* Cave floor - brick pattern where unicorn stands */}
           <div 
-            className="absolute bottom-0 left-1/2 -translate-x-1/2 w-28 h-8"
+            className="absolute bottom-0 left-1/2 -translate-x-1/2 w-32 h-10"
             style={{
               background: `
-                repeating-linear-gradient(90deg, #4a3a2a 0px, #4a3a2a 12px, #2a1a0a 12px, #2a1a0a 14px),
-                repeating-linear-gradient(0deg, #4a3a2a 0px, #4a3a2a 6px, #2a1a0a 6px, #2a1a0a 8px)
+                repeating-linear-gradient(90deg, #4a3a2a 0px, #4a3a2a 14px, #2a1a0a 14px, #2a1a0a 16px),
+                repeating-linear-gradient(0deg, #4a3a2a 0px, #4a3a2a 8px, #2a1a0a 8px, #2a1a0a 10px)
               `,
-              backgroundSize: '28px 16px',
+              backgroundSize: '32px 20px',
             }}
           />
           
           {/* Cave interior floor */}
-          <div className="absolute top-16 left-16 right-16 bottom-20 bg-[#0c0c0c]" />
+          <div className="absolute top-20 left-20 right-20 bottom-24 bg-[#0c0c0c]" />
           
           {/* === TORCHES - positioned on walls === */}
-          <div className="absolute left-20 top-16 z-10">
-            <PixelTorch />
+          <div className="absolute left-24 top-20 z-10">
+            <AnimatedTorch />
           </div>
-          <div className="absolute right-20 top-16 z-10">
-            <PixelTorch />
+          <div className="absolute right-24 top-20 z-10">
+            <AnimatedTorch flipped />
           </div>
           
           {/* === LOADING STATE === */}
@@ -432,17 +313,34 @@ export default function Home() {
           {data && (
             <>
               {/* Old Man - centered at top of cave interior */}
-              <div className="absolute top-20 left-1/2 -translate-x-1/2 z-10">
-                <PixelOldMan isProfitable={data.isProfitable} />
+              <div className="absolute top-16 left-1/2 -translate-x-1/2 z-10">
+                <Image
+                  src="/assets/zelda/old-man.png"
+                  alt="Old Man Sage"
+                  width={120}
+                  height={180}
+                  style={{ imageRendering: 'pixelated' }}
+                  priority
+                />
               </div>
               
-              {/* Token Jar on Pedestal - IN FRONT of old man, prominently displayed */}
-              <div className="absolute top-36 left-1/2 -translate-x-1/2 z-10">
-                <PixelJarPedestal jarValue={data.totalJarValueUsd} isProfitable={data.isProfitable} />
+              {/* Token Jar on Pedestal - IN FRONT of old man */}
+              <div className="absolute top-44 left-1/2 -translate-x-1/2 z-10">
+                <div className={data.isProfitable ? 'animate-pulse' : ''}>
+                  <Image
+                    src="/assets/zelda/token-jar.png"
+                    alt="Token Jar"
+                    width={100}
+                    height={100}
+                    className={data.isProfitable ? 'drop-shadow-[0_0_15px_rgba(255,215,0,0.6)]' : ''}
+                    style={{ imageRendering: 'pixelated' }}
+                    priority
+                  />
+                </div>
               </div>
               
               {/* Dialog box - between jar and unicorn */}
-              <div className="absolute bottom-24 left-1/2 -translate-x-1/2 w-[75%] max-w-md z-20">
+              <div className="absolute bottom-28 left-1/2 -translate-x-1/2 w-[80%] max-w-lg z-20">
                 <div className="bg-black border-2 border-[#fcfcfc] px-4 py-3">
                   <p className="text-[#fcfcfc] text-[11px] leading-relaxed text-center zelda-text">
                     {displayedText}
@@ -451,14 +349,14 @@ export default function Home() {
                 </div>
               </div>
               
-              {/* Unicorn player character - at cave entrance, LARGER */}
+              {/* Unicorn player character - at cave entrance */}
               <div className="absolute bottom-2 left-1/2 -translate-x-1/2 z-10">
-                <PixelUnicorn />
+                <AnimatedUnicorn />
               </div>
               
               {/* Net profit indicator - top right corner */}
-              <div className="absolute top-18 right-18 z-10 text-right">
-                <div className={`text-xs font-bold ${data.isProfitable ? 'text-[#5ce65c]' : 'text-[#e4464b]'}`}>
+              <div className="absolute top-22 right-22 z-10 text-right">
+                <div className={`text-sm font-bold ${data.isProfitable ? 'text-[#5ce65c]' : 'text-[#e4464b]'}`}>
                   {data.netProfitUsd >= 0 ? '+' : ''}${Math.abs(data.netProfitUsd).toLocaleString()}
                 </div>
               </div>
