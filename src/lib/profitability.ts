@@ -22,6 +22,7 @@ export interface ProfitabilityData {
 
   // Unpriced tokens
   unpricedTokensCount: number;
+  unpricedTokens: { address: string; symbol: string; balanceFormatted: string }[];
 
   // Metadata
   timestamp: number;
@@ -45,6 +46,7 @@ export function calculateProfitability(pricedBalances: PricedBalances): Profitab
 
   // Filter tokens for display (> $1000 value)
   const displayTokens: TokenWithValue[] = [];
+  const unpricedTokens: { address: string; symbol: string; balanceFormatted: string }[] = [];
   let otherTokensCount = 0;
   let otherTokensValueUsd = 0;
 
@@ -55,7 +57,12 @@ export function calculateProfitability(pricedBalances: PricedBalances): Profitab
       otherTokensCount++;
       otherTokensValueUsd += token.valueUsd;
     } else {
-      // Unpriced tokens counted separately
+      // Collect unpriced tokens for analysis
+      unpricedTokens.push({
+        address: token.address,
+        symbol: token.symbol,
+        balanceFormatted: token.balanceFormatted,
+      });
     }
   }
 
@@ -71,6 +78,7 @@ export function calculateProfitability(pricedBalances: PricedBalances): Profitab
     otherTokensCount,
     otherTokensValueUsd,
     unpricedTokensCount: unpricedCount,
+    unpricedTokens: unpricedTokens.slice(0, 100), // Limit to first 100 for API response size
     timestamp,
     lastUpdated: new Date(timestamp).toISOString(),
   };
