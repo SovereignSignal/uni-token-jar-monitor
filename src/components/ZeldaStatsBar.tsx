@@ -1,8 +1,8 @@
 "use client";
 
 // =============================================================================
-// ZELDA STATS BAR - Bottom metrics display
-// Shows: Gas estimate, Token count, UNI price, detailed profit/loss
+// ZELDA STATS BAR - Bottom metrics display (LARGER VERSION)
+// Full-width with sprite background
 // =============================================================================
 
 interface ZeldaStatsBarProps {
@@ -32,70 +32,70 @@ export default function ZeldaStatsBar({
     }
     return `$${val.toFixed(0)}`;
   };
-
+  
   return (
     <div 
-      className="bg-black border-t-4 border-[#8B4513] px-3 py-2"
-      style={{ fontFamily: "'Press Start 2P', monospace" }}
+      className="w-full px-6 py-4"
+      style={{ 
+        fontFamily: "'Press Start 2P', monospace",
+        backgroundImage: "url('/assets/zelda/cave-wall.png')",
+        backgroundSize: "64px 64px",
+        borderTop: "6px solid #8B4513",
+      }}
     >
-      <div className="max-w-4xl mx-auto flex items-center justify-between gap-4 text-[8px]">
+      <div className="max-w-6xl mx-auto flex items-center justify-between gap-4">
         
         {/* Gas Estimate */}
-        <div className="flex flex-col">
-          <span className="text-[#666]">GAS</span>
-          <span className="text-[#FCE4B8]">
-            {isLoading ? "---" : `~${formatValue(gasEstimate)}`}
-          </span>
+        <div className="bg-black/80 px-4 py-3 border-4 border-[#8B4513] flex flex-col items-center min-w-[100px]">
+          <div className="text-[10px] text-[#FF6600] mb-1">GAS</div>
+          <div className="text-[#FCE4B8] text-lg">
+            {isLoading ? "---" : `~$${gasEstimate}`}
+          </div>
         </div>
-        
-        {/* Divider */}
-        <div className="h-6 w-px bg-[#654321]" />
         
         {/* Token Count */}
-        <div className="flex flex-col">
-          <span className="text-[#666]">TOKENS</span>
-          <span className="text-[#FCE4B8]">
-            {isLoading ? "---" : `${tokenCount} (${formatValue(tokenValue)})`}
-          </span>
+        <div className="bg-black/80 px-4 py-3 border-4 border-[#8B4513] flex flex-col items-center min-w-[140px]">
+          <div className="text-[10px] text-[#FF007A] mb-1">TOKENS</div>
+          <div className="text-[#FCE4B8] text-lg">
+            {isLoading ? "---" : (
+              <>
+                {tokenCount} <span className="text-[#00FF00] text-sm">({formatValue(tokenValue)})</span>
+              </>
+            )}
+          </div>
         </div>
-        
-        {/* Divider */}
-        <div className="h-6 w-px bg-[#654321]" />
         
         {/* UNI Price */}
-        <div className="flex flex-col">
-          <span className="text-[#666]">UNI PRICE</span>
-          <span className="text-[#FF007A]">
+        <div className="bg-black/80 px-4 py-3 border-4 border-[#8B4513] flex flex-col items-center min-w-[120px]">
+          <div className="text-[10px] text-[#FF007A] mb-1">UNI PRICE</div>
+          <div className="text-[#FCE4B8] text-lg">
             {isLoading ? "---" : `$${uniPrice.toFixed(2)}`}
-          </span>
+          </div>
         </div>
         
-        {/* Divider */}
-        <div className="h-6 w-px bg-[#654321]" />
+        {/* Spacer */}
+        <div className="flex-1" />
         
-        {/* Profit/Loss Summary - Most important */}
-        <div className="flex flex-col items-end flex-1">
-          <span className="text-[#666]">
+        {/* Would Gain/Lose - THE IMPORTANT ONE */}
+        <div className={`bg-black/80 px-6 py-3 border-4 ${isProfitable ? 'border-[#00FF00]' : 'border-[#FF0000]'} flex flex-col items-center min-w-[180px]`}>
+          <div className={`text-[10px] ${isProfitable ? 'text-[#00FF00]' : 'text-[#FF0000]'} mb-1`}>
             {isProfitable ? "WOULD GAIN" : "WOULD LOSE"}
-          </span>
-          <span className={`text-[10px] font-bold ${isProfitable ? 'text-[#00FF00]' : 'text-[#FF0000]'}`}>
+          </div>
+          <div className={`text-2xl font-bold ${isProfitable ? 'text-[#00FF00]' : 'text-[#FF0000]'}`}>
             {isLoading ? "---" : (
               <>
                 {isProfitable ? '+' : '-'}{formatValue(Math.abs(netProfit))}
               </>
             )}
-          </span>
+          </div>
         </div>
         
-        {/* Divider */}
-        <div className="h-6 w-px bg-[#654321]" />
-        
         {/* Last Update */}
-        <div className="flex flex-col items-end">
-          <span className="text-[#666]">UPDATED</span>
-          <span className="text-[#555]">
-            {isLoading ? "..." : lastUpdate}
-          </span>
+        <div className="bg-black/80 px-4 py-3 border-4 border-[#8B4513] flex flex-col items-center min-w-[100px]">
+          <div className="text-[10px] text-[#666] mb-1">UPDATED</div>
+          <div className="text-[#FCE4B8] text-sm">
+            {isLoading ? "---" : lastUpdate}
+          </div>
         </div>
         
       </div>

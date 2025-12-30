@@ -1,8 +1,8 @@
 "use client";
 
 // =============================================================================
-// ZELDA NES-STYLE HUD - Top metrics bar
-// Layout: [MAP] | RUPEES (JAR) | -LIFE- | B[UNI] A[FIRE] | NET PROFIT
+// ZELDA NES-STYLE HUD - Top metrics bar (LARGER VERSION)
+// Full-width layout with bigger elements
 // =============================================================================
 
 interface ZeldaHUDProps {
@@ -15,13 +15,13 @@ interface ZeldaHUDProps {
   tokenCount?: number;
 }
 
-// Pixel heart component - clean NES style
+// Pixel heart component - LARGER
 function PixelHeart({ filled, color = "red" }: { filled: boolean; color?: "red" | "green" }) {
   const fillColor = color === "green" ? "#00FF00" : "#FF0000";
   const emptyColor = "#333333";
   
   return (
-    <svg viewBox="0 0 8 7" width="14" height="12" style={{ imageRendering: "pixelated" }}>
+    <svg viewBox="0 0 8 7" width="24" height="21" style={{ imageRendering: "pixelated" }}>
       <rect x="1" y="0" width="2" height="1" fill={filled ? fillColor : emptyColor} />
       <rect x="5" y="0" width="2" height="1" fill={filled ? fillColor : emptyColor} />
       <rect x="0" y="1" width="4" height="1" fill={filled ? fillColor : emptyColor} />
@@ -35,32 +35,30 @@ function PixelHeart({ filled, color = "red" }: { filled: boolean; color?: "red" 
   );
 }
 
-// Mini map showing status
+// Mini map showing status - LARGER
 function MiniMap({ isProfitable }: { isProfitable: boolean }) {
   return (
     <div className="flex flex-col items-center">
       <div 
-        className="w-10 h-10 border-2 border-[#FCE4B8] bg-[#1a1a1a] flex items-center justify-center relative"
-        style={{ imageRendering: "pixelated" }}
+        className="w-16 h-16 border-4 border-[#8B4513] bg-[#1a1a1a] flex items-center justify-center relative"
+        style={{ 
+          imageRendering: "pixelated",
+          backgroundImage: "url('/assets/zelda/cave-wall.png')",
+          backgroundSize: "32px 32px",
+        }}
       >
-        {/* Grid lines */}
-        <div className="absolute inset-0 grid grid-cols-3 grid-rows-3 opacity-30">
-          {[...Array(9)].map((_, i) => (
-            <div key={i} className="border border-[#333]" />
-          ))}
-        </div>
         {/* Status indicator */}
-        <div className={`w-3 h-3 ${isProfitable ? 'bg-[#00FF00]' : 'bg-[#FF0000]'} animate-pulse`} />
+        <div className={`w-5 h-5 ${isProfitable ? 'bg-[#00FF00]' : 'bg-[#FF0000]'} animate-pulse border-2 border-black`} />
       </div>
-      <div className="text-[6px] text-[#666] mt-0.5">MAP</div>
+      <div className="text-[10px] text-[#8B4513] mt-1">MAP</div>
     </div>
   );
 }
 
-// Rupee icon
+// Rupee icon - LARGER
 function RupeeIcon() {
   return (
-    <svg viewBox="0 0 6 10" width="10" height="16" style={{ imageRendering: "pixelated" }}>
+    <svg viewBox="0 0 6 10" width="18" height="30" style={{ imageRendering: "pixelated" }}>
       <rect x="2" y="0" width="2" height="1" fill="#00FF00" />
       <rect x="1" y="1" width="4" height="1" fill="#00FF00" />
       <rect x="0" y="2" width="6" height="2" fill="#00FF00" />
@@ -71,7 +69,7 @@ function RupeeIcon() {
   );
 }
 
-// Item slot
+// Item slot - LARGER
 function ItemSlot({ 
   label, 
   value, 
@@ -85,10 +83,10 @@ function ItemSlot({
 }) {
   return (
     <div className="flex flex-col items-center">
-      <div className="text-[8px] text-[#FCE4B8]">{label}</div>
-      <div className="w-8 h-8 border border-[#FCE4B8] bg-black flex items-center justify-center">
+      <div className="text-[12px] text-[#FCE4B8] mb-1">{label}</div>
+      <div className="w-14 h-14 border-4 border-[#8B4513] bg-black flex items-center justify-center">
         {icon === "uni" ? (
-          <svg viewBox="0 0 8 8" width="14" height="14" style={{ imageRendering: "pixelated" }}>
+          <svg viewBox="0 0 8 8" width="28" height="28" style={{ imageRendering: "pixelated" }}>
             <rect x="2" y="0" width="4" height="1" fill="#FF007A" />
             <rect x="1" y="1" width="6" height="1" fill="#FF007A" />
             <rect x="0" y="2" width="8" height="4" fill="#FF007A" />
@@ -99,7 +97,7 @@ function ItemSlot({
             <rect x="3" y="5" width="2" height="1" fill="#FFF" />
           </svg>
         ) : (
-          <svg viewBox="0 0 8 10" width="14" height="18" style={{ imageRendering: "pixelated" }}>
+          <svg viewBox="0 0 8 10" width="28" height="35" style={{ imageRendering: "pixelated" }}>
             <rect x="3" y="0" width="2" height="1" fill="#FFCC00" />
             <rect x="2" y="1" width="4" height="1" fill="#FFCC00" />
             <rect x="2" y="2" width="4" height="2" fill="#FF6600" />
@@ -110,7 +108,7 @@ function ItemSlot({
           </svg>
         )}
       </div>
-      <div className="text-[7px] mt-0.5" style={{ color: valueColor }}>{value}</div>
+      <div className="text-[11px] mt-1" style={{ color: valueColor }}>{value}</div>
     </div>
   );
 }
@@ -137,30 +135,35 @@ export default function ZeldaHUD({
   
   return (
     <div 
-      className="bg-black border-b-4 border-[#8B4513] px-3 py-2"
-      style={{ fontFamily: "'Press Start 2P', monospace" }}
+      className="w-full px-6 py-4"
+      style={{ 
+        fontFamily: "'Press Start 2P', monospace",
+        backgroundImage: "url('/assets/zelda/cave-wall.png')",
+        backgroundSize: "64px 64px",
+        borderBottom: "6px solid #8B4513",
+      }}
     >
-      <div className="max-w-4xl mx-auto flex items-center justify-between gap-2">
+      <div className="max-w-6xl mx-auto flex items-center justify-between gap-6">
         
         {/* Section 1: Mini Map */}
         <MiniMap isProfitable={isProfitable} />
         
         {/* Section 2: Rupees/Jar Value */}
-        <div className="flex flex-col">
-          <div className="text-[7px] text-[#FCE4B8] mb-0.5">RUPEES</div>
-          <div className="flex items-center gap-1">
+        <div className="flex flex-col bg-black/80 px-4 py-2 border-4 border-[#8B4513]">
+          <div className="text-[10px] text-[#FCE4B8] mb-1">RUPEES</div>
+          <div className="flex items-center gap-2">
             <RupeeIcon />
-            <span className="text-[#00FF00] text-[11px]">
+            <span className="text-[#00FF00] text-xl">
               {isLoading ? "---" : formatValue(jarValue)}
             </span>
           </div>
-          <div className="text-[5px] text-[#666]">JAR VALUE</div>
+          <div className="text-[8px] text-[#666] mt-1">JAR VALUE</div>
         </div>
         
         {/* Section 3: Hearts/Life */}
-        <div className="flex flex-col items-center">
-          <div className="text-[7px] text-[#FF0000] mb-0.5">-LIFE-</div>
-          <div className="flex gap-0.5">
+        <div className="flex flex-col items-center bg-black/80 px-4 py-2 border-4 border-[#8B4513]">
+          <div className="text-[10px] text-[#FF0000] mb-2">-LIFE-</div>
+          <div className="flex gap-1">
             {[...Array(5)].map((_, i) => (
               <PixelHeart 
                 key={i} 
@@ -169,13 +172,13 @@ export default function ZeldaHUD({
               />
             ))}
           </div>
-          <div className={`text-[5px] mt-0.5 ${isProfitable ? 'text-[#00FF00]' : 'text-[#FF0000]'}`}>
+          <div className={`text-[8px] mt-2 ${isProfitable ? 'text-[#00FF00]' : 'text-[#FF0000]'}`}>
             {isProfitable ? "PROFITABLE" : "NOT PROFITABLE"}
           </div>
         </div>
         
         {/* Section 4: Item Slots */}
-        <div className="flex gap-2">
+        <div className="flex gap-4 bg-black/80 px-4 py-2 border-4 border-[#8B4513]">
           <ItemSlot 
             label="B" 
             value={isLoading ? "---" : `$${uniPrice.toFixed(2)}`}
@@ -190,16 +193,16 @@ export default function ZeldaHUD({
         </div>
         
         {/* Section 5: Net Profit/Loss - THE MOST IMPORTANT */}
-        <div className="flex flex-col items-end min-w-[80px]">
-          <div className="text-[7px] text-[#FCE4B8]">NET</div>
-          <div className={`text-[14px] font-bold ${netProfit >= 0 ? 'text-[#00FF00]' : 'text-[#FF0000]'}`}>
+        <div className="flex flex-col items-end bg-black/80 px-6 py-2 border-4 border-[#8B4513] min-w-[140px]">
+          <div className="text-[10px] text-[#FCE4B8]">NET</div>
+          <div className={`text-2xl font-bold ${netProfit >= 0 ? 'text-[#00FF00]' : 'text-[#FF0000]'}`}>
             {isLoading ? "---" : (
               <>
                 {netProfit >= 0 ? '+' : '-'}{formatValue(Math.abs(netProfit))}
               </>
             )}
           </div>
-          <div className={`text-[5px] ${netProfit >= 0 ? 'text-[#00FF00]' : 'text-[#FF0000]'}`}>
+          <div className={`text-[8px] ${netProfit >= 0 ? 'text-[#00FF00]' : 'text-[#FF0000]'}`}>
             {netProfit >= 0 ? 'PROFIT' : 'WOULD LOSE'}
           </div>
         </div>

@@ -10,7 +10,8 @@ import ZeldaStatsBar from "@/components/ZeldaStatsBar";
 
 // =============================================================================
 // ZELDA NES-STYLE TOKEN JAR MONITOR
-// Three-section layout: HUD (top) | Cave Scene (middle) | Stats Bar (bottom)
+// Full-width layout using all screen real estate
+// Three sections: HUD (top) | Cave Scene (middle) | Stats Bar (bottom)
 // =============================================================================
 
 function formatTimeAgo(timestamp: number): string {
@@ -87,7 +88,7 @@ export default function Home() {
   const isLoading = !data && !error;
 
   return (
-    <main className="min-h-screen bg-black flex flex-col">
+    <main className="min-h-screen flex flex-col">
       
       {/* === TOP: ZELDA HUD === */}
       <ZeldaHUD
@@ -100,20 +101,26 @@ export default function Home() {
         tokenCount={data?.displayTokens?.length ?? 0}
       />
       
-      {/* === MIDDLE: CAVE SCENE === */}
-      <div className="flex-1 flex items-center justify-center p-4 bg-[#0a0a0a]">
+      {/* === MIDDLE: CAVE SCENE (takes all remaining space) === */}
+      <div className="flex-1">
         {error ? (
           // Error state
-          <div className="text-center">
+          <div 
+            className="w-full h-full min-h-[400px] flex items-center justify-center"
+            style={{
+              backgroundImage: "url('/assets/zelda/cave-wall.png')",
+              backgroundSize: "64px 64px",
+            }}
+          >
             <div 
-              className="bg-black border-4 border-[#FF0000] p-6 max-w-md"
+              className="bg-black border-4 border-[#FF0000] p-8 max-w-md"
               style={{ fontFamily: "'Press Start 2P', monospace" }}
             >
-              <div className="text-[#FF0000] text-sm mb-4">GAME OVER</div>
-              <div className="text-[#FCE4B8] text-[10px] mb-4">{error}</div>
+              <div className="text-[#FF0000] text-xl mb-4">GAME OVER</div>
+              <div className="text-[#FCE4B8] text-sm mb-6">{error}</div>
               <button 
                 onClick={fetchData}
-                className="px-6 py-2 bg-[#8B4513] text-[#FCE4B8] text-[10px] border-2 border-[#654321] hover:bg-[#654321] transition-colors"
+                className="px-8 py-3 bg-[#8B4513] text-[#FCE4B8] text-sm border-4 border-[#654321] hover:bg-[#654321] transition-colors"
               >
                 CONTINUE?
               </button>
@@ -122,10 +129,18 @@ export default function Home() {
         ) : isLoading ? (
           // Loading state
           <div 
-            className="text-[#FCE4B8] text-sm animate-pulse"
-            style={{ fontFamily: "'Press Start 2P', monospace" }}
+            className="w-full h-full min-h-[400px] flex items-center justify-center"
+            style={{
+              backgroundImage: "url('/assets/zelda/cave-wall.png')",
+              backgroundSize: "64px 64px",
+            }}
           >
-            LOADING...
+            <div 
+              className="text-[#FCE4B8] text-2xl animate-pulse"
+              style={{ fontFamily: "'Press Start 2P', monospace" }}
+            >
+              LOADING...
+            </div>
           </div>
         ) : (
           // Main cave scene
@@ -151,14 +166,19 @@ export default function Home() {
       
       {/* === FOOTER: Contract Links === */}
       <footer 
-        className="bg-black border-t border-[#333] px-3 py-1"
-        style={{ fontFamily: "'Press Start 2P', monospace" }}
+        className="px-6 py-2"
+        style={{ 
+          fontFamily: "'Press Start 2P', monospace",
+          backgroundImage: "url('/assets/zelda/cave-wall.png')",
+          backgroundSize: "64px 64px",
+          borderTop: "4px solid #654321",
+        }}
       >
-        <div className="max-w-4xl mx-auto flex justify-between items-center text-[6px]">
-          <div className="text-[#444]">
+        <div className="max-w-6xl mx-auto flex justify-between items-center text-[8px]">
+          <div className="text-[#666] bg-black/80 px-2 py-1">
             REFRESHES EVERY 30S • PRICES VIA COINGECKO
           </div>
-          <div className="flex gap-4">
+          <div className="flex gap-6 bg-black/80 px-2 py-1">
             <a 
               href={`https://etherscan.io/address/${TOKENJAR_ADDRESS}`}
               target="_blank"
