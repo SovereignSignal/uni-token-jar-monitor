@@ -5,11 +5,10 @@ import { REFRESH_INTERVAL_MS, TOKENJAR_ADDRESS, FIREPIT_ADDRESS } from "@/lib/co
 import type { TokenJarApiResponse } from "./api/tokenjar/route";
 import type { ProfitabilityData } from "@/lib/profitability";
 import ZeldaHUD from "@/components/ZeldaHUD";
-import ZeldaUnicorn from "@/components/ZeldaUnicorn";
 
 // =============================================================================
 // ZELDA-STYLE TOKEN JAR MONITOR
-// Complete NES Zelda cave scene UI
+// Complete NES Zelda cave scene UI - "It's dangerous to go alone!"
 // =============================================================================
 
 function formatTimeAgo(timestamp: number): string {
@@ -38,43 +37,56 @@ const NOT_PROFITABLE_MESSAGES = [
   "BEWARE THE VOID! YOUR TOKENS WOULD VANISH.",
 ];
 
-// Animated torch component
+// Large animated torch component - bigger flames
 function PixelTorch() {
   const [frame, setFrame] = useState(0);
   
   useEffect(() => {
     const interval = setInterval(() => {
-      setFrame(f => (f + 1) % 3);
-    }, 200);
+      setFrame(f => (f + 1) % 4);
+    }, 150);
     return () => clearInterval(interval);
   }, []);
   
-  const flameHeights = [10, 12, 11];
-  const flameOffsets = [0, 1, -1];
+  const flameHeights = [14, 18, 16, 15];
+  const flameOffsets = [0, 1, -1, 0];
   const h = flameHeights[frame];
   const xOff = flameOffsets[frame];
   
   return (
-    <svg viewBox="0 0 16 40" width="32" height="80" style={{ imageRendering: "pixelated" }}>
-      {/* Torch handle */}
-      <rect x="6" y="24" width="4" height="14" fill="#8b4513" />
-      <rect x="5" y="36" width="6" height="4" fill="#5c3317" />
+    <svg viewBox="0 0 24 56" width="48" height="112" style={{ imageRendering: "pixelated" }}>
+      {/* Torch mount/bracket */}
+      <rect x="8" y="32" width="8" height="4" fill="#5c3317" />
+      <rect x="10" y="36" width="4" height="18" fill="#8b4513" />
+      <rect x="8" y="52" width="8" height="4" fill="#5c3317" />
+      
+      {/* Flame base glow */}
+      <rect x="4" y="24" width="16" height="12" fill="#fc6c18" opacity="0.8" />
       
       {/* Flame base */}
-      <rect x="4" y="18" width="8" height="8" fill="#fc6c18" />
+      <rect x="6" y="26" width="12" height="8" fill="#fc6c18" />
       
-      {/* Animated flame core */}
-      <rect x={5 + xOff} y={26 - h} width="6" height={h - 2} fill="#fcbc18" />
-      <rect x={6 + xOff} y={24 - h} width="4" height={h - 4} fill="#fc9090" />
-      <rect x={7 + xOff} y={22 - h} width="2" height={h - 6} fill="#fcfcfc" />
+      {/* Animated flame layers */}
+      <rect x={7 + xOff} y={34 - h} width="10" height={h - 4} fill="#fcbc18" />
+      <rect x={8 + xOff} y={32 - h} width="8" height={h - 6} fill="#fc9090" />
+      <rect x={9 + xOff} y={30 - h} width="6" height={h - 8} fill="#fcfcfc" />
+      <rect x={10 + xOff} y={28 - h} width="4" height={h - 10} fill="#fcfcfc" />
+      
+      {/* Sparks */}
+      {frame % 2 === 0 && (
+        <>
+          <rect x={6 + xOff} y={20 - h} width="2" height="2" fill="#fcbc18" opacity="0.8" />
+          <rect x={16 - xOff} y={18 - h} width="2" height="2" fill="#fc9090" opacity="0.6" />
+        </>
+      )}
     </svg>
   );
 }
 
-// Old man/sage character
+// Old man/sage character - larger
 function PixelOldMan({ isProfitable }: { isProfitable: boolean }) {
   return (
-    <svg viewBox="0 0 16 24" width="64" height="96" style={{ imageRendering: "pixelated" }}>
+    <svg viewBox="0 0 16 24" width="80" height="120" style={{ imageRendering: "pixelated" }}>
       {/* Robe - brown like original Zelda */}
       <rect x="4" y="8" width="8" height="12" fill="#8b4513" />
       <rect x="3" y="10" width="10" height="10" fill="#a0522d" />
@@ -93,12 +105,12 @@ function PixelOldMan({ isProfitable }: { isProfitable: boolean }) {
       <rect x="6" y="8" width="4" height="2" fill="#e0e0e0" />
       <rect x="7" y="10" width="2" height="1" fill="#c0c0c0" />
       
-      {/* Arms extended */}
-      <rect x="0" y="12" width="4" height="3" fill="#a0522d" />
-      <rect x="12" y="12" width="4" height="3" fill="#a0522d" />
+      {/* Arms extended outward */}
+      <rect x="0" y="11" width="4" height="4" fill="#a0522d" />
+      <rect x="12" y="11" width="4" height="4" fill="#a0522d" />
       {/* Hands */}
-      <rect x="0" y="13" width="2" height="2" fill="#fcbcb0" />
-      <rect x="14" y="13" width="2" height="2" fill="#fcbcb0" />
+      <rect x="0" y="12" width="2" height="3" fill="#fcbcb0" />
+      <rect x="14" y="12" width="2" height="3" fill="#fcbcb0" />
       
       {/* Feet */}
       <rect x="5" y="20" width="2" height="2" fill="#5c3317" />
@@ -106,47 +118,113 @@ function PixelOldMan({ isProfitable }: { isProfitable: boolean }) {
       
       {/* Glow if profitable */}
       {isProfitable && (
-        <rect x="6" y="14" width="4" height="4" fill="#FFD700" opacity="0.6" />
+        <rect x="5" y="14" width="6" height="5" fill="#FFD700" opacity="0.5" />
       )}
     </svg>
   );
 }
 
-// Token Jar on pedestal
+// Token Jar on pedestal - LARGER and more prominent
 function PixelJarPedestal({ jarValue, isProfitable }: { jarValue: number; isProfitable: boolean }) {
-  const fillLevel = Math.min(5, Math.max(1, Math.floor(jarValue / 200) + 1));
+  const fillLevel = Math.min(6, Math.max(1, Math.floor(jarValue / 150) + 1));
   
   return (
-    <svg viewBox="0 0 24 32" width="72" height="96" style={{ imageRendering: "pixelated" }}>
-      {/* Pedestal */}
-      <rect x="4" y="24" width="16" height="4" fill="#5c5c5c" />
-      <rect x="2" y="28" width="20" height="4" fill="#3c3c3c" />
-      <rect x="6" y="22" width="12" height="2" fill="#7c7c7c" />
+    <svg viewBox="0 0 32 40" width="96" height="120" style={{ imageRendering: "pixelated" }}>
+      {/* Stone pedestal - more detailed */}
+      <rect x="4" y="30" width="24" height="4" fill="#7c7c7c" />
+      <rect x="2" y="34" width="28" height="6" fill="#5c5c5c" />
+      <rect x="6" y="28" width="20" height="2" fill="#9c9c9c" />
+      {/* Pedestal highlight */}
+      <rect x="4" y="30" width="2" height="4" fill="#9c9c9c" />
       
-      {/* Jar */}
-      <rect x="7" y="6" width="10" height="2" fill="#fcbcb0" />
-      <rect x="8" y="8" width="8" height="2" fill="#fcbcb0" />
-      <rect x="6" y="10" width="12" height="12" fill="#fcbcb0" />
+      {/* Jar - larger and more detailed */}
+      {/* Jar rim */}
+      <rect x="9" y="4" width="14" height="3" fill="#fcbcb0" />
+      <rect x="8" y="6" width="16" height="2" fill="#e0a090" />
+      {/* Jar neck */}
+      <rect x="10" y="8" width="12" height="3" fill="#fcbcb0" />
+      {/* Jar body */}
+      <rect x="7" y="11" width="18" height="17" fill="#fcbcb0" />
       
-      {/* Jar contents */}
+      {/* Jar contents - fill based on value */}
       <rect 
-        x="7" 
-        y={22 - fillLevel * 2} 
-        width="10" 
-        height={fillLevel * 2} 
+        x="8" 
+        y={28 - fillLevel * 2.5} 
+        width="16" 
+        height={fillLevel * 2.5} 
         fill={isProfitable ? "#5ce65c" : "#e4464b"} 
       />
       
-      {/* Jar shine */}
-      <rect x="7" y="11" width="2" height="8" fill="#fff" opacity="0.3" />
+      {/* Jar shine/highlight */}
+      <rect x="8" y="12" width="3" height="14" fill="#fff" opacity="0.35" />
+      <rect x="9" y="5" width="2" height="2" fill="#fff" opacity="0.4" />
       
-      {/* Sparkle if profitable */}
+      {/* Jar shadow */}
+      <rect x="22" y="12" width="2" height="14" fill="#000" opacity="0.2" />
+      
+      {/* Sparkles if profitable */}
       {isProfitable && (
         <>
-          <rect x="4" y="4" width="2" height="2" fill="#FFD700" className="animate-pulse" />
-          <rect x="18" y="8" width="2" height="2" fill="#FFD700" className="animate-pulse" />
+          <rect x="2" y="2" width="3" height="3" fill="#FFD700" className="animate-pulse" />
+          <rect x="27" y="6" width="3" height="3" fill="#FFD700" className="animate-pulse" />
+          <rect x="0" y="14" width="2" height="2" fill="#fcfcfc" className="animate-pulse" />
+          <rect x="30" y="18" width="2" height="2" fill="#fcfcfc" className="animate-pulse" />
         </>
       )}
+    </svg>
+  );
+}
+
+// Uniswap Unicorn - MUCH LARGER like Link in the original
+function PixelUnicorn() {
+  const [frame, setFrame] = useState(0);
+  
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setFrame(f => (f + 1) % 2);
+    }, 600);
+    return () => clearInterval(interval);
+  }, []);
+  
+  const yOffset = frame === 1 ? -2 : 0;
+  
+  return (
+    <svg 
+      viewBox="0 0 16 16" 
+      width="64" 
+      height="64" 
+      style={{ imageRendering: "pixelated", transform: `translateY(${yOffset}px)` }}
+    >
+      {/* Back view - facing old man */}
+      {/* Horn */}
+      <rect x="7" y="0" width="2" height="3" fill="#FFD700" />
+      <rect x="7" y="0" width="1" height="1" fill="#fff" opacity="0.5" />
+      
+      {/* Head/Mane from back */}
+      <rect x="5" y="3" width="6" height="4" fill="#FF007A" />
+      <rect x="4" y="4" width="2" height="3" fill="#7B61FF" />
+      <rect x="10" y="4" width="2" height="3" fill="#7B61FF" />
+      
+      {/* Ears */}
+      <rect x="4" y="2" width="2" height="2" fill="#FF007A" />
+      <rect x="10" y="2" width="2" height="2" fill="#FF007A" />
+      
+      {/* Body */}
+      <rect x="4" y="7" width="8" height="5" fill="#FF007A" />
+      <rect x="3" y="8" width="10" height="3" fill="#c7005f" />
+      
+      {/* Legs */}
+      <rect x="4" y="12" width="2" height="3" fill="#c7005f" />
+      <rect x="10" y="12" width="2" height="3" fill="#c7005f" />
+      
+      {/* Hooves */}
+      <rect x="4" y="15" width="2" height="1" fill="#FFD700" />
+      <rect x="10" y="15" width="2" height="1" fill="#FFD700" />
+      
+      {/* Tail */}
+      <rect x="2" y="8" width="2" height="2" fill="#7B61FF" />
+      <rect x="1" y="9" width="2" height="2" fill="#7B61FF" />
+      <rect x="0" y="10" width="2" height="2" fill="#7B61FF" />
     </svg>
   );
 }
@@ -162,7 +240,7 @@ function BlinkingCursor() {
   
   return (
     <span 
-      className="inline-block w-2 h-3 ml-1"
+      className="inline-block w-2 h-4 ml-1"
       style={{ backgroundColor: visible ? '#fcfcfc' : 'transparent' }}
     />
   );
@@ -250,16 +328,16 @@ export default function Home() {
       
       {/* Main Game Screen */}
       <div className="flex-1 flex items-center justify-center p-4">
-        <div className="zelda-game-screen w-full max-w-2xl aspect-[256/224] relative bg-[#1c1c1c] border-4 border-[#fcbcb0] overflow-hidden">
+        <div className="zelda-game-screen w-full max-w-3xl aspect-[256/240] relative bg-[#0c0c0c] border-4 border-[#fcbcb0] overflow-hidden">
           
-          {/* Cave brick walls */}
-          {/* Top wall */}
+          {/* === CAVE WALLS === */}
+          {/* Top wall - thicker */}
           <div 
-            className="absolute top-0 left-0 right-0 h-12"
+            className="absolute top-0 left-0 right-0 h-16"
             style={{
               background: `
-                repeating-linear-gradient(90deg, #4a3c2c 0px, #4a3c2c 28px, #2c2418 28px, #2c2418 32px),
-                repeating-linear-gradient(0deg, #4a3c2c 0px, #4a3c2c 12px, #2c2418 12px, #2c2418 16px)
+                repeating-linear-gradient(90deg, #5a4a3a 0px, #5a4a3a 30px, #3a2a1a 30px, #3a2a1a 32px),
+                repeating-linear-gradient(0deg, #5a4a3a 0px, #5a4a3a 14px, #3a2a1a 14px, #3a2a1a 16px)
               `,
               backgroundSize: '64px 32px',
             }}
@@ -267,11 +345,11 @@ export default function Home() {
           
           {/* Left wall */}
           <div 
-            className="absolute top-12 left-0 w-12 bottom-12"
+            className="absolute top-16 left-0 w-16 bottom-20"
             style={{
               background: `
-                repeating-linear-gradient(90deg, #4a3c2c 0px, #4a3c2c 12px, #2c2418 12px, #2c2418 16px),
-                repeating-linear-gradient(0deg, #4a3c2c 0px, #4a3c2c 28px, #2c2418 28px, #2c2418 32px)
+                repeating-linear-gradient(90deg, #5a4a3a 0px, #5a4a3a 14px, #3a2a1a 14px, #3a2a1a 16px),
+                repeating-linear-gradient(0deg, #5a4a3a 0px, #5a4a3a 30px, #3a2a1a 30px, #3a2a1a 32px)
               `,
               backgroundSize: '32px 64px',
             }}
@@ -279,47 +357,62 @@ export default function Home() {
           
           {/* Right wall */}
           <div 
-            className="absolute top-12 right-0 w-12 bottom-12"
+            className="absolute top-16 right-0 w-16 bottom-20"
             style={{
               background: `
-                repeating-linear-gradient(90deg, #4a3c2c 0px, #4a3c2c 12px, #2c2418 12px, #2c2418 16px),
-                repeating-linear-gradient(0deg, #4a3c2c 0px, #4a3c2c 28px, #2c2418 28px, #2c2418 32px)
+                repeating-linear-gradient(90deg, #5a4a3a 0px, #5a4a3a 14px, #3a2a1a 14px, #3a2a1a 16px),
+                repeating-linear-gradient(0deg, #5a4a3a 0px, #5a4a3a 30px, #3a2a1a 30px, #3a2a1a 32px)
               `,
               backgroundSize: '32px 64px',
             }}
           />
           
-          {/* Bottom wall */}
+          {/* Bottom wall with entrance opening */}
           <div 
-            className="absolute bottom-0 left-0 right-0 h-12"
+            className="absolute bottom-0 left-0 right-0 h-20"
             style={{
               background: `
-                repeating-linear-gradient(90deg, #4a3c2c 0px, #4a3c2c 28px, #2c2418 28px, #2c2418 32px),
-                repeating-linear-gradient(0deg, #4a3c2c 0px, #4a3c2c 12px, #2c2418 12px, #2c2418 16px)
+                repeating-linear-gradient(90deg, #5a4a3a 0px, #5a4a3a 30px, #3a2a1a 30px, #3a2a1a 32px),
+                repeating-linear-gradient(0deg, #5a4a3a 0px, #5a4a3a 14px, #3a2a1a 14px, #3a2a1a 16px)
               `,
               backgroundSize: '64px 32px',
             }}
           />
           
-          {/* Cave floor */}
-          <div className="absolute inset-12 bg-[#0c0c0c]" />
+          {/* Cave entrance opening at bottom center */}
+          <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-28 h-20 bg-[#0c0c0c]" />
           
-          {/* Torches */}
-          <div className="absolute left-16 top-14 z-10">
+          {/* Cave floor - brick pattern where unicorn stands */}
+          <div 
+            className="absolute bottom-0 left-1/2 -translate-x-1/2 w-28 h-8"
+            style={{
+              background: `
+                repeating-linear-gradient(90deg, #4a3a2a 0px, #4a3a2a 12px, #2a1a0a 12px, #2a1a0a 14px),
+                repeating-linear-gradient(0deg, #4a3a2a 0px, #4a3a2a 6px, #2a1a0a 6px, #2a1a0a 8px)
+              `,
+              backgroundSize: '28px 16px',
+            }}
+          />
+          
+          {/* Cave interior floor */}
+          <div className="absolute top-16 left-16 right-16 bottom-20 bg-[#0c0c0c]" />
+          
+          {/* === TORCHES - positioned on walls === */}
+          <div className="absolute left-20 top-16 z-10">
             <PixelTorch />
           </div>
-          <div className="absolute right-16 top-14 z-10">
+          <div className="absolute right-20 top-16 z-10">
             <PixelTorch />
           </div>
           
-          {/* Loading state */}
+          {/* === LOADING STATE === */}
           {!data && !error && (
             <div className="absolute inset-0 flex items-center justify-center z-20">
               <div className="text-[#fcfcfc] text-sm animate-pulse">LOADING...</div>
             </div>
           )}
           
-          {/* Error state */}
+          {/* === ERROR STATE === */}
           {error && (
             <div className="absolute inset-0 flex items-center justify-center z-20">
               <div className="bg-black border-2 border-red-500 p-4 text-center">
@@ -335,37 +428,37 @@ export default function Home() {
             </div>
           )}
           
-          {/* Main scene content */}
+          {/* === MAIN SCENE CONTENT === */}
           {data && (
             <>
-              {/* Old Man */}
-              <div className="absolute top-16 left-1/2 -translate-x-1/2 z-10">
+              {/* Old Man - centered at top of cave interior */}
+              <div className="absolute top-20 left-1/2 -translate-x-1/2 z-10">
                 <PixelOldMan isProfitable={data.isProfitable} />
               </div>
               
-              {/* Token Jar on Pedestal */}
-              <div className="absolute top-32 left-1/2 -translate-x-1/2 z-10">
+              {/* Token Jar on Pedestal - IN FRONT of old man, prominently displayed */}
+              <div className="absolute top-36 left-1/2 -translate-x-1/2 z-10">
                 <PixelJarPedestal jarValue={data.totalJarValueUsd} isProfitable={data.isProfitable} />
               </div>
               
-              {/* Unicorn player character */}
-              <div className="absolute bottom-16 left-1/2 -translate-x-1/2 z-10">
-                <ZeldaUnicorn facing="up" animate={true} />
-              </div>
-              
-              {/* Dialog box */}
-              <div className="absolute bottom-14 left-1/2 -translate-x-1/2 w-[85%] z-20">
-                <div className="bg-black border-2 border-[#fcfcfc] px-3 py-2">
-                  <p className="text-[#fcfcfc] text-[10px] leading-relaxed text-center zelda-text">
+              {/* Dialog box - between jar and unicorn */}
+              <div className="absolute bottom-24 left-1/2 -translate-x-1/2 w-[75%] max-w-md z-20">
+                <div className="bg-black border-2 border-[#fcfcfc] px-4 py-3">
+                  <p className="text-[#fcfcfc] text-[11px] leading-relaxed text-center zelda-text">
                     {displayedText}
                     {isTyping && <BlinkingCursor />}
                   </p>
                 </div>
               </div>
               
-              {/* Net profit indicator */}
-              <div className="absolute top-14 right-14 z-10 text-right">
-                <div className={`text-[10px] ${data.isProfitable ? 'text-[#5ce65c]' : 'text-[#e4464b]'}`}>
+              {/* Unicorn player character - at cave entrance, LARGER */}
+              <div className="absolute bottom-2 left-1/2 -translate-x-1/2 z-10">
+                <PixelUnicorn />
+              </div>
+              
+              {/* Net profit indicator - top right corner */}
+              <div className="absolute top-18 right-18 z-10 text-right">
+                <div className={`text-xs font-bold ${data.isProfitable ? 'text-[#5ce65c]' : 'text-[#e4464b]'}`}>
                   {data.netProfitUsd >= 0 ? '+' : ''}${Math.abs(data.netProfitUsd).toLocaleString()}
                 </div>
               </div>
@@ -376,7 +469,7 @@ export default function Home() {
       
       {/* Footer with contract links */}
       <footer className="bg-black border-t-2 border-[#fcbcb0] p-2">
-        <div className="max-w-2xl mx-auto flex justify-between items-center text-[8px]">
+        <div className="max-w-3xl mx-auto flex justify-between items-center text-[8px]">
           <div className="text-[#5c5c5c]">
             REFRESHES EVERY 30S • PRICES VIA COINGECKO
           </div>
