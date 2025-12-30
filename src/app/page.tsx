@@ -19,24 +19,22 @@ function getDataStatus(timestamp: number | null, error: boolean): DataStatus {
 }
 
 function StatusIndicator({ status }: { status: DataStatus }) {
-  const colors = {
-    loading: "text-gray-400",
-    fresh: "text-green-400",
-    stale: "text-yellow-400",
-    error: "text-red-400",
+  const configs = {
+    loading: { color: "text-gray-400", bg: "bg-gray-400", label: "SEARCHING...", animate: true },
+    fresh: { color: "text-green-400", bg: "bg-green-400", label: "LIVE", animate: false },
+    stale: { color: "text-yellow-400", bg: "bg-yellow-400", label: "STALE", animate: true },
+    error: { color: "text-red-400", bg: "bg-red-400", label: "DANGER!", animate: true },
   };
 
-  const labels = {
-    loading: "LOADING",
-    fresh: "LIVE",
-    stale: "STALE",
-    error: "ERROR",
-  };
+  const config = configs[status];
 
   return (
     <div className="flex items-center gap-2">
-      <div className={`pixel-dot ${colors[status]}`} />
-      <span className={`text-[10px] ${colors[status]}`}>{labels[status]}</span>
+      <div className={`w-3 h-3 ${config.bg} ${config.animate ? 'animate-pulse' : ''}`}
+           style={{ boxShadow: `0 0 8px currentColor` }} />
+      <span className={`text-[10px] ${config.color} ${config.animate ? 'animate-pulse' : ''}`}>
+        {config.label}
+      </span>
     </div>
   );
 }
@@ -75,6 +73,57 @@ function formatTimeAgo(timestamp: number): string {
   if (minutes < 60) return `${minutes}M AGO`;
   const hours = Math.floor(minutes / 60);
   return `${hours}H AGO`;
+}
+
+// Pixel skull for danger indicator
+function PixelSkull() {
+  return (
+    <svg viewBox="0 0 16 16" width="16" height="16" style={{ imageRendering: "pixelated" }}>
+      <rect x="4" y="1" width="8" height="1" fill="#fff" />
+      <rect x="2" y="2" width="12" height="1" fill="#fff" />
+      <rect x="1" y="3" width="14" height="1" fill="#fff" />
+      <rect x="1" y="4" width="3" height="3" fill="#fff" />
+      <rect x="4" y="4" width="3" height="3" fill="#1a1a2e" />
+      <rect x="7" y="4" width="2" height="3" fill="#fff" />
+      <rect x="9" y="4" width="3" height="3" fill="#1a1a2e" />
+      <rect x="12" y="4" width="3" height="3" fill="#fff" />
+      <rect x="1" y="7" width="14" height="2" fill="#fff" />
+      <rect x="2" y="9" width="12" height="1" fill="#fff" />
+      <rect x="3" y="10" width="10" height="1" fill="#fff" />
+      <rect x="4" y="11" width="2" height="2" fill="#fff" />
+      <rect x="7" y="11" width="2" height="2" fill="#fff" />
+      <rect x="10" y="11" width="2" height="2" fill="#fff" />
+    </svg>
+  );
+}
+
+// Pixel treasure chest
+function PixelTreasure() {
+  return (
+    <svg viewBox="0 0 20 16" width="20" height="16" style={{ imageRendering: "pixelated" }}>
+      <rect x="1" y="5" width="18" height="10" fill="#8b4513" />
+      <rect x="0" y="6" width="20" height="2" fill="#daa520" />
+      <rect x="8" y="4" width="4" height="4" fill="#f8d800" />
+      <rect x="9" y="5" width="2" height="2" fill="#fff" />
+      <rect x="2" y="8" width="16" height="1" fill="#6b3a1a" />
+      <rect x="0" y="9" width="20" height="6" fill="#a0522d" />
+      <rect x="8" y="9" width="4" height="3" fill="#daa520" />
+    </svg>
+  );
+}
+
+// Pixel heart
+function PixelHeart({ filled }: { filled: boolean }) {
+  return (
+    <svg viewBox="0 0 8 8" width="12" height="12" style={{ imageRendering: "pixelated" }}>
+      <rect x="1" y="1" width="2" height="2" fill={filled ? "#e94f37" : "#444"} />
+      <rect x="5" y="1" width="2" height="2" fill={filled ? "#e94f37" : "#444"} />
+      <rect x="0" y="2" width="8" height="3" fill={filled ? "#e94f37" : "#444"} />
+      <rect x="1" y="5" width="6" height="1" fill={filled ? "#e94f37" : "#444"} />
+      <rect x="2" y="6" width="4" height="1" fill={filled ? "#e94f37" : "#444"} />
+      <rect x="3" y="7" width="2" height="1" fill={filled ? "#e94f37" : "#444"} />
+    </svg>
+  );
 }
 
 export default function Home() {
@@ -117,20 +166,33 @@ export default function Home() {
 
   const status = getDataStatus(lastFetch, !!error);
 
+  // Calculate "health" based on profitability
+  const healthPercent = data ? Math.max(0, Math.min(100, ((data.netProfitUsd + 30000) / 60000) * 100)) : 50;
+  const hearts = [healthPercent > 66, healthPercent > 33, healthPercent > 0];
+
   return (
-    <main className="min-h-screen p-4 md:p-8 max-w-5xl mx-auto scanlines">
+    <main className="min-h-screen p-4 md:p-8 max-w-5xl mx-auto scanlines crt-effect">
       {/* Retro Header */}
       <header className="retro-panel p-4 mb-6">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-          <div>
-            <h1 className="text-lg md:text-xl text-glow-gold text-[#feb236]">
-              TOKEN JAR
-            </h1>
-            <p className="text-[8px] text-gray-400 mt-2">
-              UNISWAP FEE BURN MONITOR
-            </p>
+          <div className="flex items-center gap-4">
+            <PixelTreasure />
+            <div>
+              <h1 className="text-lg md:text-xl text-glow-gold text-[#feb236] glow-pulse">
+                DUNGEON TREASURY
+              </h1>
+              <p className="text-[8px] text-gray-400 mt-1">
+                UNISWAP FEE BURN QUEST
+              </p>
+            </div>
           </div>
           <div className="flex items-center gap-4">
+            {/* Health hearts */}
+            <div className="flex gap-1">
+              {hearts.map((filled, i) => (
+                <PixelHeart key={i} filled={filled} />
+              ))}
+            </div>
             <StatusIndicator status={status} />
             {lastFetch && (
               <span className="text-[8px] text-gray-500">
@@ -142,7 +204,7 @@ export default function Home() {
               disabled={isRefreshing}
               className="retro-btn px-4 py-2 text-[10px] disabled:opacity-50"
             >
-              {isRefreshing ? "..." : "REFRESH"}
+              {isRefreshing ? "..." : "SCOUT"}
             </button>
           </div>
         </div>
@@ -150,21 +212,37 @@ export default function Home() {
 
       {/* Error State */}
       {error && (
-        <div className="retro-panel p-4 mb-6 border-red-600">
-          <h2 className="text-red-400 text-xs mb-2">! ERROR !</h2>
-          <p className="text-red-300 text-[10px]">{error}</p>
+        <div className="retro-panel p-4 mb-6 border-red-600 danger-pulse">
+          <div className="flex items-center gap-3">
+            <PixelSkull />
+            <div>
+              <h2 className="text-red-400 text-xs mb-1">TRAP TRIGGERED!</h2>
+              <p className="text-red-300 text-[10px]">{error}</p>
+            </div>
+          </div>
         </div>
       )}
 
       {/* Loading State */}
       {!data && !error && (
         <div className="flex flex-col items-center justify-center py-20">
-          <div className="text-[10px] text-gray-400 animate-pulse">
-            LOADING TOKEN JAR DATA...
+          <div className="text-xl text-[#feb236] animate-pulse mb-4">
+            EXPLORING DUNGEON...
           </div>
-          <div className="mt-4 text-[8px] text-gray-600">
-            PLEASE WAIT
+          <div className="flex gap-2">
+            {[0, 1, 2].map((i) => (
+              <div
+                key={i}
+                className="w-4 h-4 bg-[#feb236]"
+                style={{
+                  animation: `bounce 0.6s ease-in-out ${i * 0.15}s infinite`,
+                }}
+              />
+            ))}
           </div>
+          <p className="mt-4 text-[8px] text-gray-600">
+            SEARCHING FOR TREASURE...
+          </p>
         </div>
       )}
 
@@ -172,9 +250,11 @@ export default function Home() {
       {data && (
         <div className="grid md:grid-cols-2 gap-6">
           {/* Left Column - Jar Visualization */}
-          <div className="retro-panel p-4">
-            <h2 className="text-xs text-center mb-4 text-[#feb236]">
-              JAR CONTENTS
+          <div className="retro-panel p-4 relative overflow-hidden">
+            <h2 className="text-xs text-center mb-2 text-[#feb236] flex items-center justify-center gap-2">
+              <span className="text-[10px]">~</span>
+              TREASURE VAULT
+              <span className="text-[10px]">~</span>
             </h2>
 
             {/* Pixel Jar */}
@@ -188,25 +268,29 @@ export default function Home() {
             />
 
             {/* Profit Display */}
-            <div className="text-center mt-4">
-              <div className="text-[8px] text-gray-400 mb-1">NET PROFIT</div>
+            <div className="text-center mt-2">
+              <div className="text-[8px] text-gray-400 mb-1 flex items-center justify-center gap-2">
+                {data.isProfitable ? <PixelTreasure /> : <PixelSkull />}
+                <span>LOOT VALUE</span>
+                {data.isProfitable ? <PixelTreasure /> : <PixelSkull />}
+              </div>
               <div
-                className={`text-2xl md:text-3xl ${
+                className={`text-3xl md:text-4xl font-bold ${
                   data.isProfitable
-                    ? "text-green-400 text-glow-green"
-                    : "text-red-400 text-glow-red"
+                    ? "text-green-400 treasure-glow"
+                    : "text-red-400 danger-pulse"
                 }`}
               >
                 {formatUsd(data.netProfitUsd, true)}
               </div>
               <div
-                className={`inline-block mt-3 px-3 py-1 text-[10px] ${
+                className={`inline-block mt-3 px-4 py-2 text-[10px] ${
                   data.isProfitable
                     ? "bg-green-900/50 text-green-300 border-2 border-green-600"
                     : "bg-red-900/50 text-red-300 border-2 border-red-600"
                 }`}
               >
-                {data.isProfitable ? "PROFITABLE!" : "NOT PROFITABLE"}
+                {data.isProfitable ? "TREASURE FOUND!" : "PERILOUS PATH"}
               </div>
             </div>
           </div>
@@ -215,34 +299,37 @@ export default function Home() {
           <div className="space-y-4">
             {/* Breakdown Panel */}
             <div className="retro-panel p-4">
-              <h2 className="text-xs text-[#feb236] mb-4">BREAKDOWN</h2>
+              <h2 className="text-xs text-[#feb236] mb-4 flex items-center gap-2">
+                <span>QUEST LOG</span>
+              </h2>
               <div className="space-y-2 text-[10px]">
                 <div className="flex justify-between items-center py-2 border-b border-gray-700">
-                  <span className="text-gray-400">JAR VALUE</span>
-                  <span className="text-white">
+                  <span className="text-gray-400">VAULT GOLD</span>
+                  <span className="text-yellow-400">
                     {formatUsd(data.totalJarValueUsd)}
                   </span>
                 </div>
                 <div className="flex justify-between items-center py-2 border-b border-gray-700">
-                  <span className="text-gray-400">
-                    BURN ({data.burnThreshold.toLocaleString()} UNI)
+                  <span className="text-gray-400 flex items-center gap-1">
+                    <PixelSkull />
+                    SACRIFICE ({data.burnThreshold.toLocaleString()} UNI)
                   </span>
                   <span className="text-red-400">
                     -{formatUsd(data.burnCostUsd)}
                   </span>
                 </div>
                 <div className="flex justify-between items-center py-2 border-b border-gray-700">
-                  <span className="text-gray-400">GAS EST.</span>
+                  <span className="text-gray-400">TOLL (GAS)</span>
                   <span className="text-red-400">
                     -{formatUsd(data.gasEstimateUsd)}
                   </span>
                 </div>
-                <div className="flex justify-between items-center py-2">
-                  <span className="text-white">NET</span>
+                <div className="flex justify-between items-center py-2 text-sm">
+                  <span className="text-white font-bold">NET REWARD</span>
                   <span
-                    className={
+                    className={`font-bold ${
                       data.isProfitable ? "text-green-400" : "text-red-400"
-                    }
+                    }`}
                   >
                     {formatUsd(data.netProfitUsd, true)}
                   </span>
@@ -253,28 +340,34 @@ export default function Home() {
             {/* Token List Panel */}
             <div className="retro-panel p-4">
               <h2 className="text-xs text-[#feb236] mb-4">
-                COINS IN JAR
+                INVENTORY
                 <span className="text-gray-500 text-[8px] ml-2">
-                  (&gt;$1K)
+                  (rare items &gt;$1K)
                 </span>
               </h2>
 
               {data.displayTokens.length === 0 ? (
-                <p className="text-gray-500 text-[10px] py-4 text-center">
-                  NO TOKENS ABOVE $1,000
-                </p>
+                <div className="text-center py-4">
+                  <p className="text-gray-500 text-[10px]">
+                    NO RARE ITEMS FOUND
+                  </p>
+                  <p className="text-gray-600 text-[8px] mt-1">
+                    (only common loot detected)
+                  </p>
+                </div>
               ) : (
                 <div className="space-y-1 max-h-48 overflow-y-auto">
                   {data.displayTokens.map((token) => (
                     <div
                       key={token.address}
-                      className="flex justify-between items-center py-1 px-2 hover:bg-white/5 text-[10px]"
+                      className="flex justify-between items-center py-1 px-2 hover:bg-white/5 text-[10px] border-l-2 border-transparent hover:border-[#feb236]"
                     >
                       <div className="flex items-center gap-2">
                         <span
                           className="w-3 h-3 rounded-sm"
                           style={{
                             background: getTokenColor(token.symbol),
+                            boxShadow: `0 0 4px ${getTokenColor(token.symbol)}`,
                           }}
                         />
                         <span className="text-white">{token.symbol}</span>
@@ -297,13 +390,13 @@ export default function Home() {
                 <div className="mt-3 pt-3 border-t border-gray-700 text-[8px] text-gray-500">
                   {data.otherTokensCount > 0 && (
                     <div className="flex justify-between">
-                      <span>OTHER x{data.otherTokensCount}</span>
-                      <span>{formatUsd(data.otherTokensValueUsd)}</span>
+                      <span>COMMON LOOT x{data.otherTokensCount}</span>
+                      <span className="text-yellow-600">{formatUsd(data.otherTokensValueUsd)}</span>
                     </div>
                   )}
                   {data.unpricedTokensCount > 0 && (
-                    <div className="mt-1">
-                      UNPRICED: {data.unpricedTokensCount}
+                    <div className="mt-1 text-gray-600">
+                      MYSTERIOUS ITEMS: {data.unpricedTokensCount}
                     </div>
                   )}
                 </div>
@@ -313,8 +406,8 @@ export default function Home() {
             {/* UNI Price */}
             <div className="retro-panel p-3">
               <div className="flex justify-between items-center text-[10px]">
-                <span className="text-gray-400">UNI PRICE</span>
-                <span className="text-[#ff007a]">
+                <span className="text-gray-400">UNI POWER LEVEL</span>
+                <span className="text-[#ff007a] font-bold">
                   ${data.uniPriceUsd.toFixed(2)}
                 </span>
               </div>
@@ -326,26 +419,26 @@ export default function Home() {
       {/* Contract Links */}
       {data && (
         <div className="retro-panel p-4 mt-6">
-          <h2 className="text-xs text-[#feb236] mb-3">CONTRACTS</h2>
+          <h2 className="text-xs text-[#feb236] mb-3">DUNGEON MAP</h2>
           <div className="space-y-2 text-[8px]">
             <div className="flex flex-col md:flex-row md:items-center gap-1">
-              <span className="text-gray-400 w-20">TOKENJAR:</span>
+              <span className="text-gray-400 w-24">TREASURE VAULT:</span>
               <a
                 href={`https://etherscan.io/address/${TOKENJAR_ADDRESS}`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-[#4a90d9] hover:text-[#6bb0ff] break-all"
+                className="text-[#4a90d9] hover:text-[#6bb0ff] break-all hover:underline"
               >
                 {TOKENJAR_ADDRESS}
               </a>
             </div>
             <div className="flex flex-col md:flex-row md:items-center gap-1">
-              <span className="text-gray-400 w-20">FIREPIT:</span>
+              <span className="text-gray-400 w-24">SACRIFICIAL PIT:</span>
               <a
                 href={`https://etherscan.io/address/${FIREPIT_ADDRESS}`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-[#4a90d9] hover:text-[#6bb0ff] break-all"
+                className="text-[#4a90d9] hover:text-[#6bb0ff] break-all hover:underline"
               >
                 {FIREPIT_ADDRESS}
               </a>
@@ -356,10 +449,10 @@ export default function Home() {
 
       {/* Footer */}
       <footer className="mt-6 text-center text-[8px] text-gray-600">
-        <p>DATA REFRESHES EVERY 30 SEC</p>
-        <p className="mt-1">PRICES VIA COINGECKO - DYOR</p>
-        <p className="mt-2 text-gray-700">
-          PRESS START TO PLAY
+        <p>DUNGEON UPDATES EVERY 30 SECONDS</p>
+        <p className="mt-1">ORACLE PRICES VIA COINGECKO - QUEST AT YOUR OWN RISK</p>
+        <p className="mt-3 text-gray-500 text-[10px]">
+          - PRESS START TO BEGIN YOUR QUEST -
         </p>
       </footer>
     </main>
