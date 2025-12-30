@@ -4,8 +4,8 @@ import Image from "next/image";
 import { useState, useEffect } from "react";
 
 // =============================================================================
-// ZELDA CAVE SCENE - Full-width with sprite-based backgrounds
-// All sprites now match NES pixel density (chunky 8-bit style)
+// ZELDA CAVE SCENE - Wider cave interior with proper NES aesthetic
+// Fixed: wider layout, floor texture visible, dialog arrow, torch animation
 // =============================================================================
 
 interface ZeldaCaveSceneProps {
@@ -14,33 +14,37 @@ interface ZeldaCaveSceneProps {
   jarValue: number;
 }
 
-// Animated torch component - NES style
+// Animated torch with multi-frame flickering
 function AnimatedTorch({ side }: { side: "left" | "right" }) {
   const [frame, setFrame] = useState(0);
   
   useEffect(() => {
     const interval = setInterval(() => {
-      setFrame((f) => (f + 1) % 4);
-    }, 150);
+      setFrame((f) => (f + 1) % 6);
+    }, 120);
     return () => clearInterval(interval);
   }, []);
   
-  const flameOffsets = [0, -2, 1, -1];
+  // More dynamic flame animation
+  const flameOffsets = [0, -3, -1, -4, -2, 0];
+  const flameScales = [1, 1.05, 0.95, 1.1, 0.98, 1.02];
+  const glowIntensity = [20, 25, 18, 30, 22, 24];
   
   return (
     <div className="relative flex flex-col items-center">
       <div 
         className="relative"
         style={{ 
-          transform: `translateY(${flameOffsets[frame]}px) ${side === "right" ? "scaleX(-1)" : ""}`,
-          filter: "drop-shadow(0 0 20px #FF6600) drop-shadow(0 0 40px #FF6600)",
+          transform: `translateY(${flameOffsets[frame]}px) scaleY(${flameScales[frame]}) ${side === "right" ? "scaleX(-1)" : ""}`,
+          filter: `drop-shadow(0 0 ${glowIntensity[frame]}px #FF6600) drop-shadow(0 0 ${glowIntensity[frame] * 2}px #FF4400)`,
+          transition: "transform 0.1s ease-out",
         }}
       >
         <Image
           src="/assets/zelda/torch.png"
           alt="Torch"
-          width={64}
-          height={128}
+          width={56}
+          height={112}
           style={{ imageRendering: "pixelated" }}
           priority
         />
@@ -85,7 +89,7 @@ function TypewriterText({ text, isProfitable }: { text: string; isProfitable: bo
   );
 }
 
-// Animated unicorn with bounce - NES style (LARGER for visual weight)
+// Animated unicorn with bounce
 function AnimatedUnicorn() {
   const [frame, setFrame] = useState(0);
   
@@ -110,106 +114,136 @@ function AnimatedUnicorn() {
   );
 }
 
+// Dialog arrow indicator (classic RPG style)
+function DialogArrow() {
+  const [bounce, setBounce] = useState(0);
+  
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setBounce((b) => (b + 1) % 2);
+    }, 400);
+    return () => clearInterval(interval);
+  }, []);
+  
+  return (
+    <div 
+      className="absolute -top-4 left-1/2 transform -translate-x-1/2"
+      style={{ transform: `translateX(-50%) translateY(${bounce === 1 ? -2 : 0}px)` }}
+    >
+      <svg viewBox="0 0 12 8" width="24" height="16" style={{ imageRendering: "pixelated" }}>
+        <polygon points="0,8 6,0 12,8" fill="#FCE4B8" />
+      </svg>
+    </div>
+  );
+}
+
 export default function ZeldaCaveScene({ isProfitable, message, jarValue }: ZeldaCaveSceneProps) {
   return (
     <div 
-      className="w-full min-h-[550px] relative flex"
+      className="w-full min-h-[520px] relative flex"
       style={{
         backgroundImage: "url('/assets/zelda/cave-wall.png')",
         backgroundSize: "64px 64px",
         imageRendering: "pixelated",
       }}
     >
-      {/* Left side panel - Torches on wall */}
-      <div className="w-24 flex flex-col items-center justify-around py-6">
+      {/* Left wall with torches - narrower */}
+      <div className="w-16 flex flex-col items-center justify-around py-8">
         <AnimatedTorch side="left" />
         <AnimatedTorch side="left" />
       </div>
       
-      {/* Main cave interior with floor texture */}
+      {/* Main cave interior - WIDER with visible floor */}
       <div 
-        className="flex-1 flex flex-col items-center justify-between py-6 relative"
+        className="flex-1 relative"
         style={{
           backgroundImage: "url('/assets/zelda/cave-floor.png')",
           backgroundSize: "64px 64px",
           imageRendering: "pixelated",
         }}
       >
-        {/* Vignette overlay for depth */}
+        {/* Subtle vignette for depth - less dark */}
         <div 
           className="absolute inset-0 pointer-events-none"
           style={{
-            background: "radial-gradient(ellipse at center, transparent 30%, rgba(0,0,0,0.6) 100%)",
+            background: "radial-gradient(ellipse at center, transparent 40%, rgba(0,0,0,0.4) 100%)",
           }}
         />
         
-        {/* Top section: Old Man - NES style sprite */}
-        <div className="flex flex-col items-center relative z-10">
-          <Image
-            src="/assets/zelda/old-man.png"
-            alt="Old Man Sage"
-            width={96}
-            height={128}
-            style={{ imageRendering: "pixelated" }}
-            priority
-          />
-        </div>
-        
-        {/* Middle section: Token Jar on Pedestal - NES style */}
-        <div className="flex flex-col items-center relative z-10 my-2">
-          {/* Glow effect when profitable */}
-          {isProfitable && (
-            <div 
-              className="absolute inset-0 animate-pulse"
-              style={{
-                background: "radial-gradient(circle, rgba(255,215,0,0.4) 0%, transparent 70%)",
-                filter: "blur(20px)",
-                transform: "scale(1.5)",
-              }}
+        {/* Content container - horizontal layout for old man and jar */}
+        <div className="relative z-10 h-full flex flex-col items-center justify-between py-4">
+          
+          {/* Top row: Old Man with more space */}
+          <div className="flex flex-col items-center">
+            <Image
+              src="/assets/zelda/old-man.png"
+              alt="Old Man Sage"
+              width={112}
+              height={140}
+              style={{ imageRendering: "pixelated" }}
+              priority
             />
-          )}
-          
-          <Image
-            src="/assets/zelda/token-jar.png"
-            alt="Token Jar"
-            width={96}
-            height={128}
-            style={{ 
-              imageRendering: "pixelated",
-              filter: isProfitable ? "drop-shadow(0 0 20px gold)" : "none",
-            }}
-            priority
-          />
-          
-          {/* Jar value label */}
-          <div 
-            className="mt-2 px-3 py-1 bg-black/90 border-2 border-[#8B4513]"
-            style={{ fontFamily: "'Press Start 2P', monospace" }}
-          >
-            <span className="text-[#00FF00] text-base">${jarValue.toFixed(0)}</span>
-            <span className="text-[#666] text-[8px] ml-1">IN JAR</span>
           </div>
-        </div>
-        
-        {/* Dialog box */}
-        <div 
-          className="w-full max-w-2xl mx-auto bg-black/95 border-4 border-[#FCE4B8] p-4 relative z-10"
-          style={{ fontFamily: "'Press Start 2P', monospace" }}
-        >
-          <div className="text-xs leading-relaxed min-h-[48px]">
-            <TypewriterText text={message} isProfitable={isProfitable} />
+          
+          {/* Middle row: Token Jar - more prominent */}
+          <div className="flex flex-col items-center relative -mt-2">
+            {/* Glow effect when profitable */}
+            {isProfitable && (
+              <div 
+                className="absolute inset-0 animate-pulse"
+                style={{
+                  background: "radial-gradient(circle, rgba(255,215,0,0.5) 0%, transparent 70%)",
+                  filter: "blur(25px)",
+                  transform: "scale(2)",
+                }}
+              />
+            )}
+            
+            <Image
+              src="/assets/zelda/token-jar.png"
+              alt="Token Jar"
+              width={112}
+              height={140}
+              style={{ 
+                imageRendering: "pixelated",
+                filter: isProfitable ? "drop-shadow(0 0 25px gold)" : "none",
+              }}
+              priority
+            />
+            
+            {/* Jar value label */}
+            <div 
+              className="mt-1 px-4 py-1 bg-black/90 border-2 border-[#8B4513]"
+              style={{ fontFamily: "'Press Start 2P', monospace" }}
+            >
+              <span className="text-[#00FF00] text-lg">${jarValue.toFixed(0)}</span>
+              <span className="text-[#888] text-[10px] ml-2">IN JAR</span>
+            </div>
           </div>
+          
+          {/* Dialog box with arrow */}
+          <div className="w-full max-w-2xl mx-auto relative">
+            <DialogArrow />
+            <div 
+              className="bg-black/95 border-4 border-[#FCE4B8] p-4"
+              style={{ fontFamily: "'Press Start 2P', monospace" }}
+            >
+              <div className="text-xs leading-relaxed min-h-[48px]">
+                <TypewriterText text={message} isProfitable={isProfitable} />
+              </div>
+            </div>
+          </div>
+          
+          {/* Bottom: Unicorn character */}
+          <div className="flex flex-col items-center mt-2">
+            <AnimatedUnicorn />
+          </div>
+          
         </div>
-        
-        {/* Bottom: Unicorn character - NES style */}
-        <div className="flex flex-col items-center mt-3 relative z-10">
-          <AnimatedUnicorn />
-        </div>
-        
       </div>
       
-      {/* Right side panel - Torches on wall */}
-      <div className="w-24 flex flex-col items-center justify-around py-6">
+      {/* Right wall with torches - narrower */}
+      <div className="w-16 flex flex-col items-center justify-around py-8">
         <AnimatedTorch side="right" />
         <AnimatedTorch side="right" />
       </div>

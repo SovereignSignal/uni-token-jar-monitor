@@ -15,16 +15,17 @@ interface ZeldaHUDProps {
   tokenCount?: number;
 }
 
-// Pixel heart component - LARGER with better visibility for empty hearts
+// Pixel heart component - LARGER with MUCH better visibility for empty hearts
+// Empty hearts show as dark red outline (like cracked/broken hearts)
 function PixelHeart({ filled, color = "red" }: { filled: boolean; color?: "red" | "green" }) {
   const fillColor = color === "green" ? "#00FF00" : "#FF0000";
-  // Empty hearts now have a visible outline/border style
-  const emptyFill = "#1a1a1a";
-  const outlineColor = "#666666";
+  // Empty hearts: dark red outline with very dark fill - looks like "damaged" hearts
+  const emptyFill = "#330000";  // Very dark red instead of black
+  const outlineColor = "#880000";  // Dark red outline - clearly visible
   
   return (
     <svg viewBox="0 0 10 9" width="28" height="25" style={{ imageRendering: "pixelated" }}>
-      {/* Outline for visibility */}
+      {/* Outline - bright when filled, dark red when empty */}
       <rect x="1" y="0" width="3" height="1" fill={filled ? fillColor : outlineColor} />
       <rect x="6" y="0" width="3" height="1" fill={filled ? fillColor : outlineColor} />
       <rect x="0" y="1" width="1" height="1" fill={filled ? fillColor : outlineColor} />
@@ -42,7 +43,7 @@ function PixelHeart({ filled, color = "red" }: { filled: boolean; color?: "red" 
       <rect x="6" y="7" width="1" height="1" fill={filled ? fillColor : outlineColor} />
       <rect x="4" y="8" width="2" height="1" fill={filled ? fillColor : outlineColor} />
       
-      {/* Inner fill */}
+      {/* Inner fill - bright when filled, very dark red when empty */}
       <rect x="1" y="1" width="3" height="1" fill={filled ? fillColor : emptyFill} />
       <rect x="6" y="1" width="3" height="1" fill={filled ? fillColor : emptyFill} />
       <rect x="1" y="2" width="8" height="2" fill={filled ? fillColor : emptyFill} />
