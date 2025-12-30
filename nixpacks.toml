@@ -5,7 +5,10 @@ nixPkgs = ["nodejs_20", "pnpm"]
 cmds = ["pnpm install --frozen-lockfile"]
 
 [phases.build]
-cmds = ["pnpm build"]
+cmds = [
+  "pnpm build",
+  "cp -r .next/static .next/standalone/.next/static"
+]
 
 [start]
 cmd = "node .next/standalone/server.js"
