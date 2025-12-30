@@ -217,10 +217,10 @@ export default function Home() {
             <HeaderUnicorn />
             <div>
               <h1 className="text-lg md:text-xl text-glow-pink glow-pulse" style={{ color: '#FF007A' }}>
-                DUNGEON TREASURY
+                UNI JAR
               </h1>
               <p className="text-[8px] text-gray-400 mt-1">
-                UNISWAP FEE BURN QUEST
+                UNISWAP FEE BURN MONITOR
               </p>
             </div>
           </div>
@@ -265,7 +265,7 @@ export default function Home() {
       {!data && !error && (
         <div className="flex flex-col items-center justify-center py-20">
           <div className="text-xl text-[#FF007A] animate-pulse mb-4">
-            EXPLORING DUNGEON...
+            LOADING JAR...
           </div>
           <div className="flex gap-2">
             {[0, 1, 2].map((i) => (
@@ -279,7 +279,7 @@ export default function Home() {
             ))}
           </div>
           <p className="mt-4 text-[8px] text-gray-600">
-            SEARCHING FOR TREASURE...
+            FETCHING TOKEN DATA...
           </p>
         </div>
       )}
@@ -291,7 +291,7 @@ export default function Home() {
           <div className="retro-panel p-4 relative overflow-hidden">
             <h2 className="text-xs text-center mb-2 text-[#FF007A] flex items-center justify-center gap-2">
               <span className="text-[10px]">~</span>
-              TREASURE VAULT
+              THE JAR
               <span className="text-[10px]">~</span>
             </h2>
 
@@ -338,11 +338,11 @@ export default function Home() {
             {/* Breakdown Panel */}
             <div className="retro-panel p-4">
               <h2 className="text-xs text-[#FF007A] mb-4 flex items-center gap-2">
-                <span>QUEST LOG</span>
+                <span>BREAKDOWN</span>
               </h2>
               <div className="space-y-2 text-[10px]">
                 <div className="flex justify-between items-center py-2 border-b border-gray-700">
-                  <span className="text-gray-400">VAULT GOLD</span>
+                  <span className="text-gray-400">JAR VALUE</span>
                   <span className="text-yellow-400">
                     {formatUsd(data.totalJarValueUsd)}
                   </span>
@@ -350,14 +350,14 @@ export default function Home() {
                 <div className="flex justify-between items-center py-2 border-b border-gray-700">
                   <span className="text-gray-400 flex items-center gap-1">
                     <PixelSkull />
-                    SACRIFICE ({data.burnThreshold.toLocaleString()} UNI)
+                    BURN COST ({data.burnThreshold.toLocaleString()} UNI)
                   </span>
                   <span className="text-red-400">
                     -{formatUsd(data.burnCostUsd)}
                   </span>
                 </div>
                 <div className="flex justify-between items-center py-2 border-b border-gray-700">
-                  <span className="text-gray-400">TOLL (GAS)</span>
+                  <span className="text-gray-400">GAS EST.</span>
                   <span className="text-red-400">
                     -{formatUsd(data.gasEstimateUsd)}
                   </span>
@@ -378,19 +378,19 @@ export default function Home() {
             {/* Token List Panel */}
             <div className="retro-panel p-4">
               <h2 className="text-xs text-[#FF007A] mb-4">
-                INVENTORY
+                TOKENS
                 <span className="text-gray-500 text-[8px] ml-2">
-                  (rare items &gt;$1K)
+                  (&gt;$1K value)
                 </span>
               </h2>
 
               {data.displayTokens.length === 0 ? (
                 <div className="text-center py-4">
                   <p className="text-gray-500 text-[10px]">
-                    NO RARE ITEMS FOUND
+                    NO LARGE HOLDINGS
                   </p>
                   <p className="text-gray-600 text-[8px] mt-1">
-                    (only common loot detected)
+                    (only small balances detected)
                   </p>
                 </div>
               ) : (
@@ -428,13 +428,13 @@ export default function Home() {
                 <div className="mt-3 pt-3 border-t border-gray-700 text-[8px] text-gray-500">
                   {data.otherTokensCount > 0 && (
                     <div className="flex justify-between">
-                      <span>COMMON LOOT x{data.otherTokensCount}</span>
+                      <span>OTHER TOKENS x{data.otherTokensCount}</span>
                       <span className="text-yellow-600">{formatUsd(data.otherTokensValueUsd)}</span>
                     </div>
                   )}
                   {data.unpricedTokensCount > 0 && (
                     <div className="mt-1 text-gray-600">
-                      MYSTERIOUS ITEMS: {data.unpricedTokensCount}
+                      UNPRICED: {data.unpricedTokensCount}
                     </div>
                   )}
                 </div>
@@ -444,7 +444,7 @@ export default function Home() {
             {/* UNI Price */}
             <div className="retro-panel p-3">
               <div className="flex justify-between items-center text-[10px]">
-                <span className="text-gray-400">UNI POWER LEVEL</span>
+                <span className="text-gray-400">UNI PRICE</span>
                 <span className="text-[#ff007a] font-bold">
                   ${data.uniPriceUsd.toFixed(2)}
                 </span>
@@ -457,10 +457,10 @@ export default function Home() {
       {/* Contract Links */}
       {data && (
         <div className="retro-panel p-4 mt-6">
-          <h2 className="text-xs text-[#FF007A] mb-3">DUNGEON MAP</h2>
+          <h2 className="text-xs text-[#FF007A] mb-3">CONTRACTS</h2>
           <div className="space-y-2 text-[8px]">
             <div className="flex flex-col md:flex-row md:items-center gap-1">
-              <span className="text-gray-400 w-24">TREASURE VAULT:</span>
+              <span className="text-gray-400 w-24">TOKENJAR:</span>
               <a
                 href={`https://etherscan.io/address/${TOKENJAR_ADDRESS}`}
                 target="_blank"
@@ -471,7 +471,7 @@ export default function Home() {
               </a>
             </div>
             <div className="flex flex-col md:flex-row md:items-center gap-1">
-              <span className="text-gray-400 w-24">SACRIFICIAL PIT:</span>
+              <span className="text-gray-400 w-24">FIREPIT:</span>
               <a
                 href={`https://etherscan.io/address/${FIREPIT_ADDRESS}`}
                 target="_blank"
@@ -487,10 +487,10 @@ export default function Home() {
 
       {/* Footer */}
       <footer className="mt-6 text-center text-[8px] text-gray-600">
-        <p>DUNGEON UPDATES EVERY 30 SECONDS</p>
-        <p className="mt-1">ORACLE PRICES VIA COINGECKO - QUEST AT YOUR OWN RISK</p>
+        <p>REFRESHES EVERY 30 SECONDS</p>
+        <p className="mt-1">PRICES VIA COINGECKO - NOT FINANCIAL ADVICE</p>
         <p className="mt-3 text-[#FF007A] text-[10px]">
-          - PRESS START TO BEGIN YOUR QUEST -
+          - UNI JAR -
         </p>
       </footer>
     </main>
