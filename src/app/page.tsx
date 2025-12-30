@@ -4,7 +4,7 @@ import { useEffect, useState, useCallback } from "react";
 import { REFRESH_INTERVAL_MS, TOKENJAR_ADDRESS, FIREPIT_ADDRESS } from "@/lib/constants";
 import type { TokenJarApiResponse } from "./api/tokenjar/route";
 import type { ProfitabilityData } from "@/lib/profitability";
-import PixelJar from "@/components/PixelJar";
+import JarVisualization from "@/components/PixelJar";
 
 type DataStatus = "loading" | "fresh" | "stale" | "error";
 
@@ -291,12 +291,12 @@ export default function Home() {
           <div className="retro-panel p-4 relative overflow-hidden">
             <h2 className="text-xs text-center mb-2 text-[#FF007A] flex items-center justify-center gap-2">
               <span className="text-[10px]">~</span>
-              THE JAR
+              BURN vs VAULT
               <span className="text-[10px]">~</span>
             </h2>
 
-            {/* Pixel Jar */}
-            <PixelJar
+            {/* New Pixel Art Jar Visualization */}
+            <JarVisualization
               tokens={data.displayTokens.map((t) => ({
                 symbol: t.symbol,
                 valueUsd: t.valueUsd,
@@ -306,24 +306,15 @@ export default function Home() {
               isProfitable={data.isProfitable}
             />
 
-            {/* Profit Display */}
+            {/* Profitability Status */}
             <div className="text-center mt-4">
               <div className="text-[8px] text-gray-400 mb-1 flex items-center justify-center gap-2">
                 {data.isProfitable ? <PixelTreasure /> : <PixelSkull />}
-                <span>NET PROFIT</span>
+                <span>STATUS</span>
                 {data.isProfitable ? <PixelTreasure /> : <PixelSkull />}
               </div>
               <div
-                className={`text-3xl md:text-4xl font-bold ${
-                  data.isProfitable
-                    ? "text-green-400 treasure-glow"
-                    : "text-red-400 danger-pulse"
-                }`}
-              >
-                {formatUsd(data.netProfitUsd, true)}
-              </div>
-              <div
-                className={`inline-block mt-3 px-4 py-2 text-[10px] ${
+                className={`inline-block mt-2 px-4 py-2 text-[10px] ${
                   data.isProfitable
                     ? "bg-green-900/50 text-green-300 border-2 border-green-600"
                     : "bg-red-900/50 text-red-300 border-2 border-red-600"
