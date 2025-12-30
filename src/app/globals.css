@@ -430,6 +430,39 @@ body {
   animation: treasure-glow 1.5s ease-in-out infinite;
 }
 
+/* Fire particle rise animation */
+@keyframes fireRise {
+  0% {
+    transform: translateY(0) scale(1);
+    opacity: 0;
+  }
+  10% {
+    opacity: 1;
+  }
+  50% {
+    transform: translateY(-40px) translateX(5px) scale(0.8);
+    opacity: 0.8;
+  }
+  100% {
+    transform: translateY(-80px) translateX(-5px) scale(0.3);
+    opacity: 0;
+  }
+}
+
+/* Coin bobbing animation (for coins inside jar) */
+@keyframes coinBob {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-2px);
+  }
+}
+
+.coin-bob {
+  animation: coinBob 2s ease-in-out infinite;
+}
+
 /* Scrollbar styling */
 ::-webkit-scrollbar {
   width: 12px;

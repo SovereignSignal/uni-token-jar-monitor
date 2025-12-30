@@ -302,14 +302,15 @@ export default function Home() {
                 valueUsd: t.valueUsd,
               }))}
               totalValue={data.totalJarValueUsd}
+              burnCost={data.burnCostUsd}
               isProfitable={data.isProfitable}
             />
 
             {/* Profit Display */}
-            <div className="text-center mt-2">
+            <div className="text-center mt-4">
               <div className="text-[8px] text-gray-400 mb-1 flex items-center justify-center gap-2">
                 {data.isProfitable ? <PixelTreasure /> : <PixelSkull />}
-                <span>LOOT VALUE</span>
+                <span>NET PROFIT</span>
                 {data.isProfitable ? <PixelTreasure /> : <PixelSkull />}
               </div>
               <div
@@ -328,7 +329,7 @@ export default function Home() {
                     : "bg-red-900/50 text-red-300 border-2 border-red-600"
                 }`}
               >
-                {data.isProfitable ? "TREASURE FOUND!" : "PERILOUS PATH"}
+                {data.isProfitable ? "PROFITABLE!" : "NOT PROFITABLE"}
               </div>
             </div>
           </div>
