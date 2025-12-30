@@ -5,7 +5,7 @@ import { useState, useEffect } from "react";
 
 // =============================================================================
 // ZELDA CAVE SCENE - Full-width with sprite-based backgrounds
-// Uses the sides of the page, larger elements, no CSS patterns
+// All sprites now match NES pixel density (chunky 8-bit style)
 // =============================================================================
 
 interface ZeldaCaveSceneProps {
@@ -14,7 +14,7 @@ interface ZeldaCaveSceneProps {
   jarValue: number;
 }
 
-// Animated torch component - LARGER
+// Animated torch component - NES style
 function AnimatedTorch({ side }: { side: "left" | "right" }) {
   const [frame, setFrame] = useState(0);
   
@@ -25,7 +25,7 @@ function AnimatedTorch({ side }: { side: "left" | "right" }) {
     return () => clearInterval(interval);
   }, []);
   
-  const flameOffsets = [0, -3, 2, -1];
+  const flameOffsets = [0, -2, 1, -1];
   
   return (
     <div className="relative flex flex-col items-center">
@@ -33,14 +33,14 @@ function AnimatedTorch({ side }: { side: "left" | "right" }) {
         className="relative"
         style={{ 
           transform: `translateY(${flameOffsets[frame]}px) ${side === "right" ? "scaleX(-1)" : ""}`,
-          filter: "drop-shadow(0 0 25px #FF6600) drop-shadow(0 0 50px #FF6600)",
+          filter: "drop-shadow(0 0 20px #FF6600) drop-shadow(0 0 40px #FF6600)",
         }}
       >
         <Image
           src="/assets/zelda/torch.png"
           alt="Torch"
-          width={100}
-          height={150}
+          width={64}
+          height={128}
           style={{ imageRendering: "pixelated" }}
           priority
         />
@@ -85,7 +85,7 @@ function TypewriterText({ text, isProfitable }: { text: string; isProfitable: bo
   );
 }
 
-// Animated unicorn with bounce
+// Animated unicorn with bounce - NES style
 function AnimatedUnicorn() {
   const [frame, setFrame] = useState(0);
   
@@ -97,12 +97,12 @@ function AnimatedUnicorn() {
   }, []);
   
   return (
-    <div style={{ transform: `translateY(${frame === 1 ? -4 : 0}px)`, transition: "transform 0.3s ease-out" }}>
+    <div style={{ transform: `translateY(${frame === 1 ? -3 : 0}px)`, transition: "transform 0.3s ease-out" }}>
       <Image
         src="/assets/zelda/unicorn.png"
         alt="Uniswap Unicorn"
-        width={100}
-        height={100}
+        width={80}
+        height={80}
         style={{ imageRendering: "pixelated" }}
         priority
       />
@@ -113,57 +113,58 @@ function AnimatedUnicorn() {
 export default function ZeldaCaveScene({ isProfitable, message, jarValue }: ZeldaCaveSceneProps) {
   return (
     <div 
-      className="w-full min-h-[600px] relative flex"
+      className="w-full min-h-[550px] relative flex"
       style={{
         backgroundImage: "url('/assets/zelda/cave-wall.png')",
         backgroundSize: "64px 64px",
         imageRendering: "pixelated",
       }}
     >
-      {/* Left side panel - Additional torches/decorations */}
-      <div className="w-32 flex flex-col items-center justify-around py-8">
+      {/* Left side panel - Torches on wall */}
+      <div className="w-24 flex flex-col items-center justify-around py-6">
         <AnimatedTorch side="left" />
-        <div className="flex flex-col gap-4">
-          <div className="w-8 h-8 bg-[#8B4513] border-2 border-[#654321] animate-pulse" />
-          <div className="w-8 h-8 bg-[#654321] border-2 border-[#8B4513]" />
-          <div className="w-8 h-8 bg-[#8B4513] border-2 border-[#654321] animate-pulse" style={{ animationDelay: "0.5s" }} />
-        </div>
         <AnimatedTorch side="left" />
       </div>
       
-      {/* Main cave interior */}
+      {/* Main cave interior with floor texture */}
       <div 
-        className="flex-1 flex flex-col items-center justify-between py-8 relative"
+        className="flex-1 flex flex-col items-center justify-between py-6 relative"
         style={{
           backgroundImage: "url('/assets/zelda/cave-floor.png')",
           backgroundSize: "64px 64px",
           imageRendering: "pixelated",
-          boxShadow: "inset 0 0 150px rgba(0,0,0,0.7)",
         }}
       >
+        {/* Vignette overlay for depth */}
+        <div 
+          className="absolute inset-0 pointer-events-none"
+          style={{
+            background: "radial-gradient(ellipse at center, transparent 30%, rgba(0,0,0,0.6) 100%)",
+          }}
+        />
         
-        {/* Top section: Old Man */}
-        <div className="flex flex-col items-center">
+        {/* Top section: Old Man - NES style sprite */}
+        <div className="flex flex-col items-center relative z-10">
           <Image
             src="/assets/zelda/old-man.png"
             alt="Old Man Sage"
-            width={160}
-            height={200}
+            width={96}
+            height={128}
             style={{ imageRendering: "pixelated" }}
             priority
           />
         </div>
         
-        {/* Middle section: Token Jar on Pedestal */}
-        <div className="flex flex-col items-center relative my-4">
+        {/* Middle section: Token Jar on Pedestal - NES style */}
+        <div className="flex flex-col items-center relative z-10 my-2">
           {/* Glow effect when profitable */}
           {isProfitable && (
             <div 
               className="absolute inset-0 animate-pulse"
               style={{
-                background: "radial-gradient(circle, rgba(255,215,0,0.5) 0%, transparent 70%)",
-                filter: "blur(30px)",
-                transform: "scale(2)",
+                background: "radial-gradient(circle, rgba(255,215,0,0.4) 0%, transparent 70%)",
+                filter: "blur(20px)",
+                transform: "scale(1.5)",
               }}
             />
           )}
@@ -171,50 +172,45 @@ export default function ZeldaCaveScene({ isProfitable, message, jarValue }: Zeld
           <Image
             src="/assets/zelda/token-jar.png"
             alt="Token Jar"
-            width={140}
-            height={180}
+            width={96}
+            height={128}
             style={{ 
               imageRendering: "pixelated",
-              filter: isProfitable ? "drop-shadow(0 0 30px gold)" : "none",
+              filter: isProfitable ? "drop-shadow(0 0 20px gold)" : "none",
             }}
             priority
           />
           
           {/* Jar value label */}
           <div 
-            className="mt-3 px-4 py-2 bg-black border-4 border-[#8B4513]"
+            className="mt-2 px-3 py-1 bg-black/90 border-2 border-[#8B4513]"
             style={{ fontFamily: "'Press Start 2P', monospace" }}
           >
-            <span className="text-[#00FF00] text-lg">${jarValue.toFixed(0)}</span>
-            <span className="text-[#666] text-xs ml-2">IN JAR</span>
+            <span className="text-[#00FF00] text-base">${jarValue.toFixed(0)}</span>
+            <span className="text-[#666] text-[8px] ml-1">IN JAR</span>
           </div>
         </div>
         
-        {/* Dialog box - LARGER */}
+        {/* Dialog box */}
         <div 
-          className="w-full max-w-3xl mx-auto bg-black border-4 border-[#FCE4B8] p-6"
+          className="w-full max-w-2xl mx-auto bg-black/95 border-4 border-[#FCE4B8] p-4 relative z-10"
           style={{ fontFamily: "'Press Start 2P', monospace" }}
         >
-          <div className="text-sm leading-relaxed min-h-[60px]">
+          <div className="text-xs leading-relaxed min-h-[48px]">
             <TypewriterText text={message} isProfitable={isProfitable} />
           </div>
         </div>
         
-        {/* Bottom: Unicorn character - LARGER */}
-        <div className="flex flex-col items-center mt-4">
+        {/* Bottom: Unicorn character - NES style */}
+        <div className="flex flex-col items-center mt-3 relative z-10">
           <AnimatedUnicorn />
         </div>
         
       </div>
       
-      {/* Right side panel - Additional torches/decorations */}
-      <div className="w-32 flex flex-col items-center justify-around py-8">
+      {/* Right side panel - Torches on wall */}
+      <div className="w-24 flex flex-col items-center justify-around py-6">
         <AnimatedTorch side="right" />
-        <div className="flex flex-col gap-4">
-          <div className="w-8 h-8 bg-[#8B4513] border-2 border-[#654321] animate-pulse" style={{ animationDelay: "0.3s" }} />
-          <div className="w-8 h-8 bg-[#654321] border-2 border-[#8B4513]" />
-          <div className="w-8 h-8 bg-[#8B4513] border-2 border-[#654321] animate-pulse" style={{ animationDelay: "0.7s" }} />
-        </div>
         <AnimatedTorch side="right" />
       </div>
       
