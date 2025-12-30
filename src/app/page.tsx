@@ -4,6 +4,7 @@ import { useEffect, useState, useCallback } from "react";
 import { REFRESH_INTERVAL_MS, TOKENJAR_ADDRESS, FIREPIT_ADDRESS } from "@/lib/constants";
 import type { TokenJarApiResponse } from "./api/tokenjar/route";
 import type { ProfitabilityData } from "@/lib/profitability";
+import PixelJar from "@/components/PixelJar";
 
 type DataStatus = "loading" | "fresh" | "stale" | "error";
 
@@ -12,30 +13,30 @@ function getDataStatus(timestamp: number | null, error: boolean): DataStatus {
   if (!timestamp) return "loading";
 
   const age = Date.now() - timestamp;
-  if (age < 60_000) return "fresh"; // < 1 minute
-  if (age < 300_000) return "stale"; // < 5 minutes
-  return "error"; // > 5 minutes
+  if (age < 60_000) return "fresh";
+  if (age < 300_000) return "stale";
+  return "error";
 }
 
 function StatusIndicator({ status }: { status: DataStatus }) {
   const colors = {
-    loading: "bg-gray-500",
-    fresh: "bg-green-500",
-    stale: "bg-yellow-500",
-    error: "bg-red-500",
+    loading: "text-gray-400",
+    fresh: "text-green-400",
+    stale: "text-yellow-400",
+    error: "text-red-400",
   };
 
   const labels = {
-    loading: "Loading...",
-    fresh: "Live",
-    stale: "Stale",
-    error: "Error",
+    loading: "LOADING",
+    fresh: "LIVE",
+    stale: "STALE",
+    error: "ERROR",
   };
 
   return (
     <div className="flex items-center gap-2">
-      <div className={`w-2.5 h-2.5 rounded-full ${colors[status]} animate-pulse`} />
-      <span className="text-sm text-gray-400">{labels[status]}</span>
+      <div className={`pixel-dot ${colors[status]}`} />
+      <span className={`text-[10px] ${colors[status]}`}>{labels[status]}</span>
     </div>
   );
 }
@@ -47,13 +48,13 @@ function formatUsd(value: number, showSign = false): string {
   if (absValue >= 1_000_000) {
     return `${sign}$${(absValue / 1_000_000).toFixed(2)}M`;
   }
-  return `${sign}$${absValue.toLocaleString("en-US", {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  })}`;
+  if (absValue >= 1_000) {
+    return `${sign}$${(absValue / 1_000).toFixed(1)}K`;
+  }
+  return `${sign}$${absValue.toFixed(0)}`;
 }
 
-function formatNumber(value: string | number, decimals = 4): string {
+function formatNumber(value: string | number, decimals = 2): string {
   const num = typeof value === "string" ? parseFloat(value) : value;
   if (num >= 1_000_000) {
     return `${(num / 1_000_000).toFixed(2)}M`;
@@ -61,19 +62,19 @@ function formatNumber(value: string | number, decimals = 4): string {
   if (num >= 1_000) {
     return `${(num / 1_000).toFixed(2)}K`;
   }
-  if (num < 0.0001) {
-    return num.toExponential(2);
+  if (num < 0.01) {
+    return num.toExponential(1);
   }
   return num.toFixed(decimals);
 }
 
 function formatTimeAgo(timestamp: number): string {
   const seconds = Math.floor((Date.now() - timestamp) / 1000);
-  if (seconds < 60) return `${seconds}s ago`;
+  if (seconds < 60) return `${seconds}S AGO`;
   const minutes = Math.floor(seconds / 60);
-  if (minutes < 60) return `${minutes}m ago`;
+  if (minutes < 60) return `${minutes}M AGO`;
   const hours = Math.floor(minutes / 60);
-  return `${hours}h ago`;
+  return `${hours}H AGO`;
 }
 
 export default function Home() {
@@ -102,15 +103,12 @@ export default function Home() {
     }
   }, []);
 
-  // Initial fetch and polling
   useEffect(() => {
     fetchData();
-
     const interval = setInterval(fetchData, REFRESH_INTERVAL_MS);
     return () => clearInterval(interval);
   }, [fetchData]);
 
-  // Update time display
   const [, setTick] = useState(0);
   useEffect(() => {
     const interval = setInterval(() => setTick((t) => t + 1), 1000);
@@ -120,227 +118,266 @@ export default function Home() {
   const status = getDataStatus(lastFetch, !!error);
 
   return (
-    <main className="min-h-screen p-4 md:p-8 max-w-4xl mx-auto">
-      {/* Header */}
-      <header className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
-        <div>
-          <h1 className="text-2xl md:text-3xl font-bold">TokenJar Monitor</h1>
-          <p className="text-gray-400 text-sm mt-1">
-            Uniswap Fee Burn Profitability Tracker
-          </p>
-        </div>
-        <div className="flex items-center gap-4">
-          <StatusIndicator status={status} />
-          {lastFetch && (
-            <span className="text-sm text-gray-500">
-              Updated {formatTimeAgo(lastFetch)}
-            </span>
-          )}
-          <button
-            onClick={fetchData}
-            disabled={isRefreshing}
-            className="px-3 py-1.5 text-sm bg-gray-800 hover:bg-gray-700 rounded-lg transition-colors disabled:opacity-50"
-          >
-            {isRefreshing ? "..." : "Refresh"}
-          </button>
+    <main className="min-h-screen p-4 md:p-8 max-w-5xl mx-auto scanlines">
+      {/* Retro Header */}
+      <header className="retro-panel p-4 mb-6">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div>
+            <h1 className="text-lg md:text-xl text-glow-gold text-[#feb236]">
+              TOKEN JAR
+            </h1>
+            <p className="text-[8px] text-gray-400 mt-2">
+              UNISWAP FEE BURN MONITOR
+            </p>
+          </div>
+          <div className="flex items-center gap-4">
+            <StatusIndicator status={status} />
+            {lastFetch && (
+              <span className="text-[8px] text-gray-500">
+                {formatTimeAgo(lastFetch)}
+              </span>
+            )}
+            <button
+              onClick={fetchData}
+              disabled={isRefreshing}
+              className="retro-btn px-4 py-2 text-[10px] disabled:opacity-50"
+            >
+              {isRefreshing ? "..." : "REFRESH"}
+            </button>
+          </div>
         </div>
       </header>
 
       {/* Error State */}
       {error && (
-        <div className="bg-red-900/30 border border-red-800 rounded-xl p-6 mb-8">
-          <h2 className="text-red-400 font-semibold mb-2">Error</h2>
-          <p className="text-red-300">{error}</p>
+        <div className="retro-panel p-4 mb-6 border-red-600">
+          <h2 className="text-red-400 text-xs mb-2">! ERROR !</h2>
+          <p className="text-red-300 text-[10px]">{error}</p>
         </div>
       )}
 
       {/* Loading State */}
       {!data && !error && (
-        <div className="flex items-center justify-center py-20">
-          <div className="text-gray-400">Loading TokenJar data...</div>
+        <div className="flex flex-col items-center justify-center py-20">
+          <div className="text-[10px] text-gray-400 animate-pulse">
+            LOADING TOKEN JAR DATA...
+          </div>
+          <div className="mt-4 text-[8px] text-gray-600">
+            PLEASE WAIT
+          </div>
         </div>
       )}
 
       {/* Main Content */}
       {data && (
-        <>
-          {/* Profitability Hero */}
-          <section className="bg-gray-900 rounded-xl p-6 md:p-8 mb-6">
-            <div className="text-center">
-              <div className="text-sm text-gray-400 uppercase tracking-wide mb-2">
-                Current Net Profit
-              </div>
+        <div className="grid md:grid-cols-2 gap-6">
+          {/* Left Column - Jar Visualization */}
+          <div className="retro-panel p-4">
+            <h2 className="text-xs text-center mb-4 text-[#feb236]">
+              JAR CONTENTS
+            </h2>
+
+            {/* Pixel Jar */}
+            <PixelJar
+              tokens={data.displayTokens.map((t) => ({
+                symbol: t.symbol,
+                valueUsd: t.valueUsd,
+              }))}
+              totalValue={data.totalJarValueUsd}
+              isProfitable={data.isProfitable}
+            />
+
+            {/* Profit Display */}
+            <div className="text-center mt-4">
+              <div className="text-[8px] text-gray-400 mb-1">NET PROFIT</div>
               <div
-                className={`text-4xl md:text-6xl font-bold mb-4 ${
-                  data.isProfitable ? "text-green-400" : "text-red-400"
+                className={`text-2xl md:text-3xl ${
+                  data.isProfitable
+                    ? "text-green-400 text-glow-green"
+                    : "text-red-400 text-glow-red"
                 }`}
               >
                 {formatUsd(data.netProfitUsd, true)}
               </div>
               <div
-                className={`inline-block px-4 py-2 rounded-full text-sm font-medium ${
+                className={`inline-block mt-3 px-3 py-1 text-[10px] ${
                   data.isProfitable
-                    ? "bg-green-900/50 text-green-300"
-                    : "bg-red-900/50 text-red-300"
+                    ? "bg-green-900/50 text-green-300 border-2 border-green-600"
+                    : "bg-red-900/50 text-red-300 border-2 border-red-600"
                 }`}
               >
-                {data.isProfitable ? "PROFITABLE TO CLAIM" : "NOT PROFITABLE"}
+                {data.isProfitable ? "PROFITABLE!" : "NOT PROFITABLE"}
               </div>
             </div>
-          </section>
+          </div>
 
-          {/* Breakdown */}
-          <section className="bg-gray-900 rounded-xl p-6 mb-6">
-            <h2 className="text-lg font-semibold mb-4">Breakdown</h2>
-            <div className="space-y-3">
-              <div className="flex justify-between items-center py-2 border-b border-gray-800">
-                <span className="text-gray-400">Total Jar Value</span>
-                <span className="font-mono text-lg">
-                  {formatUsd(data.totalJarValueUsd)}
-                </span>
-              </div>
-              <div className="flex justify-between items-center py-2 border-b border-gray-800">
-                <span className="text-gray-400">
-                  Burn Cost ({data.burnThreshold.toLocaleString()} UNI @ $
-                  {data.uniPriceUsd.toFixed(2)})
-                </span>
-                <span className="font-mono text-lg text-red-400">
-                  -{formatUsd(data.burnCostUsd)}
-                </span>
-              </div>
-              <div className="flex justify-between items-center py-2 border-b border-gray-800">
-                <span className="text-gray-400">Gas Estimate</span>
-                <span className="font-mono text-lg text-red-400">
-                  -{formatUsd(data.gasEstimateUsd)}
-                </span>
-              </div>
-              <div className="flex justify-between items-center py-2">
-                <span className="font-semibold">Net Profit/Loss</span>
-                <span
-                  className={`font-mono text-xl font-bold ${
-                    data.isProfitable ? "text-green-400" : "text-red-400"
-                  }`}
-                >
-                  {formatUsd(data.netProfitUsd, true)}
-                </span>
+          {/* Right Column - Stats */}
+          <div className="space-y-4">
+            {/* Breakdown Panel */}
+            <div className="retro-panel p-4">
+              <h2 className="text-xs text-[#feb236] mb-4">BREAKDOWN</h2>
+              <div className="space-y-2 text-[10px]">
+                <div className="flex justify-between items-center py-2 border-b border-gray-700">
+                  <span className="text-gray-400">JAR VALUE</span>
+                  <span className="text-white">
+                    {formatUsd(data.totalJarValueUsd)}
+                  </span>
+                </div>
+                <div className="flex justify-between items-center py-2 border-b border-gray-700">
+                  <span className="text-gray-400">
+                    BURN ({data.burnThreshold.toLocaleString()} UNI)
+                  </span>
+                  <span className="text-red-400">
+                    -{formatUsd(data.burnCostUsd)}
+                  </span>
+                </div>
+                <div className="flex justify-between items-center py-2 border-b border-gray-700">
+                  <span className="text-gray-400">GAS EST.</span>
+                  <span className="text-red-400">
+                    -{formatUsd(data.gasEstimateUsd)}
+                  </span>
+                </div>
+                <div className="flex justify-between items-center py-2">
+                  <span className="text-white">NET</span>
+                  <span
+                    className={
+                      data.isProfitable ? "text-green-400" : "text-red-400"
+                    }
+                  >
+                    {formatUsd(data.netProfitUsd, true)}
+                  </span>
+                </div>
               </div>
             </div>
-          </section>
 
-          {/* Token Table */}
-          <section className="bg-gray-900 rounded-xl p-6 mb-6">
-            <h2 className="text-lg font-semibold mb-4">
-              Tokens in Jar
-              {data.displayTokens.length > 0 && (
-                <span className="text-gray-400 font-normal text-sm ml-2">
-                  (showing tokens &gt; $1,000)
+            {/* Token List Panel */}
+            <div className="retro-panel p-4">
+              <h2 className="text-xs text-[#feb236] mb-4">
+                COINS IN JAR
+                <span className="text-gray-500 text-[8px] ml-2">
+                  (&gt;$1K)
                 </span>
-              )}
-            </h2>
+              </h2>
 
-            {data.displayTokens.length === 0 ? (
-              <p className="text-gray-500 py-4">
-                No tokens above $1,000 threshold
-              </p>
-            ) : (
-              <div className="overflow-x-auto">
-                <table className="w-full">
-                  <thead>
-                    <tr className="text-left text-gray-400 text-sm">
-                      <th className="pb-3 font-medium">Token</th>
-                      <th className="pb-3 font-medium text-right">Balance</th>
-                      <th className="pb-3 font-medium text-right">Price</th>
-                      <th className="pb-3 font-medium text-right">Value</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-gray-800">
-                    {data.displayTokens.map((token) => (
-                      <tr key={token.address} className="hover:bg-gray-800/50">
-                        <td className="py-3">
-                          <span className="font-medium">{token.symbol}</span>
-                        </td>
-                        <td className="py-3 text-right font-mono text-gray-300">
+              {data.displayTokens.length === 0 ? (
+                <p className="text-gray-500 text-[10px] py-4 text-center">
+                  NO TOKENS ABOVE $1,000
+                </p>
+              ) : (
+                <div className="space-y-1 max-h-48 overflow-y-auto">
+                  {data.displayTokens.map((token) => (
+                    <div
+                      key={token.address}
+                      className="flex justify-between items-center py-1 px-2 hover:bg-white/5 text-[10px]"
+                    >
+                      <div className="flex items-center gap-2">
+                        <span
+                          className="w-3 h-3 rounded-sm"
+                          style={{
+                            background: getTokenColor(token.symbol),
+                          }}
+                        />
+                        <span className="text-white">{token.symbol}</span>
+                      </div>
+                      <div className="text-right">
+                        <div className="text-gray-300">
                           {formatNumber(token.balanceFormatted)}
-                        </td>
-                        <td className="py-3 text-right font-mono text-gray-300">
-                          {token.priceUsd
-                            ? `$${token.priceUsd.toFixed(2)}`
-                            : "-"}
-                        </td>
-                        <td className="py-3 text-right font-mono">
+                        </div>
+                        <div className="text-green-400 text-[8px]">
                           {token.valueUsd ? formatUsd(token.valueUsd) : "-"}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
 
-            {/* Other tokens summary */}
-            {(data.otherTokensCount > 0 || data.unpricedTokensCount > 0) && (
-              <div className="mt-4 pt-4 border-t border-gray-800 text-sm text-gray-400">
-                {data.otherTokensCount > 0 && (
-                  <div className="flex justify-between">
-                    <span>
-                      Other tokens (&lt;$1,000): {data.otherTokensCount}
-                    </span>
-                    <span className="font-mono">
-                      {formatUsd(data.otherTokensValueUsd)}
-                    </span>
-                  </div>
-                )}
-                {data.unpricedTokensCount > 0 && (
-                  <div className="mt-1">
-                    Unpriced tokens: {data.unpricedTokensCount}
-                  </div>
-                )}
-              </div>
-            )}
-          </section>
+              {/* Other tokens summary */}
+              {(data.otherTokensCount > 0 || data.unpricedTokensCount > 0) && (
+                <div className="mt-3 pt-3 border-t border-gray-700 text-[8px] text-gray-500">
+                  {data.otherTokensCount > 0 && (
+                    <div className="flex justify-between">
+                      <span>OTHER x{data.otherTokensCount}</span>
+                      <span>{formatUsd(data.otherTokensValueUsd)}</span>
+                    </div>
+                  )}
+                  {data.unpricedTokensCount > 0 && (
+                    <div className="mt-1">
+                      UNPRICED: {data.unpricedTokensCount}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
 
-          {/* Contract Links */}
-          <section className="bg-gray-900 rounded-xl p-6">
-            <h2 className="text-lg font-semibold mb-4">Contract Addresses</h2>
-            <div className="space-y-2 text-sm">
-              <div className="flex flex-col md:flex-row md:items-center gap-1 md:gap-2">
-                <span className="text-gray-400">TokenJar:</span>
-                <a
-                  href={`https://etherscan.io/address/${TOKENJAR_ADDRESS}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="font-mono text-blue-400 hover:text-blue-300 break-all"
-                >
-                  {TOKENJAR_ADDRESS}
-                </a>
-              </div>
-              <div className="flex flex-col md:flex-row md:items-center gap-1 md:gap-2">
-                <span className="text-gray-400">Firepit:</span>
-                <a
-                  href={`https://etherscan.io/address/${FIREPIT_ADDRESS}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="font-mono text-blue-400 hover:text-blue-300 break-all"
-                >
-                  {FIREPIT_ADDRESS}
-                </a>
+            {/* UNI Price */}
+            <div className="retro-panel p-3">
+              <div className="flex justify-between items-center text-[10px]">
+                <span className="text-gray-400">UNI PRICE</span>
+                <span className="text-[#ff007a]">
+                  ${data.uniPriceUsd.toFixed(2)}
+                </span>
               </div>
             </div>
-          </section>
-
-          {/* Footer */}
-          <footer className="mt-8 text-center text-sm text-gray-500">
-            <p>
-              Data refreshes every 30 seconds. Prices from CoinGecko. Gas
-              estimate is approximate.
-            </p>
-            <p className="mt-1">
-              This is an informational tool only. DYOR before executing any
-              transactions.
-            </p>
-          </footer>
-        </>
+          </div>
+        </div>
       )}
+
+      {/* Contract Links */}
+      {data && (
+        <div className="retro-panel p-4 mt-6">
+          <h2 className="text-xs text-[#feb236] mb-3">CONTRACTS</h2>
+          <div className="space-y-2 text-[8px]">
+            <div className="flex flex-col md:flex-row md:items-center gap-1">
+              <span className="text-gray-400 w-20">TOKENJAR:</span>
+              <a
+                href={`https://etherscan.io/address/${TOKENJAR_ADDRESS}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-[#4a90d9] hover:text-[#6bb0ff] break-all"
+              >
+                {TOKENJAR_ADDRESS}
+              </a>
+            </div>
+            <div className="flex flex-col md:flex-row md:items-center gap-1">
+              <span className="text-gray-400 w-20">FIREPIT:</span>
+              <a
+                href={`https://etherscan.io/address/${FIREPIT_ADDRESS}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-[#4a90d9] hover:text-[#6bb0ff] break-all"
+              >
+                {FIREPIT_ADDRESS}
+              </a>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Footer */}
+      <footer className="mt-6 text-center text-[8px] text-gray-600">
+        <p>DATA REFRESHES EVERY 30 SEC</p>
+        <p className="mt-1">PRICES VIA COINGECKO - DYOR</p>
+        <p className="mt-2 text-gray-700">
+          PRESS START TO PLAY
+        </p>
+      </footer>
     </main>
   );
+}
+
+// Helper to get token colors
+function getTokenColor(symbol: string): string {
+  const colors: Record<string, string> = {
+    WETH: "#627eea",
+    USDC: "#2775ca",
+    USDT: "#26a17b",
+    WBTC: "#f7931a",
+    DAI: "#f5ac37",
+    UNI: "#ff007a",
+    LINK: "#2a5ada",
+    AAVE: "#b6509e",
+    PAXG: "#e4ce4e",
+  };
+  return colors[symbol] || "#feb236";
 }
