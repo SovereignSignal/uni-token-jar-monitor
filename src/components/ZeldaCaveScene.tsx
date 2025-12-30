@@ -85,7 +85,7 @@ function TypewriterText({ text, isProfitable }: { text: string; isProfitable: bo
   );
 }
 
-// Animated unicorn with bounce - NES style
+// Animated unicorn with bounce - NES style (LARGER for visual weight)
 function AnimatedUnicorn() {
   const [frame, setFrame] = useState(0);
   
@@ -97,12 +97,12 @@ function AnimatedUnicorn() {
   }, []);
   
   return (
-    <div style={{ transform: `translateY(${frame === 1 ? -3 : 0}px)`, transition: "transform 0.3s ease-out" }}>
+    <div style={{ transform: `translateY(${frame === 1 ? -4 : 0}px)`, transition: "transform 0.3s ease-out" }}>
       <Image
         src="/assets/zelda/unicorn.png"
         alt="Uniswap Unicorn"
-        width={80}
-        height={80}
+        width={128}
+        height={128}
         style={{ imageRendering: "pixelated" }}
         priority
       />

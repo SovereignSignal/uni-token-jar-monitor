@@ -15,22 +15,41 @@ interface ZeldaHUDProps {
   tokenCount?: number;
 }
 
-// Pixel heart component - LARGER
+// Pixel heart component - LARGER with better visibility for empty hearts
 function PixelHeart({ filled, color = "red" }: { filled: boolean; color?: "red" | "green" }) {
   const fillColor = color === "green" ? "#00FF00" : "#FF0000";
-  const emptyColor = "#333333";
+  // Empty hearts now have a visible outline/border style
+  const emptyFill = "#1a1a1a";
+  const outlineColor = "#666666";
   
   return (
-    <svg viewBox="0 0 8 7" width="24" height="21" style={{ imageRendering: "pixelated" }}>
-      <rect x="1" y="0" width="2" height="1" fill={filled ? fillColor : emptyColor} />
-      <rect x="5" y="0" width="2" height="1" fill={filled ? fillColor : emptyColor} />
-      <rect x="0" y="1" width="4" height="1" fill={filled ? fillColor : emptyColor} />
-      <rect x="4" y="1" width="4" height="1" fill={filled ? fillColor : emptyColor} />
-      <rect x="0" y="2" width="8" height="1" fill={filled ? fillColor : emptyColor} />
-      <rect x="0" y="3" width="8" height="1" fill={filled ? fillColor : emptyColor} />
-      <rect x="1" y="4" width="6" height="1" fill={filled ? fillColor : emptyColor} />
-      <rect x="2" y="5" width="4" height="1" fill={filled ? fillColor : emptyColor} />
-      <rect x="3" y="6" width="2" height="1" fill={filled ? fillColor : emptyColor} />
+    <svg viewBox="0 0 10 9" width="28" height="25" style={{ imageRendering: "pixelated" }}>
+      {/* Outline for visibility */}
+      <rect x="1" y="0" width="3" height="1" fill={filled ? fillColor : outlineColor} />
+      <rect x="6" y="0" width="3" height="1" fill={filled ? fillColor : outlineColor} />
+      <rect x="0" y="1" width="1" height="1" fill={filled ? fillColor : outlineColor} />
+      <rect x="4" y="1" width="2" height="1" fill={filled ? fillColor : outlineColor} />
+      <rect x="9" y="1" width="1" height="1" fill={filled ? fillColor : outlineColor} />
+      <rect x="0" y="2" width="1" height="2" fill={filled ? fillColor : outlineColor} />
+      <rect x="9" y="2" width="1" height="2" fill={filled ? fillColor : outlineColor} />
+      <rect x="0" y="4" width="1" height="1" fill={filled ? fillColor : outlineColor} />
+      <rect x="9" y="4" width="1" height="1" fill={filled ? fillColor : outlineColor} />
+      <rect x="1" y="5" width="1" height="1" fill={filled ? fillColor : outlineColor} />
+      <rect x="8" y="5" width="1" height="1" fill={filled ? fillColor : outlineColor} />
+      <rect x="2" y="6" width="1" height="1" fill={filled ? fillColor : outlineColor} />
+      <rect x="7" y="6" width="1" height="1" fill={filled ? fillColor : outlineColor} />
+      <rect x="3" y="7" width="1" height="1" fill={filled ? fillColor : outlineColor} />
+      <rect x="6" y="7" width="1" height="1" fill={filled ? fillColor : outlineColor} />
+      <rect x="4" y="8" width="2" height="1" fill={filled ? fillColor : outlineColor} />
+      
+      {/* Inner fill */}
+      <rect x="1" y="1" width="3" height="1" fill={filled ? fillColor : emptyFill} />
+      <rect x="6" y="1" width="3" height="1" fill={filled ? fillColor : emptyFill} />
+      <rect x="1" y="2" width="8" height="2" fill={filled ? fillColor : emptyFill} />
+      <rect x="1" y="4" width="8" height="1" fill={filled ? fillColor : emptyFill} />
+      <rect x="2" y="5" width="6" height="1" fill={filled ? fillColor : emptyFill} />
+      <rect x="3" y="6" width="4" height="1" fill={filled ? fillColor : emptyFill} />
+      <rect x="4" y="7" width="2" height="1" fill={filled ? fillColor : emptyFill} />
     </svg>
   );
 }
