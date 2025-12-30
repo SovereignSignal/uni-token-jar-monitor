@@ -112,16 +112,54 @@ function PixelTreasure() {
   );
 }
 
-// Pixel heart
+// Pixel heart - Uniswap pink
 function PixelHeart({ filled }: { filled: boolean }) {
   return (
-    <svg viewBox="0 0 8 8" width="12" height="12" style={{ imageRendering: "pixelated" }}>
-      <rect x="1" y="1" width="2" height="2" fill={filled ? "#e94f37" : "#444"} />
-      <rect x="5" y="1" width="2" height="2" fill={filled ? "#e94f37" : "#444"} />
-      <rect x="0" y="2" width="8" height="3" fill={filled ? "#e94f37" : "#444"} />
-      <rect x="1" y="5" width="6" height="1" fill={filled ? "#e94f37" : "#444"} />
-      <rect x="2" y="6" width="4" height="1" fill={filled ? "#e94f37" : "#444"} />
-      <rect x="3" y="7" width="2" height="1" fill={filled ? "#e94f37" : "#444"} />
+    <svg viewBox="0 0 8 8" width="14" height="14" style={{ imageRendering: "pixelated" }}>
+      <rect x="1" y="1" width="2" height="2" fill={filled ? "#FF007A" : "#40444F"} />
+      <rect x="5" y="1" width="2" height="2" fill={filled ? "#FF007A" : "#40444F"} />
+      <rect x="0" y="2" width="8" height="3" fill={filled ? "#FF007A" : "#40444F"} />
+      <rect x="1" y="5" width="6" height="1" fill={filled ? "#c7005f" : "#2D2F36"} />
+      <rect x="2" y="6" width="4" height="1" fill={filled ? "#c7005f" : "#2D2F36"} />
+      <rect x="3" y="7" width="2" height="1" fill={filled ? "#c7005f" : "#2D2F36"} />
+      {/* Highlight */}
+      {filled && <rect x="1" y="2" width="1" height="1" fill="#ff5fa2" />}
+    </svg>
+  );
+}
+
+// Pixel Unicorn for header
+function HeaderUnicorn() {
+  return (
+    <svg viewBox="0 0 20 20" width="28" height="28" style={{ imageRendering: "pixelated" }} className="unicorn-bounce">
+      {/* Horn */}
+      <rect x="14" y="1" width="1" height="1" fill="#FFD700" />
+      <rect x="15" y="2" width="1" height="2" fill="#FFD700" />
+      <rect x="16" y="3" width="1" height="2" fill="#FFD700" />
+      {/* Head */}
+      <rect x="10" y="4" width="6" height="5" fill="#FF007A" />
+      <rect x="9" y="5" width="1" height="4" fill="#FF007A" />
+      {/* Eye */}
+      <rect x="12" y="5" width="3" height="2" fill="#fff" />
+      <rect x="13" y="6" width="1" height="1" fill="#191B1F" />
+      {/* Mane */}
+      <rect x="7" y="4" width="3" height="1" fill="#7B61FF" />
+      <rect x="6" y="5" width="3" height="1" fill="#7B61FF" />
+      <rect x="5" y="6" width="3" height="1" fill="#7B61FF" />
+      <rect x="4" y="7" width="3" height="2" fill="#7B61FF" />
+      {/* Body */}
+      <rect x="5" y="9" width="10" height="5" fill="#FF007A" />
+      <rect x="4" y="10" width="1" height="4" fill="#FF007A" />
+      {/* Legs */}
+      <rect x="5" y="14" width="2" height="4" fill="#c7005f" />
+      <rect x="11" y="14" width="2" height="4" fill="#c7005f" />
+      {/* Hooves */}
+      <rect x="5" y="18" width="2" height="1" fill="#FFD700" />
+      <rect x="11" y="18" width="2" height="1" fill="#FFD700" />
+      {/* Tail */}
+      <rect x="3" y="10" width="1" height="2" fill="#7B61FF" />
+      <rect x="2" y="11" width="1" height="2" fill="#7B61FF" />
+      <rect x="1" y="12" width="1" height="2" fill="#7B61FF" />
     </svg>
   );
 }
@@ -176,9 +214,9 @@ export default function Home() {
       <header className="retro-panel p-4 mb-6">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div className="flex items-center gap-4">
-            <PixelTreasure />
+            <HeaderUnicorn />
             <div>
-              <h1 className="text-lg md:text-xl text-glow-gold text-[#feb236] glow-pulse">
+              <h1 className="text-lg md:text-xl text-glow-pink glow-pulse" style={{ color: '#FF007A' }}>
                 DUNGEON TREASURY
               </h1>
               <p className="text-[8px] text-gray-400 mt-1">
@@ -226,14 +264,14 @@ export default function Home() {
       {/* Loading State */}
       {!data && !error && (
         <div className="flex flex-col items-center justify-center py-20">
-          <div className="text-xl text-[#feb236] animate-pulse mb-4">
+          <div className="text-xl text-[#FF007A] animate-pulse mb-4">
             EXPLORING DUNGEON...
           </div>
           <div className="flex gap-2">
             {[0, 1, 2].map((i) => (
               <div
                 key={i}
-                className="w-4 h-4 bg-[#feb236]"
+                className="w-4 h-4 bg-[#FF007A]"
                 style={{
                   animation: `bounce 0.6s ease-in-out ${i * 0.15}s infinite`,
                 }}
@@ -251,7 +289,7 @@ export default function Home() {
         <div className="grid md:grid-cols-2 gap-6">
           {/* Left Column - Jar Visualization */}
           <div className="retro-panel p-4 relative overflow-hidden">
-            <h2 className="text-xs text-center mb-2 text-[#feb236] flex items-center justify-center gap-2">
+            <h2 className="text-xs text-center mb-2 text-[#FF007A] flex items-center justify-center gap-2">
               <span className="text-[10px]">~</span>
               TREASURE VAULT
               <span className="text-[10px]">~</span>
@@ -299,7 +337,7 @@ export default function Home() {
           <div className="space-y-4">
             {/* Breakdown Panel */}
             <div className="retro-panel p-4">
-              <h2 className="text-xs text-[#feb236] mb-4 flex items-center gap-2">
+              <h2 className="text-xs text-[#FF007A] mb-4 flex items-center gap-2">
                 <span>QUEST LOG</span>
               </h2>
               <div className="space-y-2 text-[10px]">
@@ -339,7 +377,7 @@ export default function Home() {
 
             {/* Token List Panel */}
             <div className="retro-panel p-4">
-              <h2 className="text-xs text-[#feb236] mb-4">
+              <h2 className="text-xs text-[#FF007A] mb-4">
                 INVENTORY
                 <span className="text-gray-500 text-[8px] ml-2">
                   (rare items &gt;$1K)
@@ -360,7 +398,7 @@ export default function Home() {
                   {data.displayTokens.map((token) => (
                     <div
                       key={token.address}
-                      className="flex justify-between items-center py-1 px-2 hover:bg-white/5 text-[10px] border-l-2 border-transparent hover:border-[#feb236]"
+                      className="flex justify-between items-center py-1 px-2 hover:bg-white/5 text-[10px] border-l-2 border-transparent hover:border-[#FF007A]"
                     >
                       <div className="flex items-center gap-2">
                         <span
@@ -419,7 +457,7 @@ export default function Home() {
       {/* Contract Links */}
       {data && (
         <div className="retro-panel p-4 mt-6">
-          <h2 className="text-xs text-[#feb236] mb-3">DUNGEON MAP</h2>
+          <h2 className="text-xs text-[#FF007A] mb-3">DUNGEON MAP</h2>
           <div className="space-y-2 text-[8px]">
             <div className="flex flex-col md:flex-row md:items-center gap-1">
               <span className="text-gray-400 w-24">TREASURE VAULT:</span>
@@ -451,7 +489,7 @@ export default function Home() {
       <footer className="mt-6 text-center text-[8px] text-gray-600">
         <p>DUNGEON UPDATES EVERY 30 SECONDS</p>
         <p className="mt-1">ORACLE PRICES VIA COINGECKO - QUEST AT YOUR OWN RISK</p>
-        <p className="mt-3 text-gray-500 text-[10px]">
+        <p className="mt-3 text-[#FF007A] text-[10px]">
           - PRESS START TO BEGIN YOUR QUEST -
         </p>
       </footer>
@@ -472,5 +510,5 @@ function getTokenColor(symbol: string): string {
     AAVE: "#b6509e",
     PAXG: "#e4ce4e",
   };
-  return colors[symbol] || "#feb236";
+  return colors[symbol] || "#FF007A";
 }

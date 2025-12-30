@@ -5,16 +5,29 @@
 @tailwind utilities;
 
 :root {
-  --background: #1a1a2e;
+  /* Uniswap brand colors */
+  --uni-pink: #FF007A;
+  --uni-pink-dark: #c7005f;
+  --uni-pink-light: #ff5fa2;
+  --uni-purple-dark: #191B1F;
+  --uni-purple-mid: #2D2F36;
+  --uni-purple-light: #40444F;
+
+  /* Background and foreground */
+  --background: #191B1F;
   --foreground: #eee;
-  --retro-purple: #6b5b95;
-  --retro-pink: #d64161;
-  --retro-gold: #feb236;
-  --retro-teal: #45b7aa;
-  --retro-blue: #4a90d9;
-  --retro-green: #88d498;
-  --retro-red: #e94f37;
-  --jar-glass: rgba(135, 206, 235, 0.3);
+
+  /* Accent colors */
+  --retro-purple: #7B61FF;
+  --retro-pink: #FF007A;
+  --retro-gold: #FFD700;
+  --retro-teal: #27AE60;
+  --retro-blue: #2172E5;
+  --retro-green: #27AE60;
+  --retro-red: #FD4040;
+
+  /* Jar styling */
+  --jar-glass: rgba(255, 0, 122, 0.2);
   --jar-shine: rgba(255, 255, 255, 0.4);
 }
 
@@ -23,6 +36,22 @@ body {
   background: var(--background);
   font-family: 'Press Start 2P', monospace;
   image-rendering: pixelated;
+  /* Dungeon brick texture pattern */
+  background-image:
+    repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 30px,
+      rgba(255, 0, 122, 0.03) 30px,
+      rgba(255, 0, 122, 0.03) 32px
+    ),
+    repeating-linear-gradient(
+      90deg,
+      transparent,
+      transparent 60px,
+      rgba(255, 0, 122, 0.02) 60px,
+      rgba(255, 0, 122, 0.02) 62px
+    );
 }
 
 /* Pixel border effect */
@@ -111,14 +140,39 @@ body {
   transform: translate(2px, 2px);
 }
 
-/* Retro panel */
+/* Retro panel - Uniswap themed with Zelda borders */
 .retro-panel {
-  background: linear-gradient(180deg, #2a2a4a 0%, #1a1a2e 100%);
+  background: linear-gradient(180deg, #2D2F36 0%, #191B1F 100%);
   border: 4px solid;
-  border-color: #4a4a6a #1a1a2e #1a1a2e #4a4a6a;
+  border-color: #FF007A #40444F #40444F #FF007A;
   box-shadow:
-    inset 2px 2px 0 rgba(255,255,255,0.1),
-    inset -2px -2px 0 rgba(0,0,0,0.3);
+    inset 2px 2px 0 rgba(255, 0, 122, 0.2),
+    inset -2px -2px 0 rgba(0,0,0,0.4),
+    0 0 20px rgba(255, 0, 122, 0.1);
+  position: relative;
+}
+
+/* Corner decorations for panels */
+.retro-panel::before {
+  content: '';
+  position: absolute;
+  top: -2px;
+  left: -2px;
+  width: 8px;
+  height: 8px;
+  background: #FF007A;
+  clip-path: polygon(0 0, 100% 0, 0 100%);
+}
+
+.retro-panel::after {
+  content: '';
+  position: absolute;
+  bottom: -2px;
+  right: -2px;
+  width: 8px;
+  height: 8px;
+  background: #FF007A;
+  clip-path: polygon(100% 0, 100% 100%, 0 100%);
 }
 
 /* Status indicator pixel style */
@@ -140,6 +194,59 @@ body {
 
 .text-glow-gold {
   text-shadow: 0 0 10px var(--retro-gold), 0 0 20px var(--retro-gold);
+}
+
+/* Uniswap pink glow */
+.text-glow-pink {
+  text-shadow: 0 0 10px var(--uni-pink), 0 0 20px var(--uni-pink), 0 0 30px var(--uni-pink);
+}
+
+/* Pink magic particle float */
+@keyframes magic-float {
+  0% { transform: translateY(0) translateX(0) scale(1); opacity: 0; }
+  10% { opacity: 0.8; }
+  50% { transform: translateY(-100px) translateX(20px) scale(0.8); }
+  90% { opacity: 0.8; }
+  100% { transform: translateY(-200px) translateX(-10px) scale(0.3); opacity: 0; }
+}
+
+.magic-particle {
+  animation: magic-float 3s ease-out infinite;
+}
+
+/* Dungeon torch flicker */
+@keyframes torch-flicker {
+  0%, 100% { opacity: 1; filter: brightness(1); }
+  25% { opacity: 0.9; filter: brightness(1.1); }
+  50% { opacity: 1; filter: brightness(0.95); }
+  75% { opacity: 0.95; filter: brightness(1.05); }
+}
+
+.torch-flame {
+  animation: torch-flicker 0.3s ease-in-out infinite;
+}
+
+/* Unicorn bounce */
+@keyframes unicorn-bounce {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-5px); }
+}
+
+.unicorn-bounce {
+  animation: unicorn-bounce 1s ease-in-out infinite;
+}
+
+/* Wandering unicorn movement */
+@keyframes unicorn-wander {
+  0% { transform: translateX(0) scaleX(1); }
+  25% { transform: translateX(30px) scaleX(1); }
+  50% { transform: translateX(30px) scaleX(-1); }
+  75% { transform: translateX(0) scaleX(-1); }
+  100% { transform: translateX(0) scaleX(1); }
+}
+
+.unicorn-wander {
+  animation: unicorn-wander 8s ease-in-out infinite;
 }
 
 /* Mario/Zelda style coin spin animation */
