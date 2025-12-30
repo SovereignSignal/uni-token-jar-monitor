@@ -1,124 +1,110 @@
-# TokenJar Monitor
+# DUNGEON TREASURY
 
-A real-time dashboard for monitoring Uniswap's TokenJar contract profitability on Ethereum mainnet.
+```
+    _______________
+   |  ___________  |
+   | |  DANGER!  | |
+   | |___________| |
+   |   _______     |
+   |  | QUEST |    |    "Should I brave the dungeon
+   |  |_______|    |     to claim the treasure?"
+   |_______________|
+```
 
-## What is this?
+A 16-bit retro dungeon-crawler themed dashboard for monitoring Uniswap's TokenJar contract profitability on Ethereum mainnet.
 
-This tool answers one question: **"Is it profitable to claim TokenJar fees right now, and by how much?"**
+## The Quest
 
-The TokenJar accumulates protocol fees from Uniswap trading. Anyone can claim these fees by burning 4,000 UNI tokens via the Firepit contract. This dashboard shows:
+Deep within the Ethereum blockchain lies the **TokenJar Dungeon** - a vault where Uniswap protocol fees accumulate like treasure in a dragon's hoard. Any brave adventurer can claim this treasure... but at a cost.
 
-- Current total value of tokens in the TokenJar
-- Cost to claim (4,000 UNI at current price + gas)
-- Net profit/loss if you claimed right now
-- Breakdown of all tokens worth > $1,000
+**The Sacrifice**: You must burn 4,000 UNI tokens at the Firepit to unlock the vault.
 
-Data refreshes every 30 seconds.
+**The Question**: Is the treasure worth the sacrifice?
 
-## Contract Addresses (Ethereum Mainnet)
+This dashboard shows you:
+- Current **VAULT GOLD** (total value in the TokenJar)
+- **SACRIFICE COST** (4,000 UNI at current market price)
+- **TOLL** (estimated gas fees)
+- **NET REWARD** (profit or loss if you claimed now)
+- **INVENTORY** of rare items (tokens worth > $1,000)
 
-| Contract | Address |
+Data refreshes every 30 seconds. The dungeon never sleeps.
+
+## Dungeon Map (Contract Addresses)
+
+| Location | Address |
 |----------|---------|
-| TokenJar | `0xf38521f130fcCF29dB1961597bc5d2B60F995f85` |
-| Firepit | `0x0D5Cd355e2aBEB8fb1552F56c965B867346d6721` |
+| Treasure Vault (TokenJar) | `0xf38521f130fcCF29dB1961597bc5d2B60F995f85` |
+| Sacrificial Pit (Firepit) | `0x0D5Cd355e2aBEB8fb1552F56c965B867346d6721` |
 
 ---
 
-## Deploy to Railway (Recommended)
+## Begin Your Quest (Deploy to Railway)
 
-### Step 1: Get an Alchemy API Key
+### Step 1: Acquire the Oracle Key (Alchemy)
 
-1. Go to [alchemy.com](https://www.alchemy.com/) and create a free account
+1. Journey to [alchemy.com](https://www.alchemy.com/) and create a free account
 2. Click **"Create new app"**
 3. Configure:
-   - Name: `tokenjar-monitor` (or anything)
+   - Name: `dungeon-treasury` (or any name you choose)
    - Chain: **Ethereum**
    - Network: **Mainnet**
 4. Click **"Create app"**
-5. On the app dashboard, click **"API Key"** and copy the key
+5. Copy your **API Key** - this is your Oracle Key
 
-### Step 2: Push to GitHub
-
-If you haven't already, push this repo to GitHub:
+### Step 2: Prepare Your Map (GitHub)
 
 ```bash
 git add .
-git commit -m "Initial commit"
+git commit -m "Prepare for the quest"
 git remote add origin https://github.com/YOUR_USERNAME/uni-token-jar-monitor.git
 git push -u origin main
 ```
 
-### Step 3: Deploy on Railway
+### Step 3: Enter the Dungeon (Railway)
 
-1. Go to [railway.app](https://railway.app/) and sign in (GitHub auth recommended)
-
-2. Click **"New Project"**
-
-3. Select **"Deploy from GitHub repo"**
-
-4. Choose the `uni-token-jar-monitor` repository
-
-5. Railway will detect the project and start building. **Before it finishes**, add the environment variable:
-   - Click on the service (the purple box)
+1. Go to [railway.app](https://railway.app/) and sign in
+2. Click **"New Project"** → **"Deploy from GitHub repo"**
+3. Select the `uni-token-jar-monitor` repository
+4. **CRITICAL**: Add the Oracle Key before deployment completes:
+   - Click on the service
    - Go to **"Variables"** tab
-   - Click **"+ New Variable"**
-   - Add:
-     - **Name**: `ALCHEMY_API_KEY`
-     - **Value**: (paste your Alchemy API key from Step 1)
-   - Click **"Add"**
-
-6. Railway will automatically redeploy with the new variable
-
-7. Once deployed, click **"Settings"** → **"Networking"** → **"Generate Domain"** to get your public URL
-
-### Step 4: Verify Deployment
-
-1. Open your Railway-generated URL (e.g., `https://your-app.up.railway.app`)
-2. You should see the TokenJar Monitor dashboard
-3. If you see "ALCHEMY_API_KEY not configured", double-check your environment variable
+   - Add: `ALCHEMY_API_KEY` = (your Alchemy key)
+5. Railway will redeploy automatically
+6. Go to **Settings** → **Networking** → **Generate Domain**
+7. Your dungeon awaits!
 
 ---
 
-## Local Development
+## Local Dungeon (Development)
 
-### Prerequisites
+### Requirements
 
-- Node.js 20+
+- Node.js 20+ (the magic runtime)
 - pnpm (`npm install -g pnpm`)
-- Alchemy API key (free tier works)
+- Alchemy API key (your Oracle connection)
 
-### Setup
+### Setup the Dungeon
 
-1. Clone the repo:
-   ```bash
-   git clone https://github.com/YOUR_USERNAME/uni-token-jar-monitor.git
-   cd uni-token-jar-monitor
-   ```
+```bash
+# Clone the dungeon
+git clone https://github.com/YOUR_USERNAME/uni-token-jar-monitor.git
+cd uni-token-jar-monitor
 
-2. Install dependencies:
-   ```bash
-   pnpm install
-   ```
+# Gather supplies
+pnpm install
 
-3. Set up environment:
-   ```bash
-   cp .env.example .env
-   ```
+# Configure your Oracle
+cp .env.example .env
+# Edit .env and add: ALCHEMY_API_KEY=your_key_here
 
-   Edit `.env` and add your Alchemy API key:
+# Enter the dungeon
+pnpm dev
 
-   ```bash
-   ALCHEMY_API_KEY=your_alchemy_api_key_here
-   ```
+# Visit http://localhost:3000
+```
 
-4. Run the dev server:
-   ```bash
-   pnpm dev
-   ```
-
-5. Open http://localhost:3000
-
-### Build for Production
+### Forge Production Build
 
 ```bash
 pnpm build
@@ -127,68 +113,103 @@ pnpm start
 
 ---
 
-## Environment Variables
+## Oracle Configuration
 
-| Variable          | Required | Description                                      |
-|-------------------|----------|--------------------------------------------------|
-| `ALCHEMY_API_KEY` | Yes      | Your Alchemy API key for Ethereum mainnet RPC    |
-| `PORT`            | No       | Port to run on (Railway sets this automatically) |
+| Variable | Required | Description |
+|----------|----------|-------------|
+| `ALCHEMY_API_KEY` | Yes | Your Oracle Key for Ethereum mainnet |
+| `PORT` | No | Dungeon entrance port (Railway sets automatically) |
 
 ---
 
-## Technical Details
+## Dungeon Architecture
+
+### Visual Features
+
+- **16-bit pixel art aesthetic** - SNES/Genesis era visuals
+- **Zelda-style pottery jar** - The iconic breakable pot
+- **Mario-style spinning coins** - Classic gold coin animation
+- **Falling rupees** - Zelda gem treasures
+- **Twinkling stars** - Dungeon atmosphere
+- **Health hearts** - Profitability indicator (Zelda-style)
+- **Pixel skulls** - Danger warnings
+- **CRT scanlines** - Authentic retro display
+- **Glow effects** - Treasure and danger pulses
+
+### Technical Spells
 
 - **Framework**: Next.js 16 with App Router
-- **Blockchain**: viem for Ethereum RPC calls
-- **Pricing**: CoinGecko API (free tier, no key required)
-- **Token Discovery**: Scans Transfer events to TokenJar (last ~30 days)
-- **Caching**: 60s for prices, 10min for token list
-- **Deployment**: Standalone output mode for Railway/Docker
+- **Blockchain Scrying**: viem for Ethereum RPC calls
+- **Price Oracle**: CoinGecko API (free tier)
+- **Token Discovery**: Scans Transfer events (last ~30 days)
+- **Caching**: 60s prices, 10min token list
+- **Deployment**: Standalone output for Railway/Docker
 
-### How Token Discovery Works
+### How the Treasure Hunt Works
 
-Instead of a hardcoded token list, the app:
+Instead of a hardcoded list of treasures, the app:
 
-1. Scans ERC-20 Transfer events to the TokenJar address
+1. Scans all ERC-20 Transfer events to the TokenJar
 2. Caches discovered tokens for 10 minutes
 3. Queries balances for all discovered tokens
-4. Prices tokens via CoinGecko (known tokens have mapped IDs)
-5. Displays tokens worth > $1,000, sums the rest as "Other"
+4. Prices tokens via CoinGecko
+5. **Rare Items**: Tokens worth > $1,000 (shown individually)
+6. **Common Loot**: Smaller tokens (summed together)
+7. **Mysterious Items**: Unpriced tokens (unknown value)
 
 ---
 
-## Limitations
+## Dungeon Perils (Limitations)
 
-- Only monitors Ethereum mainnet (Unichain not included in MVP)
-- Gas estimate is a flat $50 (actual varies with network conditions)
-- Some tokens may be unpriced if not on CoinGecko
-- V2 LP tokens show raw LP balance, not underlying asset value
-- CoinGecko free tier has rate limits (~10-30 calls/minute)
+- Only explores Ethereum mainnet dungeon
+- Toll (gas) is estimated at $50 (actual varies)
+- Some treasures may be unpriced (not in CoinGecko's tome)
+- V2 LP tokens show raw amounts, not underlying value
+- Oracle has rate limits (~10-30 queries/minute)
 
 ---
 
 ## Troubleshooting
 
-### "ALCHEMY_API_KEY not configured"
+### "Oracle Key not configured"
+The dungeon needs its Oracle! Add `ALCHEMY_API_KEY` in Railway Variables.
 
-- Make sure you added the `ALCHEMY_API_KEY` environment variable in Railway
-- The variable name must be exactly `ALCHEMY_API_KEY` (case-sensitive)
-- Redeploy after adding the variable
+### "Network error" or blank dungeon
+- Verify your Oracle Key is valid
+- Ensure it's configured for Ethereum Mainnet
+- Check Railway logs for clues
 
-### "Network error" or no data loading
+### Treasures showing "-" or $0
+- The Oracle may be overwhelmed (rate limited)
+- Wait 60 seconds and scout again
+- Unknown items show as "mysterious" (unpriced)
 
-- Check that your Alchemy API key is valid
-- Verify the key is for Ethereum Mainnet (not a testnet)
-- Check Railway logs for detailed error messages
+### Hearts are empty!
+That means the dungeon is currently **not profitable** to raid. The treasure value is less than the sacrifice cost. Wait for more fees to accumulate!
 
-### Prices showing as "-" or $0
+---
 
-- CoinGecko may be rate-limiting requests
-- Wait 60 seconds and refresh
-- Unknown tokens won't have prices (counted as "unpriced")
+## The Legend
+
+```
+In the depths of the Ethereum realm,
+Where protocol fees gather like gold,
+Lies the TokenJar, ancient and wise,
+Waiting for heroes brave and bold.
+
+But beware! The Firepit demands its due,
+Four thousand UNI must burn in flame,
+Only then may you claim what's true,
+And etch your deed in DeFi's fame.
+
+Is the treasure worth the sacrifice?
+That is the question this tome reveals,
+Scout the dungeon, check the price,
+And may fortune turn your wheels!
+```
 
 ---
 
 ## License
 
-MIT
+MIT - Quest freely, adventurer.
