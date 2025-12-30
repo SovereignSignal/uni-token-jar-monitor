@@ -70,7 +70,7 @@ export function PixelJar({ jarValue, maxValue = 50000, size = "normal" }: PixelJ
 }
 
 // =============================================================================
-// BURN PILE COMPONENT - Uses pre-generated sprite images
+// BURN PILE COMPONENT - Fixed coin stack with dynamic flames behind
 // =============================================================================
 
 interface BurnPileProps {
@@ -79,59 +79,100 @@ interface BurnPileProps {
   size?: "normal" | "large";
 }
 
-// Pile size based on burn cost to jar value ratio
-function getPileSize(burnCost: number, jarValue: number): "small" | "medium" | "large" | "huge" {
-  if (jarValue <= 0) return "huge";
+// Flame intensity based on how close to profitability (jar value / burn cost)
+// Higher ratio = closer to profitable = bigger flames
+function getFlameIntensity(burnCost: number, jarValue: number): "none" | "small" | "medium" | "large" | "huge" {
+  if (burnCost <= 0) return "none";
   
-  const ratio = burnCost / jarValue;
+  const profitRatio = jarValue / burnCost; // 0 to 1+ (1 = break even, >1 = profitable)
   
-  if (ratio < 5) return "small";
-  if (ratio < 15) return "medium";
-  if (ratio < 30) return "large";
-  return "huge";
+  if (profitRatio < 0.1) return "none";      // < 10% of burn cost - no flames
+  if (profitRatio < 0.3) return "small";     // 10-30% - small flames
+  if (profitRatio < 0.6) return "medium";    // 30-60% - medium flames
+  if (profitRatio < 0.9) return "large";     // 60-90% - large flames
+  return "huge";                              // 90%+ - huge flames (close to/at profitability!)
 }
 
-// Map pile size to sprite filename and dimensions
-function getPileSpriteInfo(size: "small" | "medium" | "large" | "huge", displaySize: "normal" | "large"): {
-  path: string;
+// Map flame intensity to sprite path and size
+function getFlameInfo(intensity: "none" | "small" | "medium" | "large" | "huge", displaySize: "normal" | "large"): {
+  path: string | null;
   width: number;
   height: number;
 } {
-  // Pile should be proportionate with jar (jar is 180x360 at large)
-  // Pile height should be roughly 60-80% of jar height to look balanced
-  // Jar is 360px tall, so pile should be ~220-280px
-  const baseSize = displaySize === "large" ? 280 : 160;
+  const baseSize = displaySize === "large" ? 200 : 120;
   
-  switch (size) {
+  switch (intensity) {
+    case "none":
+      return { path: null, width: 0, height: 0 };
     case "small":
-      return { path: "/assets/pile/pile-small.png", width: Math.round(baseSize * 0.75), height: Math.round(baseSize * 0.75) };
+      return { path: "/assets/flames/flames-small.png", width: Math.round(baseSize * 0.6), height: Math.round(baseSize * 0.6) };
     case "medium":
-      return { path: "/assets/pile/pile-medium.png", width: Math.round(baseSize * 0.9), height: Math.round(baseSize * 0.9) };
+      return { path: "/assets/flames/flames-medium.png", width: Math.round(baseSize * 0.8), height: Math.round(baseSize * 0.8) };
     case "large":
-      return { path: "/assets/pile/pile-large.png", width: baseSize, height: baseSize };
+      return { path: "/assets/flames/flames-large.png", width: baseSize, height: baseSize };
     case "huge":
-      return { path: "/assets/pile/pile-huge.png", width: Math.round(baseSize * 1.15), height: Math.round(baseSize * 1.15) };
+      return { path: "/assets/flames/flames-huge.png", width: Math.round(baseSize * 1.3), height: Math.round(baseSize * 1.3) };
   }
 }
 
 export function BurnPile({ burnCost, jarValue, size = "normal" }: BurnPileProps) {
-  const pileSize = useMemo(() => getPileSize(burnCost, jarValue), [burnCost, jarValue]);
-  const spriteInfo = useMemo(() => getPileSpriteInfo(pileSize, size), [pileSize, size]);
+  const flameIntensity = useMemo(() => getFlameIntensity(burnCost, jarValue), [burnCost, jarValue]);
+  const flameInfo = useMemo(() => getFlameInfo(flameIntensity, size), [flameIntensity, size]);
+  
+  // Fixed coin stack size - proportionate with jar (jar is 180x360 at large)
+  const coinSize = size === "large" 
+    ? { width: 160, height: 160 }
+    : { width: 100, height: 100 };
 
   return (
-    <div className="burn-pile-container relative flex flex-col items-center">
-      <div className="relative fire-glow">
-        <Image
-          src={spriteInfo.path}
-          alt={`${pileSize} burn pile`}
-          width={spriteInfo.width}
-          height={spriteInfo.height}
-          className="pixel-sprite"
+    <div className="burn-pile-container relative flex flex-col items-center justify-center">
+      {/* Container for layered elements */}
+      <div className="relative" style={{ width: coinSize.width * 1.5, height: coinSize.height * 1.8 }}>
+        {/* Flames behind coins - dynamic based on profitability */}
+        {flameInfo.path && (
+          <div 
+            className="absolute z-0 fire-glow"
+            style={{
+              left: '50%',
+              bottom: '10%',
+              transform: 'translateX(-50%)',
+            }}
+          >
+            <Image
+              src={flameInfo.path}
+              alt={`${flameIntensity} flames`}
+              width={flameInfo.width}
+              height={flameInfo.height}
+              className="pixel-sprite animate-pulse"
+              style={{
+                imageRendering: "pixelated",
+                filter: 'drop-shadow(0 0 10px rgba(255,100,0,0.5))',
+              }}
+            />
+          </div>
+        )}
+        
+        {/* Fixed coin stack - always same size */}
+        <div 
+          className="absolute z-10"
           style={{
-            imageRendering: "pixelated",
+            left: '50%',
+            bottom: '0',
+            transform: 'translateX(-50%)',
           }}
-          priority
-        />
+        >
+          <Image
+            src="/assets/pile/coins-stack.png"
+            alt="Sacrifice coins"
+            width={coinSize.width}
+            height={coinSize.height}
+            className="pixel-sprite"
+            style={{
+              imageRendering: "pixelated",
+            }}
+            priority
+          />
+        </div>
       </div>
     </div>
   );

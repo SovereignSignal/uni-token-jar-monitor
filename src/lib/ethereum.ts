@@ -7,16 +7,32 @@ import {
   TOKEN_DISCOVERY_LOOKBACK_BLOCKS,
 } from "./constants";
 
-// Create Ethereum client
+// Free RPC endpoints (no API key required)
+const FREE_RPC_ENDPOINTS = [
+  "https://cloudflare-eth.com",
+  "https://rpc.ankr.com/eth",
+  "https://eth.llamarpc.com",
+  "https://1rpc.io/eth",
+];
+
+// Create Ethereum client with free RPC (Alchemy as optional fallback)
 function getClient() {
-  const apiKey = process.env.ALCHEMY_API_KEY;
-  if (!apiKey) {
-    throw new Error("ALCHEMY_API_KEY environment variable is required");
+  // Try Alchemy first if available (for higher rate limits)
+  const alchemyKey = process.env.ALCHEMY_API_KEY;
+  if (alchemyKey) {
+    return createPublicClient({
+      chain: mainnet,
+      transport: http(`https://eth-mainnet.g.alchemy.com/v2/${alchemyKey}`),
+    });
   }
 
+  // Use free RPC endpoint
+  const rpcUrl = FREE_RPC_ENDPOINTS[0];
+  console.log(`Using free RPC: ${rpcUrl}`);
+  
   return createPublicClient({
     chain: mainnet,
-    transport: http(`https://eth-mainnet.g.alchemy.com/v2/${apiKey}`),
+    transport: http(rpcUrl),
   });
 }
 

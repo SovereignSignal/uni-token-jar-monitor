@@ -249,15 +249,18 @@ export default function Home() {
       {/* Header */}
       <header className="card mb-6 p-3 md:p-4">
         <div className="flex items-center justify-between w-full">
-          {/* Glowing Logo Sprite - single image with text baked in */}
+          {/* Glowing Logo Banner - cohesive design with integrated text */}
           <div className="relative">
             <Image
-              src="/assets/logo-transparent.png"
+              src="/assets/ui/header-banner.png"
               alt="UNI JAR - Uniswap Fee Burn Monitor"
-              width={220}
+              width={280}
               height={80}
               className="pixel-sprite"
-              style={{ imageRendering: 'pixelated' }}
+              style={{ 
+                imageRendering: 'pixelated',
+                filter: 'drop-shadow(0 0 10px rgba(255,0,122,0.4))'
+              }}
               priority
             />
           </div>
