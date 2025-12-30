@@ -1,9 +1,9 @@
-import { KNOWN_TOKENS, UNI_TOKEN_ADDRESS } from "./constants";
+import { UNI_TOKEN_ADDRESS } from "./constants";
 import type { TokenBalance } from "./ethereum";
 
 // Price cache
 interface PriceCache {
-  prices: Record<string, number>;
+  prices: Record<string, { price: number; confidence: number }>;
   timestamp: number;
 }
 
@@ -11,62 +11,102 @@ let priceCache: PriceCache | null = null;
 const PRICE_CACHE_TTL_MS = 60_000; // 60 seconds
 
 /**
- * Fetch prices from CoinGecko for a list of token IDs
+ * Fetch prices from DeFiLlama for a list of Ethereum token addresses
+ * DeFiLlama has much better coverage than CoinGecko for on-chain tokens
+ * API: https://coins.llama.fi/prices/current/{coins}
+ * Format: ethereum:0x... for each token
  */
-async function fetchCoinGeckoPrices(coingeckoIds: string[]): Promise<Record<string, number>> {
-  if (coingeckoIds.length === 0) {
+async function fetchDeFiLlamaPrices(addresses: string[]): Promise<Record<string, { price: number; confidence: number }>> {
+  if (addresses.length === 0) {
     return {};
   }
 
-  const idsParam = coingeckoIds.join(",");
-  const url = `https://api.coingecko.com/api/v3/simple/price?ids=${idsParam}&vs_currencies=usd`;
+  // DeFiLlama expects format: ethereum:0x...
+  // Batch in groups of 100 to avoid URL length limits
+  const BATCH_SIZE = 100;
+  const results: Record<string, { price: number; confidence: number }> = {};
 
-  try {
-    const response = await fetch(url, {
-      headers: {
-        Accept: "application/json",
-      },
-      next: { revalidate: 60 }, // Cache for 60 seconds
-    });
+  for (let i = 0; i < addresses.length; i += BATCH_SIZE) {
+    const batch = addresses.slice(i, i + BATCH_SIZE);
+    const coins = batch.map(addr => `ethereum:${addr.toLowerCase()}`).join(",");
+    const url = `https://coins.llama.fi/prices/current/${coins}`;
 
-    if (!response.ok) {
-      throw new Error(`CoinGecko API error: ${response.status}`);
+    try {
+      const response = await fetch(url, {
+        headers: {
+          Accept: "application/json",
+        },
+        next: { revalidate: 60 },
+      });
+
+      if (!response.ok) {
+        console.error(`DeFiLlama API error: ${response.status}`);
+        continue;
+      }
+
+      const data = await response.json();
+
+      // Extract prices from response
+      if (data.coins) {
+        for (const [key, priceData] of Object.entries(data.coins)) {
+          // Key format is "ethereum:0x..."
+          const address = key.replace("ethereum:", "").toLowerCase();
+          const pd = priceData as { price?: number; confidence?: number };
+          if (pd.price !== undefined) {
+            results[address] = {
+              price: pd.price,
+              confidence: pd.confidence || 0.5,
+            };
+          }
+        }
+      }
+    } catch (error) {
+      console.error("DeFiLlama API error:", error);
     }
+  }
+
+  return results;
+}
+
+/**
+ * Fallback to CoinGecko for UNI price if DeFiLlama fails
+ */
+async function fetchCoinGeckoUniPrice(): Promise<number | null> {
+  try {
+    const response = await fetch(
+      "https://api.coingecko.com/api/v3/simple/price?ids=uniswap&vs_currencies=usd",
+      {
+        headers: { Accept: "application/json" },
+        next: { revalidate: 60 },
+      }
+    );
+
+    if (!response.ok) return null;
 
     const data = await response.json();
-
-    // Convert to simple id -> price mapping
-    const prices: Record<string, number> = {};
-    for (const [id, priceData] of Object.entries(data)) {
-      if (priceData && typeof priceData === "object" && "usd" in priceData) {
-        prices[id] = (priceData as { usd: number }).usd;
-      }
-    }
-
-    return prices;
-  } catch (error) {
-    console.error("CoinGecko API error:", error);
-    throw error;
+    return data.uniswap?.usd || null;
+  } catch {
+    return null;
   }
 }
 
 /**
  * Get all needed prices (with caching)
  */
-async function getPrices(coingeckoIds: string[]): Promise<Record<string, number>> {
+async function getPrices(addresses: string[]): Promise<Record<string, { price: number; confidence: number }>> {
   const now = Date.now();
 
   // Return cached prices if still valid
   if (priceCache && now - priceCache.timestamp < PRICE_CACHE_TTL_MS) {
-    // Check if we have all needed IDs
-    const missingIds = coingeckoIds.filter((id) => !(id in priceCache!.prices));
-    if (missingIds.length === 0) {
+    // Check if we have all needed addresses
+    const missingAddresses = addresses.filter((addr) => !(addr.toLowerCase() in priceCache!.prices));
+    if (missingAddresses.length === 0) {
       return priceCache.prices;
     }
 
     // Fetch missing prices and merge
     try {
-      const newPrices = await fetchCoinGeckoPrices(missingIds);
+      const newPrices = await fetchDeFiLlamaPrices(missingAddresses);
       priceCache.prices = { ...priceCache.prices, ...newPrices };
       return priceCache.prices;
     } catch {
@@ -76,7 +116,7 @@ async function getPrices(coingeckoIds: string[]): Promise<Record<string, number>
   }
 
   // Fetch all prices
-  const prices = await fetchCoinGeckoPrices(coingeckoIds);
+  const prices = await fetchDeFiLlamaPrices(addresses);
   priceCache = { prices, timestamp: now };
   return prices;
 }
@@ -87,9 +127,9 @@ export interface TokenWithValue {
   symbol: string;
   decimals: number;
   balanceFormatted: string;
-  coingeckoId?: string;
   priceUsd: number | null;
   valueUsd: number | null;
+  confidence: number | null;
 }
 
 export interface PricedBalances {
@@ -102,30 +142,35 @@ export interface PricedBalances {
 
 /**
  * Add USD prices and values to token balances
+ * Uses DeFiLlama as primary price source for better coverage
  */
 export async function priceTokenBalances(balances: TokenBalance[]): Promise<PricedBalances> {
-  // Collect all coingecko IDs we need
-  const coingeckoIds = new Set<string>();
+  // Collect all token addresses we need prices for
+  const addresses = new Set<string>();
 
   // Always need UNI price for burn cost calculation
-  const uniKnown = KNOWN_TOKENS[UNI_TOKEN_ADDRESS];
-  if (uniKnown?.coingeckoId) {
-    coingeckoIds.add(uniKnown.coingeckoId);
-  }
+  addresses.add(UNI_TOKEN_ADDRESS.toLowerCase());
 
-  // Add IDs for tokens we have balances of
+  // Add all token addresses from balances
   for (const balance of balances) {
-    if (balance.coingeckoId) {
-      coingeckoIds.add(balance.coingeckoId);
-    }
+    addresses.add(balance.address.toLowerCase());
   }
 
-  // Fetch prices
-  let prices: Record<string, number> = {};
+  // Fetch prices from DeFiLlama
+  let prices: Record<string, { price: number; confidence: number }> = {};
   try {
-    prices = await getPrices(Array.from(coingeckoIds));
+    prices = await getPrices(Array.from(addresses));
   } catch (error) {
     console.error("Failed to fetch prices:", error);
+  }
+
+  // Get UNI price (with CoinGecko fallback)
+  let uniPriceUsd = prices[UNI_TOKEN_ADDRESS.toLowerCase()]?.price || 0;
+  if (!uniPriceUsd) {
+    const fallbackPrice = await fetchCoinGeckoUniPrice();
+    if (fallbackPrice) {
+      uniPriceUsd = fallbackPrice;
+    }
   }
 
   // Add values to tokens
@@ -133,26 +178,30 @@ export async function priceTokenBalances(balances: TokenBalance[]): Promise<Pric
   let unpricedCount = 0;
 
   const tokensWithValue: TokenWithValue[] = balances.map((balance) => {
+    const addrLower = balance.address.toLowerCase();
+    const priceInfo = prices[addrLower];
+    
     let priceUsd: number | null = null;
     let valueUsd: number | null = null;
+    let confidence: number | null = null;
 
-    if (balance.coingeckoId && balance.coingeckoId in prices) {
-      priceUsd = prices[balance.coingeckoId];
+    if (priceInfo && priceInfo.price > 0) {
+      priceUsd = priceInfo.price;
+      confidence = priceInfo.confidence;
       valueUsd = priceUsd * parseFloat(balance.balanceFormatted);
       totalValueUsd += valueUsd;
     } else {
       unpricedCount++;
     }
 
-    // Return serializable object (exclude bigint balance)
     return {
       address: balance.address,
       symbol: balance.symbol,
       decimals: balance.decimals,
       balanceFormatted: balance.balanceFormatted,
-      coingeckoId: balance.coingeckoId,
       priceUsd,
       valueUsd,
+      confidence,
     };
   });
 
@@ -163,9 +212,6 @@ export async function priceTokenBalances(balances: TokenBalance[]): Promise<Pric
     if (b.valueUsd === null) return -1;
     return b.valueUsd - a.valueUsd;
   });
-
-  // Get UNI price
-  const uniPriceUsd = prices[uniKnown?.coingeckoId || "uniswap"] || 0;
 
   return {
     tokens: tokensWithValue,

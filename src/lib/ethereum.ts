@@ -26,7 +26,6 @@ export interface TokenBalance {
   decimals: number;
   balance: bigint;
   balanceFormatted: string;
-  coingeckoId?: string;
 }
 
 // Cache for discovered tokens (in-memory, resets on server restart)
@@ -158,7 +157,6 @@ export async function getTokenJarBalances(): Promise<TokenBalance[]> {
             decimals: metadata.decimals,
             balance: balance as bigint,
             balanceFormatted: formatUnits(balance as bigint, metadata.decimals),
-            coingeckoId: metadata.coingeckoId,
           };
         } catch (error) {
           console.error(`Failed to fetch balance for ${tokenAddress}:`, error);
