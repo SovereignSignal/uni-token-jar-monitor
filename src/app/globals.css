@@ -517,6 +517,134 @@ body {
 
 
 /* =============================================================================
+   ZELDA NES STYLES - For the cave scene UI
+   ============================================================================= */
+
+:root {
+  /* NES Zelda color palette additions */
+  --zelda-black: #0c0c0c;
+  --zelda-dark: #1c1c1c;
+  --zelda-brown: #8b4513;
+  --zelda-brown-light: #a0522d;
+  --zelda-brown-dark: #5c3317;
+  --zelda-brick: #4a3c2c;
+  --zelda-brick-dark: #2c2418;
+  --zelda-gray: #5c5c5c;
+  --zelda-gray-light: #7c7c7c;
+  --zelda-gray-dark: #3c3c3c;
+  --zelda-white: #fcfcfc;
+  --zelda-cream: #fcbcb0;
+  --zelda-skin: #fcbcb0;
+  --zelda-red: #e4464b;
+  --zelda-red-light: #fc9090;
+  --zelda-green: #5ce65c;
+  --zelda-green-light: #a8ffa8;
+  --zelda-green-dark: #2d8c2d;
+  --zelda-gold: #FFD700;
+  --zelda-orange: #fc6c18;
+  --zelda-yellow: #fcbc18;
+}
+
+/* Zelda text styling */
+.zelda-text {
+  font-family: 'Press Start 2P', monospace;
+  text-shadow: 2px 2px 0 #000;
+  letter-spacing: 1px;
+}
+
+/* Zelda HUD styling */
+.zelda-hud {
+  font-family: 'Press Start 2P', monospace;
+  image-rendering: pixelated;
+}
+
+/* Game screen container */
+.zelda-game-screen {
+  image-rendering: pixelated;
+  box-shadow: 
+    0 0 0 4px #000,
+    0 0 20px rgba(252, 188, 176, 0.2);
+}
+
+/* Cave wall brick pattern */
+.cave-brick {
+  background: 
+    repeating-linear-gradient(
+      90deg,
+      var(--zelda-brick) 0px,
+      var(--zelda-brick) 28px,
+      var(--zelda-brick-dark) 28px,
+      var(--zelda-brick-dark) 32px
+    ),
+    repeating-linear-gradient(
+      0deg,
+      var(--zelda-brick) 0px,
+      var(--zelda-brick) 12px,
+      var(--zelda-brick-dark) 12px,
+      var(--zelda-brick-dark) 16px
+    );
+  background-size: 64px 32px;
+}
+
+/* Dialog box styling */
+.dialog-box {
+  background: var(--zelda-black);
+  border: 2px solid var(--zelda-white);
+  padding: 8px 12px;
+}
+
+/* Item slot styling */
+.item-slot {
+  background: var(--zelda-black);
+  border: 1px solid var(--zelda-cream);
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Rupee counter styling */
+.rupee-counter {
+  font-family: 'Press Start 2P', monospace;
+  color: var(--zelda-white);
+  text-shadow: 2px 2px 0 #000;
+}
+
+/* Torch glow effect */
+.torch-glow {
+  filter: drop-shadow(0 0 10px #fc6c18) drop-shadow(0 0 20px #fcbc18);
+}
+
+/* Heart animations */
+@keyframes heartbeat {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.1); }
+}
+
+.heart-beat {
+  animation: heartbeat 0.5s ease-in-out infinite;
+}
+
+/* Loading animation */
+@keyframes loading-dots {
+  0%, 20% { content: '.'; }
+  40% { content: '..'; }
+  60%, 100% { content: '...'; }
+}
+
+.loading-dots::after {
+  animation: loading-dots 1.5s infinite;
+  content: '...';
+}
+
+/* Prevent text selection for game feel */
+.zelda-game-screen {
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+/* =============================================================================
    PIXEL SPRITE STYLES - For image-based sprites
    ============================================================================= */
 
