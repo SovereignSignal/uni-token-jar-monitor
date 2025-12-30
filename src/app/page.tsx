@@ -5,6 +5,7 @@ import { REFRESH_INTERVAL_MS, TOKENJAR_ADDRESS, FIREPIT_ADDRESS } from "@/lib/co
 import type { TokenJarApiResponse } from "./api/tokenjar/route";
 import type { ProfitabilityData } from "@/lib/profitability";
 import JarVisualization from "@/components/PixelJar";
+import ZeldaMessageBox from "@/components/ZeldaMessageBox";
 
 type DataStatus = "loading" | "fresh" | "stale" | "error";
 
@@ -443,6 +444,16 @@ export default function Home() {
               </div>
             </div>
           </div>
+        </div>
+      )}
+
+      {/* Zelda-style Message Box */}
+      {data && (
+        <div className="mt-6">
+          <ZeldaMessageBox 
+            isProfitable={data.isProfitable} 
+            netProfit={data.netProfitUsd} 
+          />
         </div>
       )}
 
