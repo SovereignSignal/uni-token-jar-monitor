@@ -258,7 +258,7 @@ export default function Home() {
                 style={{ background: 'radial-gradient(circle, rgba(255,0,122,0.6) 0%, transparent 70%)' }}
               />
               <Image
-                src="/assets/logo.png"
+                src="/assets/logo-clean.png"
                 alt="UNI JAR"
                 width={56}
                 height={56}

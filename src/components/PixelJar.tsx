@@ -97,7 +97,8 @@ function getPileSpriteInfo(size: "small" | "medium" | "large" | "huge", displayS
   width: number;
   height: number;
 } {
-  const scale = displaySize === "large" ? 1.3 : 1;
+  // Increased scale from 1.3 to 1.8 for better visual balance with jar
+  const scale = displaySize === "large" ? 1.8 : 1.2;
   
   switch (size) {
     case "small":
@@ -170,19 +171,19 @@ export default function JarVisualization({
 
   return (
     <div className="jar-visualization w-full max-w-lg mx-auto">
-      {/* Main visualization area - side by side */}
-      <div className="flex items-end justify-center gap-6 md:gap-10 py-4">
-        {/* Left side: Burn Pile */}
-        <div className="flex flex-col items-center flex-1">
-          <span className="text-[9px] text-red-400 mb-3 tracking-widest uppercase">Sacrifice</span>
+      {/* Main visualization area - side by side, centered vertically */}
+      <div className="flex items-center justify-center gap-6 md:gap-10 py-4">
+        {/* Left side: Burn Pile - vertically centered with jar */}
+        <div className="flex flex-col items-center justify-center flex-1 min-h-[320px]">
+          <span className="text-[9px] text-red-400 mb-4 tracking-widest uppercase">Sacrifice</span>
           <BurnPile burnCost={burnCost} jarValue={totalValue} size="large" />
-          <span className="text-base text-red-400 mt-3 font-bold">
+          <span className="text-base text-red-400 mt-4 font-bold">
             {formatCurrency(burnCost)}
           </span>
         </div>
 
-        {/* Center: Arrow */}
-        <div className="flex flex-col items-center gap-2 pb-16">
+        {/* Center: Arrow - vertically centered */}
+        <div className="flex flex-col items-center justify-center gap-2">
           <Image
             src="/assets/ui/arrow-right.png"
             alt="Arrow"
@@ -196,11 +197,11 @@ export default function JarVisualization({
           </span>
         </div>
 
-        {/* Right side: Jar */}
-        <div className="flex flex-col items-center flex-1">
-          <span className="text-[9px] text-green-400 mb-3 tracking-widest uppercase">Vault</span>
+        {/* Right side: Jar - vertically centered */}
+        <div className="flex flex-col items-center justify-center flex-1 min-h-[320px]">
+          <span className="text-[9px] text-green-400 mb-4 tracking-widest uppercase">Vault</span>
           <PixelJar jarValue={totalValue} maxValue={50000} size="large" />
-          <span className={`text-base mt-3 font-bold ${isProfitable ? 'text-green-400' : 'text-yellow-400'}`}>
+          <span className={`text-base mt-4 font-bold ${isProfitable ? 'text-green-400' : 'text-yellow-400'}`}>
             {formatCurrency(totalValue)}
           </span>
         </div>
@@ -210,7 +211,7 @@ export default function JarVisualization({
       <div className="mt-6">
         <div className="flex items-center justify-between mb-2">
           <span className="text-[10px] text-red-400/90 font-medium">{burnPercent.toFixed(0)}% burn</span>
-          <span className="text-[9px] text-gray-500 uppercase tracking-wider">Burn vs Reward</span>
+          <span className="text-[8px] text-gray-600/70 uppercase tracking-wider">Burn vs Reward</span>
           <span className={`text-[10px] font-medium ${isProfitable ? 'text-green-400/90' : 'text-yellow-400/90'}`}>
             {jarPercent.toFixed(0)}% reward
           </span>
