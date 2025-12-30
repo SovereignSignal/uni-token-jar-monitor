@@ -12,7 +12,6 @@ type DataStatus = "loading" | "fresh" | "stale" | "error";
 function getDataStatus(timestamp: number | null, error: boolean): DataStatus {
   if (error) return "error";
   if (!timestamp) return "loading";
-
   const age = Date.now() - timestamp;
   if (age < 60_000) return "fresh";
   if (age < 300_000) return "stale";
@@ -21,26 +20,24 @@ function getDataStatus(timestamp: number | null, error: boolean): DataStatus {
 
 function StatusIndicator({ status }: { status: DataStatus }) {
   const configs = {
-    loading: { color: "text-gray-400", bg: "bg-gray-400", label: "SEARCHING...", animate: true },
+    loading: { color: "text-gray-400", bg: "bg-gray-400", label: "LOADING", animate: true },
     fresh: { color: "text-green-400", bg: "bg-green-400", label: "LIVE", animate: false },
     stale: { color: "text-yellow-400", bg: "bg-yellow-400", label: "STALE", animate: true },
-    error: { color: "text-red-400", bg: "bg-red-400", label: "DANGER!", animate: true },
+    error: { color: "text-red-400", bg: "bg-red-400", label: "ERROR", animate: true },
   };
-
   const config = configs[status];
 
   return (
     <div className="flex items-center gap-2">
-      <div className={`w-3 h-3 ${config.bg} ${config.animate ? 'animate-pulse' : ''}`}
-           style={{ boxShadow: `0 0 8px currentColor` }} />
-      <span className={`text-[10px] ${config.color} ${config.animate ? 'animate-pulse' : ''}`}>
-        {config.label}
-      </span>
+      <div 
+        className={`w-2 h-2 rounded-full ${config.bg} ${config.animate ? 'animate-pulse' : ''}`}
+        style={{ boxShadow: `0 0 8px currentColor` }} 
+      />
+      <span className={`text-[10px] ${config.color}`}>{config.label}</span>
     </div>
   );
 }
 
-// Tooltip component
 function Tooltip({ children, text }: { children: React.ReactNode; text: string }) {
   const [show, setShow] = useState(false);
   
@@ -54,9 +51,9 @@ function Tooltip({ children, text }: { children: React.ReactNode; text: string }
         {children}
       </div>
       {show && (
-        <div className="absolute z-50 bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-2 bg-[#2D2F36] border-2 border-[#FF007A] text-[8px] text-gray-300 whitespace-nowrap">
+        <div className="absolute z-50 bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-2 bg-[#1a1c22] border border-[rgba(255,0,122,0.3)] rounded text-[8px] text-gray-300 whitespace-nowrap shadow-lg">
           {text}
-          <div className="absolute top-full left-1/2 -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-[#FF007A]" />
+          <div className="absolute top-full left-1/2 -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-[rgba(255,0,122,0.3)]" />
         </div>
       )}
     </div>
@@ -66,101 +63,52 @@ function Tooltip({ children, text }: { children: React.ReactNode; text: string }
 function formatUsd(value: number, showSign = false): string {
   const absValue = Math.abs(value);
   const sign = showSign ? (value >= 0 ? "+" : "-") : value < 0 ? "-" : "";
-
-  if (absValue >= 1_000_000) {
-    return `${sign}$${(absValue / 1_000_000).toFixed(2)}M`;
-  }
-  if (absValue >= 1_000) {
-    return `${sign}$${(absValue / 1_000).toFixed(1)}K`;
-  }
+  if (absValue >= 1_000_000) return `${sign}$${(absValue / 1_000_000).toFixed(2)}M`;
+  if (absValue >= 1_000) return `${sign}$${(absValue / 1_000).toFixed(1)}K`;
   return `${sign}$${absValue.toFixed(0)}`;
 }
 
 function formatNumber(value: string | number, decimals = 2): string {
   const num = typeof value === "string" ? parseFloat(value) : value;
-  if (num >= 1_000_000) {
-    return `${(num / 1_000_000).toFixed(2)}M`;
-  }
-  if (num >= 1_000) {
-    return `${(num / 1_000).toFixed(2)}K`;
-  }
-  if (num < 0.01) {
-    return num.toExponential(1);
-  }
+  if (num >= 1_000_000) return `${(num / 1_000_000).toFixed(2)}M`;
+  if (num >= 1_000) return `${(num / 1_000).toFixed(2)}K`;
+  if (num < 0.01) return num.toExponential(1);
   return num.toFixed(decimals);
 }
 
 function formatTimeAgo(timestamp: number): string {
   const seconds = Math.floor((Date.now() - timestamp) / 1000);
-  if (seconds < 60) return `${seconds}S AGO`;
+  if (seconds < 60) return `${seconds}s`;
   const minutes = Math.floor(seconds / 60);
-  if (minutes < 60) return `${minutes}M AGO`;
+  if (minutes < 60) return `${minutes}m`;
   const hours = Math.floor(minutes / 60);
-  return `${hours}H AGO`;
-}
-
-// Pixel skull for danger indicator
-function PixelSkull() {
-  return (
-    <svg viewBox="0 0 16 16" width="16" height="16" style={{ imageRendering: "pixelated" }}>
-      <rect x="4" y="1" width="8" height="1" fill="#fff" />
-      <rect x="2" y="2" width="12" height="1" fill="#fff" />
-      <rect x="1" y="3" width="14" height="1" fill="#fff" />
-      <rect x="1" y="4" width="3" height="3" fill="#fff" />
-      <rect x="4" y="4" width="3" height="3" fill="#1a1a2e" />
-      <rect x="7" y="4" width="2" height="3" fill="#fff" />
-      <rect x="9" y="4" width="3" height="3" fill="#1a1a2e" />
-      <rect x="12" y="4" width="3" height="3" fill="#fff" />
-      <rect x="1" y="7" width="14" height="2" fill="#fff" />
-      <rect x="2" y="9" width="12" height="1" fill="#fff" />
-      <rect x="3" y="10" width="10" height="1" fill="#fff" />
-      <rect x="4" y="11" width="2" height="2" fill="#fff" />
-      <rect x="7" y="11" width="2" height="2" fill="#fff" />
-      <rect x="10" y="11" width="2" height="2" fill="#fff" />
-    </svg>
-  );
-}
-
-// Pixel treasure chest
-function PixelTreasure() {
-  return (
-    <svg viewBox="0 0 20 16" width="20" height="16" style={{ imageRendering: "pixelated" }}>
-      <rect x="1" y="5" width="18" height="10" fill="#8b4513" />
-      <rect x="0" y="6" width="20" height="2" fill="#daa520" />
-      <rect x="8" y="4" width="4" height="4" fill="#f8d800" />
-      <rect x="9" y="5" width="2" height="2" fill="#fff" />
-      <rect x="2" y="8" width="16" height="1" fill="#6b3a1a" />
-      <rect x="0" y="9" width="20" height="6" fill="#a0522d" />
-      <rect x="8" y="9" width="4" height="3" fill="#daa520" />
-    </svg>
-  );
+  return `${hours}h`;
 }
 
 // Pixel heart - Uniswap pink
 function PixelHeart({ filled }: { filled: boolean }) {
   return (
-    <svg viewBox="0 0 8 8" width="14" height="14" style={{ imageRendering: "pixelated" }}>
-      <rect x="1" y="1" width="2" height="2" fill={filled ? "#FF007A" : "#40444F"} />
-      <rect x="5" y="1" width="2" height="2" fill={filled ? "#FF007A" : "#40444F"} />
-      <rect x="0" y="2" width="8" height="3" fill={filled ? "#FF007A" : "#40444F"} />
-      <rect x="1" y="5" width="6" height="1" fill={filled ? "#c7005f" : "#2D2F36"} />
-      <rect x="2" y="6" width="4" height="1" fill={filled ? "#c7005f" : "#2D2F36"} />
-      <rect x="3" y="7" width="2" height="1" fill={filled ? "#c7005f" : "#2D2F36"} />
-      {/* Highlight */}
+    <svg viewBox="0 0 8 8" width="12" height="12" style={{ imageRendering: "pixelated" }}>
+      <rect x="1" y="1" width="2" height="2" fill={filled ? "#FF007A" : "#2D2F36"} />
+      <rect x="5" y="1" width="2" height="2" fill={filled ? "#FF007A" : "#2D2F36"} />
+      <rect x="0" y="2" width="8" height="3" fill={filled ? "#FF007A" : "#2D2F36"} />
+      <rect x="1" y="5" width="6" height="1" fill={filled ? "#c7005f" : "#1a1c22"} />
+      <rect x="2" y="6" width="4" height="1" fill={filled ? "#c7005f" : "#1a1c22"} />
+      <rect x="3" y="7" width="2" height="1" fill={filled ? "#c7005f" : "#1a1c22"} />
       {filled && <rect x="1" y="2" width="1" height="1" fill="#ff5fa2" />}
     </svg>
   );
 }
 
-// Floating ember particle component
+// Floating ember particles
 function FloatingEmbers() {
   const embers = useMemo(() => 
-    Array.from({ length: 8 }, (_, i) => ({
+    Array.from({ length: 6 }, (_, i) => ({
       id: i,
-      left: 10 + Math.random() * 80,
+      left: 15 + Math.random() * 70,
       delay: Math.random() * 3,
-      duration: 2 + Math.random() * 2,
-      size: 2 + Math.random() * 3,
+      duration: 2.5 + Math.random() * 1.5,
+      size: 2 + Math.random() * 2,
     })), []
   );
 
@@ -184,71 +132,68 @@ function FloatingEmbers() {
   );
 }
 
-// Profit threshold indicator
-function ProfitThreshold({ currentValue, burnCost }: { currentValue: number; burnCost: number }) {
+// Profit Threshold Gauge - Full width, prominent
+function ProfitGauge({ currentValue, burnCost }: { currentValue: number; burnCost: number }) {
   const needed = burnCost - currentValue;
-  const progress = Math.min(100, (currentValue / burnCost) * 100);
+  const progress = Math.min(100, Math.max(0, (currentValue / burnCost) * 100));
+  const isProfitable = progress >= 100;
   
   return (
-    <div className="mt-4 p-3 bg-[#191B1F] border border-[#40444F]">
-      <div className="flex justify-between items-center mb-2">
-        <Tooltip text="Amount needed in jar to break even on burn">
-          <span className="text-[8px] text-gray-400 flex items-center gap-1">
-            <span className="text-yellow-400">⚡</span> PROFIT THRESHOLD
-          </span>
-        </Tooltip>
-        <span className="text-[8px] text-gray-500">{progress.toFixed(1)}%</span>
+    <div className="gauge-container">
+      <div className="flex justify-between items-center mb-3">
+        <span className="text-label text-gray-400">PROFIT THRESHOLD</span>
+        <span className={`text-[11px] font-bold ${isProfitable ? 'text-green' : 'text-pink'}`}>
+          {progress.toFixed(1)}%
+        </span>
       </div>
-      <div className="h-2 bg-[#2D2F36] rounded overflow-hidden">
+      
+      <div className="gauge-track">
         <div 
-          className="h-full transition-all duration-500"
+          className="gauge-fill"
           style={{ 
             width: `${progress}%`,
-            background: progress >= 100 
+            background: isProfitable 
               ? 'linear-gradient(90deg, #27AE60, #58d858)' 
-              : 'linear-gradient(90deg, #FF007A, #ff5fa2)'
+              : 'linear-gradient(90deg, #FF007A, #ff5fa2)',
+            color: isProfitable ? '#27AE60' : '#FF007A'
           }}
         />
       </div>
-      <div className="flex justify-between mt-1">
-        <span className="text-[8px] text-gray-500">$0</span>
-        <span className="text-[8px] text-yellow-400">
-          {needed > 0 ? `${formatUsd(needed)} more needed` : 'PROFITABLE!'}
+      
+      <div className="gauge-markers text-[8px]">
+        <span className="text-gray-600">$0</span>
+        <span className={isProfitable ? 'text-green' : 'text-yellow-400'}>
+          {needed > 0 ? `${formatUsd(needed)} needed` : '✓ PROFITABLE'}
         </span>
-        <span className="text-[8px] text-gray-500">{formatUsd(burnCost)}</span>
+        <span className="text-gray-600">{formatUsd(burnCost)}</span>
       </div>
     </div>
   );
 }
 
-// Jar state indicator (cracked, normal, glowing)
-function JarStateIndicator({ netProfit, burnCost }: { netProfit: number; burnCost: number }) {
+// Status message based on profitability
+function StatusMessage({ netProfit, burnCost }: { netProfit: number; burnCost: number }) {
   const ratio = netProfit / burnCost;
   
-  let state: 'cracked' | 'normal' | 'close' | 'profitable';
   let message: string;
-  let color: string;
+  let className: string;
   
   if (netProfit >= 0) {
-    state = 'profitable';
-    message = '✨ READY TO CLAIM!';
-    color = 'text-green-400';
+    message = '✨ READY TO CLAIM';
+    className = 'text-green badge-success';
   } else if (ratio > -0.1) {
-    state = 'close';
-    message = '🔥 ALMOST THERE!';
-    color = 'text-yellow-400';
+    message = '🔥 ALMOST THERE';
+    className = 'text-yellow-400 bg-yellow-400/10 border-yellow-400/30';
   } else if (ratio > -0.5) {
-    state = 'normal';
-    message = '⏳ ACCUMULATING...';
-    color = 'text-gray-400';
+    message = '⏳ ACCUMULATING';
+    className = 'text-gray-400 bg-gray-400/10 border-gray-400/30';
   } else {
-    state = 'cracked';
     message = '💀 VERY UNPROFITABLE';
-    color = 'text-red-400';
+    className = 'text-red badge-danger';
   }
   
   return (
-    <div className={`text-[8px] ${color} text-center mt-2 ${state === 'profitable' ? 'animate-pulse' : ''}`}>
+    <div className={`badge ${className}`}>
       {message}
     </div>
   );
@@ -265,7 +210,6 @@ export default function Home() {
     try {
       const response = await fetch("/api/tokenjar");
       const result: TokenJarApiResponse = await response.json();
-
       if (result.success && result.data) {
         setData(result.data);
         setError(null);
@@ -293,54 +237,56 @@ export default function Home() {
   }, []);
 
   const status = getDataStatus(lastFetch, !!error);
-
-  // Calculate "health" based on profitability
   const healthPercent = data ? Math.max(0, Math.min(100, ((data.netProfitUsd + 30000) / 60000) * 100)) : 50;
   const hearts = [healthPercent > 66, healthPercent > 33, healthPercent > 0];
 
   return (
-    <main className="min-h-screen p-4 md:p-8 max-w-5xl mx-auto scanlines crt-effect">
-      {/* Retro Header with Logo */}
-      <header className="retro-panel p-4 mb-6">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+    <main className="min-h-screen p-6 md:p-8 max-w-6xl mx-auto">
+      {/* Header */}
+      <header className="header mb-8">
+        <div className="flex items-center justify-between w-full">
+          {/* Logo & Title */}
           <div className="flex items-center gap-4">
             <Image
               src="/assets/logo.png"
-              alt="UNI JAR Logo"
-              width={64}
-              height={64}
+              alt="UNI JAR"
+              width={56}
+              height={56}
               className="pixel-sprite logo-bounce"
               style={{ imageRendering: 'pixelated' }}
               priority
             />
             <div>
-              <h1 className="text-lg md:text-xl text-glow-pink glow-pulse" style={{ color: '#FF007A' }}>
+              <h1 className="text-base md:text-lg text-pink text-glow-pink">
                 UNI JAR
               </h1>
-              <p className="text-[8px] text-gray-400 mt-1">
+              <p className="text-[8px] text-gray-500 mt-1">
                 UNISWAP FEE BURN MONITOR
               </p>
             </div>
           </div>
-          <div className="flex items-center gap-4">
-            {/* Health hearts with tooltip */}
-            <Tooltip text="Profitability health indicator">
-              <div className="flex gap-1">
-                {hearts.map((filled, i) => (
-                  <PixelHeart key={i} filled={filled} />
-                ))}
-              </div>
-            </Tooltip>
-            <StatusIndicator status={status} />
-            {lastFetch && (
-              <span className="text-[8px] text-gray-500">
-                {formatTimeAgo(lastFetch)}
-              </span>
-            )}
+          
+          {/* Status & Controls */}
+          <div className="flex items-center gap-6">
+            <div className="flex gap-1">
+              {hearts.map((filled, i) => (
+                <PixelHeart key={i} filled={filled} />
+              ))}
+            </div>
+            
+            <div className="flex items-center gap-3">
+              <StatusIndicator status={status} />
+              {lastFetch && (
+                <span className="text-[9px] text-gray-600">
+                  {formatTimeAgo(lastFetch)}
+                </span>
+              )}
+            </div>
+            
             <button
               onClick={fetchData}
               disabled={isRefreshing}
-              className="retro-btn px-4 py-2 text-[10px] disabled:opacity-50"
+              className="retro-btn"
             >
               {isRefreshing ? "..." : "SCOUT"}
             </button>
@@ -350,12 +296,12 @@ export default function Home() {
 
       {/* Error State */}
       {error && (
-        <div className="retro-panel p-4 mb-6 border-red-600 danger-pulse">
-          <div className="flex items-center gap-3">
-            <PixelSkull />
+        <div className="card p-card mb-6 border-red-500/30">
+          <div className="flex items-center gap-4">
+            <span className="text-2xl">💀</span>
             <div>
-              <h2 className="text-red-400 text-xs mb-1">TRAP TRIGGERED!</h2>
-              <p className="text-red-300 text-[10px]">{error}</p>
+              <h2 className="text-red text-[11px] mb-1">ERROR</h2>
+              <p className="text-red/70 text-[10px]">{error}</p>
             </div>
           </div>
         </div>
@@ -363,262 +309,212 @@ export default function Home() {
 
       {/* Loading State */}
       {!data && !error && (
-        <div className="flex flex-col items-center justify-center py-20">
+        <div className="flex flex-col items-center justify-center py-24">
           <Image
             src="/assets/logo.png"
             alt="Loading..."
-            width={96}
-            height={96}
-            className="pixel-sprite animate-bounce"
+            width={80}
+            height={80}
+            className="pixel-sprite animate-bounce mb-6"
             style={{ imageRendering: 'pixelated' }}
           />
-          <div className="text-xl text-[#FF007A] animate-pulse mb-4 mt-4">
+          <div className="text-pink text-sm animate-pulse">
             LOADING JAR...
           </div>
-          <div className="flex gap-2">
-            {[0, 1, 2].map((i) => (
-              <div
-                key={i}
-                className="w-4 h-4 bg-[#FF007A]"
-                style={{
-                  animation: `bounce 0.6s ease-in-out ${i * 0.15}s infinite`,
-                }}
-              />
-            ))}
-          </div>
-          <p className="mt-4 text-[8px] text-gray-600">
-            FETCHING TOKEN DATA...
-          </p>
         </div>
       )}
 
       {/* Main Content */}
       {data && (
-        <div className="grid md:grid-cols-2 gap-6">
-          {/* Left Column - Jar Visualization */}
-          <div className="retro-panel p-4 relative overflow-hidden">
-            {/* Floating embers effect */}
-            <FloatingEmbers />
-            
-            <h2 className="text-xs text-center mb-2 text-[#FF007A] flex items-center justify-center gap-2">
-              <span className="text-[10px]">~</span>
-              BURN vs VAULT
-              <span className="text-[10px]">~</span>
-            </h2>
+        <div className="grid lg:grid-cols-5 gap-6">
+          {/* Left Column - Visualization (3/5 width) */}
+          <div className="lg:col-span-3 space-y-6">
+            {/* Jar Visualization Card */}
+            <div className="card-glow p-card relative overflow-hidden">
+              <FloatingEmbers />
+              
+              <h2 className="text-label text-center mb-6 text-pink">
+                BURN vs VAULT
+              </h2>
 
-            {/* New Pixel Art Jar Visualization */}
-            <JarVisualization
-              tokens={data.displayTokens.map((t) => ({
-                symbol: t.symbol,
-                valueUsd: t.valueUsd,
-              }))}
-              totalValue={data.totalJarValueUsd}
-              burnCost={data.burnCostUsd}
-              isProfitable={data.isProfitable}
-            />
-
-            {/* Jar State Indicator */}
-            <JarStateIndicator netProfit={data.netProfitUsd} burnCost={data.burnCostUsd} />
-
-            {/* Profitability Status */}
-            <div className="text-center mt-4">
-              <div className="text-[8px] text-gray-400 mb-1 flex items-center justify-center gap-2">
-                {data.isProfitable ? <PixelTreasure /> : <PixelSkull />}
-                <span>STATUS</span>
-                {data.isProfitable ? <PixelTreasure /> : <PixelSkull />}
-              </div>
-              <div
-                className={`inline-block mt-2 px-4 py-2 text-[10px] ${
-                  data.isProfitable
-                    ? "bg-green-900/50 text-green-300 border-2 border-green-600 treasure-glow"
-                    : "bg-red-900/50 text-red-300 border-2 border-red-600"
-                }`}
-              >
-                {data.isProfitable ? "✨ PROFITABLE! ✨" : "NOT PROFITABLE"}
+              {/* Larger Jar Visualization */}
+              <div className="flex justify-center">
+                <JarVisualization
+                  tokens={data.displayTokens.map((t) => ({
+                    symbol: t.symbol,
+                    valueUsd: t.valueUsd,
+                  }))}
+                  totalValue={data.totalJarValueUsd}
+                  burnCost={data.burnCostUsd}
+                  isProfitable={data.isProfitable}
+                />
               </div>
             </div>
 
-            {/* Profit Threshold Indicator */}
-            <ProfitThreshold currentValue={data.totalJarValueUsd} burnCost={data.burnCostUsd} />
+            {/* Net Profit Card */}
+            <div className="card p-card">
+              <div className="text-center">
+                <span className="text-label text-gray-500">NET PROFIT</span>
+                <div 
+                  className={`text-display mt-3 mb-4 ${
+                    data.isProfitable ? 'text-green treasure-glow' : 'text-red danger-pulse'
+                  }`}
+                  style={{ fontSize: '2rem' }}
+                >
+                  {formatUsd(data.netProfitUsd, true)}
+                </div>
+                
+                <StatusMessage netProfit={data.netProfitUsd} burnCost={data.burnCostUsd} />
+              </div>
+              
+              {/* Profit Gauge */}
+              <ProfitGauge currentValue={data.totalJarValueUsd} burnCost={data.burnCostUsd} />
+            </div>
           </div>
 
-          {/* Right Column - Stats */}
-          <div className="space-y-4">
-            {/* Breakdown Panel */}
-            <div className="retro-panel p-4">
-              <h2 className="text-xs text-[#FF007A] mb-4 flex items-center gap-2">
-                <span>BREAKDOWN</span>
-              </h2>
-              <div className="space-y-2 text-[10px]">
-                <div className="flex justify-between items-center py-2 border-b border-gray-700">
-                  <Tooltip text="Total value of tokens in the jar">
-                    <span className="text-gray-400 cursor-help">JAR VALUE</span>
-                  </Tooltip>
-                  <span className="text-yellow-400">
-                    {formatUsd(data.totalJarValueUsd)}
-                  </span>
-                </div>
-                <div className="flex justify-between items-center py-2 border-b border-gray-700">
-                  <Tooltip text="Cost to burn 4000 UNI tokens to claim the jar">
-                    <span className="text-gray-400 flex items-center gap-1 cursor-help">
-                      <PixelSkull />
-                      BURN COST ({data.burnThreshold.toLocaleString()} UNI)
+          {/* Right Column - Unified Sidebar (2/5 width) */}
+          <div className="lg:col-span-2">
+            <div className="card-sidebar p-card space-y-0">
+              {/* Breakdown Section */}
+              <div>
+                <h2 className="text-label text-pink mb-4">BREAKDOWN</h2>
+                <div className="space-y-3">
+                  <div className="flex justify-between items-center">
+                    <Tooltip text="Total value of tokens in the jar">
+                      <span className="text-[10px] text-gray-400">JAR VALUE</span>
+                    </Tooltip>
+                    <span className="text-[11px] text-gold font-bold">
+                      {formatUsd(data.totalJarValueUsd)}
                     </span>
-                  </Tooltip>
-                  <span className="text-red-400">
-                    -{formatUsd(data.burnCostUsd)}
-                  </span>
-                </div>
-                <div className="flex justify-between items-center py-2 border-b border-gray-700">
-                  <Tooltip text="Estimated gas cost for the burn transaction">
-                    <span className="text-gray-400 cursor-help">GAS EST.</span>
-                  </Tooltip>
-                  <span className="text-red-400">
-                    -{formatUsd(data.gasEstimateUsd)}
-                  </span>
-                </div>
-                <div className="flex justify-between items-center py-2 text-sm">
-                  <Tooltip text="Net profit/loss if you burn now">
-                    <span className="text-white font-bold cursor-help">NET REWARD</span>
-                  </Tooltip>
-                  <span
-                    className={`font-bold ${
-                      data.isProfitable ? "text-green-400 treasure-glow" : "text-red-400 danger-pulse"
-                    }`}
-                  >
-                    {formatUsd(data.netProfitUsd, true)}
-                  </span>
+                  </div>
+                  
+                  <div className="flex justify-between items-center">
+                    <Tooltip text="Cost to burn 4000 UNI tokens">
+                      <span className="text-[10px] text-gray-400">
+                        BURN COST ({data.burnThreshold.toLocaleString()} UNI)
+                      </span>
+                    </Tooltip>
+                    <span className="text-[11px] text-red">
+                      -{formatUsd(data.burnCostUsd)}
+                    </span>
+                  </div>
+                  
+                  <div className="flex justify-between items-center">
+                    <Tooltip text="Estimated gas for transaction">
+                      <span className="text-[10px] text-gray-400">GAS EST.</span>
+                    </Tooltip>
+                    <span className="text-[11px] text-red">
+                      -{formatUsd(data.gasEstimateUsd)}
+                    </span>
+                  </div>
                 </div>
               </div>
-            </div>
 
-            {/* Token List Panel */}
-            <div className="retro-panel p-4">
-              <h2 className="text-xs text-[#FF007A] mb-4">
-                TOKENS
-                <span className="text-gray-500 text-[8px] ml-2">
-                  (&gt;$1K value)
-                </span>
-              </h2>
+              <div className="card-divider" />
 
-              {data.displayTokens.length === 0 ? (
-                <div className="text-center py-4">
-                  <p className="text-gray-500 text-[10px]">
-                    NO LARGE HOLDINGS
-                  </p>
-                  <p className="text-gray-600 text-[8px] mt-1">
-                    (only small balances detected)
-                  </p>
-                </div>
-              ) : (
-                <div className="space-y-1 max-h-48 overflow-y-auto">
-                  {data.displayTokens.map((token) => (
-                    <div
-                      key={token.address}
-                      className="flex justify-between items-center py-1 px-2 hover:bg-white/5 text-[10px] border-l-2 border-transparent hover:border-[#FF007A] transition-all"
-                    >
-                      <div className="flex items-center gap-2">
-                        <span
-                          className="w-3 h-3 rounded-sm"
-                          style={{
-                            background: getTokenColor(token.symbol),
-                            boxShadow: `0 0 4px ${getTokenColor(token.symbol)}`,
-                          }}
-                        />
-                        <span className="text-white">{token.symbol}</span>
-                      </div>
-                      <div className="text-right">
-                        <div className="text-gray-300">
-                          {formatNumber(token.balanceFormatted)}
+              {/* Tokens Section */}
+              <div>
+                <h2 className="text-label text-pink mb-4">
+                  TOKENS
+                  <span className="text-gray-600 text-[8px] ml-2">(&gt;$1K)</span>
+                </h2>
+
+                {data.displayTokens.length === 0 ? (
+                  <div className="text-center py-4">
+                    <p className="text-gray-500 text-[10px]">NO LARGE HOLDINGS</p>
+                    <p className="text-gray-600 text-[8px] mt-1">(small balances only)</p>
+                  </div>
+                ) : (
+                  <div className="space-y-2 max-h-32 overflow-y-auto">
+                    {data.displayTokens.map((token) => (
+                      <div
+                        key={token.address}
+                        className="flex justify-between items-center py-1 text-[10px]"
+                      >
+                        <div className="flex items-center gap-2">
+                          <span
+                            className="w-2 h-2 rounded-sm"
+                            style={{ background: getTokenColor(token.symbol) }}
+                          />
+                          <span className="text-white">{token.symbol}</span>
                         </div>
-                        <div className="text-green-400 text-[8px]">
+                        <span className="text-green text-[9px]">
                           {token.valueUsd ? formatUsd(token.valueUsd) : "-"}
-                        </div>
+                        </span>
                       </div>
-                    </div>
-                  ))}
-                </div>
-              )}
+                    ))}
+                  </div>
+                )}
 
-              {/* Other tokens summary */}
-              {(data.otherTokensCount > 0 || data.unpricedTokensCount > 0) && (
-                <div className="mt-3 pt-3 border-t border-gray-700 text-[8px] text-gray-500">
-                  {data.otherTokensCount > 0 && (
-                    <div className="flex justify-between">
-                      <span>OTHER TOKENS x{data.otherTokensCount}</span>
-                      <span className="text-yellow-600">{formatUsd(data.otherTokensValueUsd)}</span>
-                    </div>
-                  )}
-                  {data.unpricedTokensCount > 0 && (
-                    <Tooltip text="Tokens without price data from CoinGecko">
-                      <div className="mt-1 text-gray-600 cursor-help">
-                        UNPRICED: {data.unpricedTokensCount}
+                {(data.otherTokensCount > 0 || data.unpricedTokensCount > 0) && (
+                  <div className="mt-3 pt-3 border-t border-gray-800 text-[8px] text-gray-600">
+                    {data.otherTokensCount > 0 && (
+                      <div className="flex justify-between">
+                        <span>Other x{data.otherTokensCount}</span>
+                        <span className="text-gold/60">{formatUsd(data.otherTokensValueUsd)}</span>
                       </div>
-                    </Tooltip>
-                  )}
-                </div>
-              )}
-            </div>
+                    )}
+                    {data.unpricedTokensCount > 0 && (
+                      <div className="mt-1">Unpriced: {data.unpricedTokensCount}</div>
+                    )}
+                  </div>
+                )}
+              </div>
 
-            {/* UNI Price */}
-            <div className="retro-panel p-3">
-              <div className="flex justify-between items-center text-[10px]">
-                <Tooltip text="Current UNI token price from CoinGecko">
-                  <span className="text-gray-400 cursor-help">UNI PRICE</span>
-                </Tooltip>
-                <span className="text-[#ff007a] font-bold">
+              <div className="card-divider" />
+
+              {/* UNI Price Section */}
+              <div className="flex justify-between items-center">
+                <span className="text-label text-gray-400">UNI PRICE</span>
+                <span className="text-[13px] text-pink font-bold">
                   ${data.uniPriceUsd.toFixed(2)}
                 </span>
               </div>
-            </div>
-          </div>
-        </div>
-      )}
 
-      {/* Contract Links */}
-      {data && (
-        <div className="retro-panel p-4 mt-6">
-          <h2 className="text-xs text-[#FF007A] mb-3">CONTRACTS</h2>
-          <div className="space-y-2 text-[8px]">
-            <div className="flex flex-col md:flex-row md:items-center gap-1">
-              <span className="text-gray-400 w-24">TOKENJAR:</span>
-              <a
-                href={`https://etherscan.io/address/${TOKENJAR_ADDRESS}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-[#4a90d9] hover:text-[#6bb0ff] break-all hover:underline"
-              >
-                {TOKENJAR_ADDRESS}
-              </a>
-            </div>
-            <div className="flex flex-col md:flex-row md:items-center gap-1">
-              <span className="text-gray-400 w-24">FIREPIT:</span>
-              <a
-                href={`https://etherscan.io/address/${FIREPIT_ADDRESS}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-[#4a90d9] hover:text-[#6bb0ff] break-all hover:underline"
-              >
-                {FIREPIT_ADDRESS}
-              </a>
+              <div className="card-divider" />
+
+              {/* Contracts Section */}
+              <div>
+                <h2 className="text-label text-pink mb-3">CONTRACTS</h2>
+                <div className="space-y-2 text-[8px]">
+                  <div>
+                    <span className="text-gray-600">TOKENJAR</span>
+                    <a
+                      href={`https://etherscan.io/address/${TOKENJAR_ADDRESS}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="block text-blue-400 hover:text-blue-300 truncate mt-0.5"
+                    >
+                      {TOKENJAR_ADDRESS}
+                    </a>
+                  </div>
+                  <div>
+                    <span className="text-gray-600">FIREPIT</span>
+                    <a
+                      href={`https://etherscan.io/address/${FIREPIT_ADDRESS}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="block text-blue-400 hover:text-blue-300 truncate mt-0.5"
+                    >
+                      {FIREPIT_ADDRESS}
+                    </a>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         </div>
       )}
 
       {/* Footer */}
-      <footer className="mt-6 text-center text-[8px] text-gray-600">
-        <p>REFRESHES EVERY 30 SECONDS</p>
-        <p className="mt-1">PRICES VIA COINGECKO - NOT FINANCIAL ADVICE</p>
-        <p className="mt-3 text-[#FF007A] text-[10px]">
-          - UNI JAR -
-        </p>
+      <footer className="mt-10 text-center text-[8px] text-gray-600">
+        <p>Auto-refreshes every 30 seconds • Prices via CoinGecko</p>
+        <p className="mt-1 text-gray-700">Not financial advice</p>
       </footer>
     </main>
   );
 }
 
-// Helper to get token colors
 function getTokenColor(symbol: string): string {
   const colors: Record<string, string> = {
     WETH: "#627eea",

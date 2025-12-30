@@ -10,6 +10,7 @@ import Image from "next/image";
 interface PixelJarProps {
   jarValue: number;
   maxValue?: number;
+  size?: "normal" | "large";
 }
 
 // Jar fill level thresholds (0-5 based on percentage)
@@ -30,17 +31,22 @@ function getJarSprite(fillLevel: number): string {
   return `/assets/jar/jar-fill-${fillLevel}.png`;
 }
 
-export function PixelJar({ jarValue, maxValue = 50000 }: PixelJarProps) {
+export function PixelJar({ jarValue, maxValue = 50000, size = "normal" }: PixelJarProps) {
   const fillLevel = useMemo(() => getJarFillLevel(jarValue, maxValue), [jarValue, maxValue]);
   const spritePath = useMemo(() => getJarSprite(fillLevel), [fillLevel]);
+  
+  // Larger sizes for better visual impact
+  const dimensions = size === "large" 
+    ? { width: 180, height: 360 }
+    : { width: 140, height: 280 };
 
   return (
     <div className="pixel-jar-container relative flex flex-col items-center">
       <Image
         src={spritePath}
         alt={`Jar ${fillLevel * 20}% full`}
-        width={128}
-        height={256}
+        width={dimensions.width}
+        height={dimensions.height}
         className="pixel-sprite"
         style={{
           imageRendering: "pixelated",
@@ -58,6 +64,7 @@ export function PixelJar({ jarValue, maxValue = 50000 }: PixelJarProps) {
 interface BurnPileProps {
   burnCost: number;
   jarValue: number;
+  size?: "normal" | "large";
 }
 
 // Pile size based on burn cost to jar value ratio
@@ -73,26 +80,28 @@ function getPileSize(burnCost: number, jarValue: number): "small" | "medium" | "
 }
 
 // Map pile size to sprite filename and dimensions
-function getPileSpriteInfo(size: "small" | "medium" | "large" | "huge"): {
+function getPileSpriteInfo(size: "small" | "medium" | "large" | "huge", displaySize: "normal" | "large"): {
   path: string;
   width: number;
   height: number;
 } {
+  const scale = displaySize === "large" ? 1.3 : 1;
+  
   switch (size) {
     case "small":
-      return { path: "/assets/pile/pile-small.png", width: 96, height: 64 };
+      return { path: "/assets/pile/pile-small.png", width: Math.round(96 * scale), height: Math.round(64 * scale) };
     case "medium":
-      return { path: "/assets/pile/pile-medium.png", width: 160, height: 96 };
+      return { path: "/assets/pile/pile-medium.png", width: Math.round(160 * scale), height: Math.round(96 * scale) };
     case "large":
-      return { path: "/assets/pile/pile-large.png", width: 224, height: 128 };
+      return { path: "/assets/pile/pile-large.png", width: Math.round(224 * scale), height: Math.round(128 * scale) };
     case "huge":
-      return { path: "/assets/pile/pile-huge.png", width: 288, height: 160 };
+      return { path: "/assets/pile/pile-huge.png", width: Math.round(260 * scale), height: Math.round(145 * scale) };
   }
 }
 
-export function BurnPile({ burnCost, jarValue }: BurnPileProps) {
+export function BurnPile({ burnCost, jarValue, size = "normal" }: BurnPileProps) {
   const pileSize = useMemo(() => getPileSize(burnCost, jarValue), [burnCost, jarValue]);
-  const spriteInfo = useMemo(() => getPileSpriteInfo(pileSize), [pileSize]);
+  const spriteInfo = useMemo(() => getPileSpriteInfo(pileSize, size), [pileSize, size]);
 
   return (
     <div className="burn-pile-container relative flex flex-col items-center">
@@ -129,6 +138,14 @@ interface JarVisualizationProps {
   isProfitable: boolean;
 }
 
+// Format currency for display
+function formatCurrency(value: number): string {
+  if (value >= 1000) {
+    return `$${(value / 1000).toFixed(1)}K`;
+  }
+  return `$${value.toLocaleString()}`;
+}
+
 export default function JarVisualization({
   totalValue,
   burnCost,
@@ -138,93 +155,67 @@ export default function JarVisualization({
   const total = burnCost + totalValue;
   const burnPercent = total > 0 ? (burnCost / total) * 100 : 97;
   const jarPercent = total > 0 ? (totalValue / total) * 100 : 3;
-  
-  // Net profit calculation
-  const netProfit = totalValue - burnCost;
 
   return (
-    <div className="jar-visualization w-full">
-      {/* Main visualization area */}
-      <div className="flex flex-col md:flex-row items-center justify-center gap-4 md:gap-8 py-6">
+    <div className="jar-visualization w-full max-w-lg mx-auto">
+      {/* Main visualization area - side by side */}
+      <div className="flex items-end justify-center gap-6 md:gap-10 py-4">
         {/* Left side: Burn Pile */}
-        <div className="flex flex-col items-center">
-          <span className="text-[10px] text-red-400 mb-2 tracking-wider">SACRIFICE</span>
-          <BurnPile burnCost={burnCost} jarValue={totalValue} />
-          <span className="text-sm text-red-400 mt-2 font-bold danger-pulse">
-            ${burnCost.toLocaleString()}
+        <div className="flex flex-col items-center flex-1">
+          <span className="text-[9px] text-red-400 mb-3 tracking-widest uppercase">Sacrifice</span>
+          <BurnPile burnCost={burnCost} jarValue={totalValue} size="large" />
+          <span className="text-base text-red-400 mt-3 font-bold">
+            {formatCurrency(burnCost)}
           </span>
         </div>
 
         {/* Center: Arrow */}
-        <div className="flex flex-col items-center gap-2 px-4">
+        <div className="flex flex-col items-center gap-2 pb-16">
           <Image
             src="/assets/ui/arrow-right.png"
             alt="Arrow"
-            width={64}
-            height={32}
-            className="pixel-sprite arrow-pulse"
+            width={48}
+            height={24}
+            className="pixel-sprite opacity-60"
             style={{ imageRendering: "pixelated" }}
           />
-          <span className="text-[8px] text-gray-400 text-center">
-            BURN TO<br />CLAIM
+          <span className="text-[7px] text-gray-500 text-center leading-tight">
+            BURN<br />TO<br />CLAIM
           </span>
         </div>
 
         {/* Right side: Jar */}
-        <div className="flex flex-col items-center">
-          <span className="text-[10px] text-green-400 mb-2 tracking-wider">VAULT</span>
-          <PixelJar jarValue={totalValue} maxValue={50000} />
-          <span className={`text-sm mt-2 font-bold ${isProfitable ? 'text-green-400 treasure-glow' : 'text-yellow-400'}`}>
-            ${totalValue.toLocaleString()}
+        <div className="flex flex-col items-center flex-1">
+          <span className="text-[9px] text-green-400 mb-3 tracking-widest uppercase">Vault</span>
+          <PixelJar jarValue={totalValue} maxValue={50000} size="large" />
+          <span className={`text-base mt-3 font-bold ${isProfitable ? 'text-green-400' : 'text-yellow-400'}`}>
+            {formatCurrency(totalValue)}
           </span>
         </div>
       </div>
 
       {/* Comparison bar */}
-      <div className="mt-6 px-4">
-        <div className="flex items-center gap-2 mb-2">
-          <span className="text-[8px] text-gray-500">BURN vs REWARD</span>
+      <div className="mt-6">
+        <div className="flex items-center justify-between mb-2">
+          <span className="text-[8px] text-gray-500 uppercase tracking-wider">Burn vs Reward</span>
+          <span className="text-[8px] text-gray-600">{burnPercent.toFixed(0)}% / {jarPercent.toFixed(0)}%</span>
         </div>
-        <div className="h-6 flex rounded overflow-hidden border-2 border-gray-700">
+        <div className="h-3 flex rounded-sm overflow-hidden bg-gray-800/50">
           {/* Burn portion (red) */}
           <div
-            className="bg-gradient-to-r from-red-700 to-red-500 flex items-center justify-center transition-all duration-500 danger-stripes"
+            className="bg-gradient-to-r from-red-600/80 to-red-500/80 transition-all duration-500"
             style={{ width: `${burnPercent}%` }}
-          >
-            <span className="text-[8px] text-white font-bold drop-shadow-lg">
-              {burnPercent.toFixed(0)}%
-            </span>
-          </div>
+          />
           {/* Jar portion (green/gold) */}
           <div
-            className={`flex items-center justify-center transition-all duration-500 ${
+            className={`transition-all duration-500 ${
               isProfitable 
-                ? 'bg-gradient-to-r from-green-600 to-green-400' 
-                : 'bg-gradient-to-r from-yellow-700 to-yellow-500'
+                ? 'bg-gradient-to-r from-green-500/80 to-green-400/80' 
+                : 'bg-gradient-to-r from-yellow-600/80 to-yellow-500/80'
             }`}
             style={{ width: `${jarPercent}%` }}
-          >
-            {jarPercent >= 5 && (
-              <span className="text-[8px] text-white font-bold drop-shadow-lg">
-                {jarPercent.toFixed(0)}%
-              </span>
-            )}
-          </div>
+          />
         </div>
-      </div>
-
-      {/* Net profit display */}
-      <div className="mt-6 text-center">
-        <span className="text-[10px] text-gray-500 block mb-1">NET PROFIT</span>
-        <span
-          className={`text-2xl font-bold ${
-            netProfit >= 0 
-              ? 'text-green-400 treasure-glow' 
-              : 'text-red-400 danger-pulse'
-          }`}
-        >
-          {netProfit >= 0 ? '+' : ''}{netProfit < 0 ? '-' : ''}${Math.abs(netProfit).toLocaleString()}
-        </span>
       </div>
     </div>
   );

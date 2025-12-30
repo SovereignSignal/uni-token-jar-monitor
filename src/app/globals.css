@@ -14,7 +14,7 @@
   --uni-purple-light: #40444F;
 
   /* Background and foreground */
-  --background: #191B1F;
+  --background: #0d0e12;
   --foreground: #eee;
 
   /* Accent colors */
@@ -26,9 +26,12 @@
   --retro-green: #27AE60;
   --retro-red: #FD4040;
 
-  /* Jar styling */
-  --jar-glass: rgba(255, 0, 122, 0.2);
-  --jar-shine: rgba(255, 255, 255, 0.4);
+  /* Spacing scale */
+  --space-xs: 8px;
+  --space-sm: 12px;
+  --space-md: 20px;
+  --space-lg: 28px;
+  --space-xl: 40px;
 }
 
 body {
@@ -36,377 +39,276 @@ body {
   background: var(--background);
   font-family: 'Press Start 2P', monospace;
   image-rendering: pixelated;
-  /* Dungeon brick texture pattern */
-  background-image:
-    repeating-linear-gradient(
-      0deg,
-      transparent,
-      transparent 30px,
-      rgba(255, 0, 122, 0.03) 30px,
-      rgba(255, 0, 122, 0.03) 32px
-    ),
-    repeating-linear-gradient(
-      90deg,
-      transparent,
-      transparent 60px,
-      rgba(255, 0, 122, 0.02) 60px,
-      rgba(255, 0, 122, 0.02) 62px
-    );
+  line-height: 1.6;
 }
 
-/* Pixel border effect */
-.pixel-border {
-  box-shadow:
-    -4px 0 0 0 #000,
-    4px 0 0 0 #000,
-    0 -4px 0 0 #000,
-    0 4px 0 0 #000,
-    -4px -4px 0 0 #000,
-    4px -4px 0 0 #000,
-    -4px 4px 0 0 #000,
-    4px 4px 0 0 #000;
+/* =============================================================================
+   TYPOGRAPHY HIERARCHY
+   ============================================================================= */
+
+/* Display numbers - big impactful values */
+.text-display {
+  font-size: 1.5rem;
+  font-weight: bold;
+  letter-spacing: -0.02em;
+  line-height: 1.2;
 }
 
-/* Retro scanline effect */
-.scanlines {
+/* Labels - section headers and field names */
+.text-label {
+  font-size: 0.625rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #888;
+}
+
+/* Body text - regular content */
+.text-body {
+  font-size: 0.6875rem;
+  line-height: 1.5;
+}
+
+/* Small text - captions and metadata */
+.text-small {
+  font-size: 0.5rem;
+  color: #666;
+}
+
+/* =============================================================================
+   CARD STYLES - Softer, more refined
+   ============================================================================= */
+
+/* Main card with subtle glow border */
+.card {
+  background: linear-gradient(180deg, #1a1c22 0%, #13151a 100%);
+  border: 1px solid rgba(255, 0, 122, 0.3);
+  border-radius: 4px;
+  box-shadow: 
+    0 0 20px rgba(255, 0, 122, 0.08),
+    inset 0 1px 0 rgba(255, 255, 255, 0.03);
   position: relative;
 }
 
-.scanlines::after {
+/* Card with pink glow effect */
+.card-glow {
+  background: linear-gradient(180deg, #1a1c22 0%, #13151a 100%);
+  border: 1px solid rgba(255, 0, 122, 0.4);
+  border-radius: 4px;
+  box-shadow: 
+    0 0 30px rgba(255, 0, 122, 0.15),
+    0 0 60px rgba(255, 0, 122, 0.05),
+    inset 0 1px 0 rgba(255, 255, 255, 0.03);
+}
+
+/* Unified sidebar card */
+.card-sidebar {
+  background: linear-gradient(180deg, #1a1c22 0%, #13151a 100%);
+  border: 1px solid rgba(255, 0, 122, 0.25);
+  border-radius: 4px;
+  box-shadow: 0 0 15px rgba(255, 0, 122, 0.06);
+}
+
+/* Card section divider */
+.card-divider {
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(255, 0, 122, 0.3), transparent);
+  margin: var(--space-md) 0;
+}
+
+/* Legacy retro panel - updated for softer look */
+.retro-panel {
+  background: linear-gradient(180deg, #1a1c22 0%, #13151a 100%);
+  border: 1px solid rgba(255, 0, 122, 0.3);
+  border-radius: 4px;
+  box-shadow: 
+    0 0 20px rgba(255, 0, 122, 0.08),
+    inset 0 1px 0 rgba(255, 255, 255, 0.03);
+  position: relative;
+}
+
+/* Remove corner decorations for cleaner look */
+.retro-panel::before,
+.retro-panel::after {
+  display: none;
+}
+
+/* =============================================================================
+   HEADER STYLES
+   ============================================================================= */
+
+.header {
+  background: linear-gradient(180deg, #1a1c22 0%, #13151a 100%);
+  border: 1px solid rgba(255, 0, 122, 0.3);
+  border-radius: 4px;
+  box-shadow: 0 0 20px rgba(255, 0, 122, 0.08);
+  padding: var(--space-md) var(--space-lg);
+  min-height: 80px;
+  display: flex;
+  align-items: center;
+}
+
+/* =============================================================================
+   BUTTON STYLES
+   ============================================================================= */
+
+.retro-btn {
+  background: linear-gradient(180deg, #2D2F36 0%, #1a1c22 100%);
+  border: 1px solid rgba(255, 0, 122, 0.4);
+  border-radius: 4px;
+  color: #FF007A;
+  font-size: 0.625rem;
+  padding: 10px 20px;
+  transition: all 0.15s ease;
+  cursor: pointer;
+  text-shadow: 0 0 10px rgba(255, 0, 122, 0.5);
+}
+
+.retro-btn:hover {
+  background: linear-gradient(180deg, #3D3F46 0%, #2a2c32 100%);
+  border-color: rgba(255, 0, 122, 0.6);
+  box-shadow: 0 0 15px rgba(255, 0, 122, 0.2);
+}
+
+.retro-btn:active {
+  transform: translateY(1px);
+}
+
+.retro-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* =============================================================================
+   PROGRESS BAR / GAUGE STYLES
+   ============================================================================= */
+
+.progress-track {
+  background: #1a1c22;
+  border: 1px solid rgba(255, 0, 122, 0.2);
+  border-radius: 4px;
+  height: 12px;
+  overflow: hidden;
+  position: relative;
+}
+
+.progress-fill {
+  height: 100%;
+  border-radius: 3px;
+  transition: width 0.5s ease;
+  position: relative;
+}
+
+.progress-fill::after {
   content: '';
   position: absolute;
   top: 0;
   left: 0;
   right: 0;
   bottom: 0;
-  background: repeating-linear-gradient(
-    0deg,
-    rgba(0, 0, 0, 0.1) 0px,
-    rgba(0, 0, 0, 0.1) 1px,
-    transparent 1px,
-    transparent 2px
-  );
-  pointer-events: none;
-  z-index: 100;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.1), transparent);
+  animation: shimmer 2s infinite;
 }
 
-/* Pixel coin animation */
+@keyframes shimmer {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
+}
+
+/* Large gauge for profit threshold */
+.gauge-container {
+  background: #13151a;
+  border: 1px solid rgba(255, 0, 122, 0.2);
+  border-radius: 6px;
+  padding: var(--space-md);
+  margin-top: var(--space-lg);
+}
+
+.gauge-track {
+  background: linear-gradient(90deg, #1a1c22, #0d0e12);
+  border-radius: 8px;
+  height: 20px;
+  overflow: hidden;
+  position: relative;
+  box-shadow: inset 0 2px 4px rgba(0,0,0,0.3);
+}
+
+.gauge-fill {
+  height: 100%;
+  border-radius: 8px;
+  transition: width 0.5s ease;
+  box-shadow: 0 0 10px currentColor;
+}
+
+.gauge-markers {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 8px;
+  padding: 0 4px;
+}
+
+/* =============================================================================
+   ANIMATIONS
+   ============================================================================= */
+
 @keyframes coin-float {
   0%, 100% { transform: translateY(0px); }
   50% { transform: translateY(-3px); }
 }
 
-@keyframes coin-shine {
-  0%, 100% { opacity: 0.6; }
-  50% { opacity: 1; }
+@keyframes pulse-glow {
+  0%, 100% { 
+    box-shadow: 0 0 20px rgba(255, 0, 122, 0.1);
+  }
+  50% { 
+    box-shadow: 0 0 30px rgba(255, 0, 122, 0.2);
+  }
 }
 
-@keyframes jar-sparkle {
-  0%, 100% { opacity: 0; }
-  50% { opacity: 1; }
+@keyframes text-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.7; }
 }
 
-@keyframes bounce-in {
-  0% { transform: translateY(-20px) scale(0.8); opacity: 0; }
-  60% { transform: translateY(5px) scale(1.05); }
-  100% { transform: translateY(0) scale(1); opacity: 1; }
-}
-
-.coin-float {
-  animation: coin-float 2s ease-in-out infinite;
-}
-
-.coin-shine {
-  animation: coin-shine 1.5s ease-in-out infinite;
-}
-
-/* Retro button style */
-.retro-btn {
-  background: linear-gradient(180deg, #666 0%, #444 50%, #333 50%, #222 100%);
-  border: 4px solid;
-  border-color: #888 #333 #222 #666;
-  color: #fff;
-  text-shadow: 2px 2px 0 #000;
-  transition: all 0.1s;
-  cursor: pointer;
-}
-
-.retro-btn:hover {
-  background: linear-gradient(180deg, #777 0%, #555 50%, #444 50%, #333 100%);
-}
-
-.retro-btn:active {
-  border-color: #222 #666 #888 #333;
-  transform: translate(2px, 2px);
-}
-
-/* Retro panel - Uniswap themed with Zelda borders */
-.retro-panel {
-  background: linear-gradient(180deg, #2D2F36 0%, #191B1F 100%);
-  border: 4px solid;
-  border-color: #FF007A #40444F #40444F #FF007A;
-  box-shadow:
-    inset 2px 2px 0 rgba(255, 0, 122, 0.2),
-    inset -2px -2px 0 rgba(0,0,0,0.4),
-    0 0 20px rgba(255, 0, 122, 0.1);
-  position: relative;
-}
-
-/* Corner decorations for panels */
-.retro-panel::before {
-  content: '';
-  position: absolute;
-  top: -2px;
-  left: -2px;
-  width: 8px;
-  height: 8px;
-  background: #FF007A;
-  clip-path: polygon(0 0, 100% 0, 0 100%);
-}
-
-.retro-panel::after {
-  content: '';
-  position: absolute;
-  bottom: -2px;
-  right: -2px;
-  width: 8px;
-  height: 8px;
-  background: #FF007A;
-  clip-path: polygon(100% 0, 100% 100%, 0 100%);
-}
-
-/* Status indicator pixel style */
-.pixel-dot {
-  width: 12px;
-  height: 12px;
-  background: currentColor;
-  image-rendering: pixelated;
-}
-
-/* Text glow effect */
-.text-glow-green {
-  text-shadow: 0 0 10px var(--retro-green), 0 0 20px var(--retro-green), 0 0 30px var(--retro-green);
-}
-
-.text-glow-red {
-  text-shadow: 0 0 10px var(--retro-red), 0 0 20px var(--retro-red), 0 0 30px var(--retro-red);
-}
-
-.text-glow-gold {
-  text-shadow: 0 0 10px var(--retro-gold), 0 0 20px var(--retro-gold);
-}
-
-/* Uniswap pink glow */
-.text-glow-pink {
-  text-shadow: 0 0 10px var(--uni-pink), 0 0 20px var(--uni-pink), 0 0 30px var(--uni-pink);
-}
-
-/* Pink magic particle float */
-@keyframes magic-float {
-  0% { transform: translateY(0) translateX(0) scale(1); opacity: 0; }
-  10% { opacity: 0.8; }
-  50% { transform: translateY(-100px) translateX(20px) scale(0.8); }
-  90% { opacity: 0.8; }
-  100% { transform: translateY(-200px) translateX(-10px) scale(0.3); opacity: 0; }
-}
-
-.magic-particle {
-  animation: magic-float 3s ease-out infinite;
-}
-
-/* Dungeon torch flicker */
-@keyframes torch-flicker {
-  0%, 100% { opacity: 1; filter: brightness(1); }
-  25% { opacity: 0.9; filter: brightness(1.1); }
-  50% { opacity: 1; filter: brightness(0.95); }
-  75% { opacity: 0.95; filter: brightness(1.05); }
-}
-
-.torch-flame {
-  animation: torch-flicker 0.3s ease-in-out infinite;
-}
-
-/* Unicorn bounce */
-@keyframes unicorn-bounce {
+/* Logo bounce animation */
+@keyframes logoBounce {
   0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-5px); }
+  50% { transform: translateY(-4px); }
 }
 
-.unicorn-bounce {
-  animation: unicorn-bounce 1s ease-in-out infinite;
+.logo-bounce {
+  animation: logoBounce 2s ease-in-out infinite;
 }
 
-/* Wandering unicorn movement */
-@keyframes unicorn-wander {
-  0% { transform: translateX(0) scaleX(1); }
-  25% { transform: translateX(30px) scaleX(1); }
-  50% { transform: translateX(30px) scaleX(-1); }
-  75% { transform: translateX(0) scaleX(-1); }
-  100% { transform: translateX(0) scaleX(1); }
+.logo-bounce:hover {
+  animation-duration: 0.5s;
+  filter: drop-shadow(0 0 15px rgba(255, 0, 122, 0.5));
 }
 
-.unicorn-wander {
-  animation: unicorn-wander 8s ease-in-out infinite;
-}
-
-/* Mario/Zelda style coin spin animation */
-@keyframes coin-spin {
-  0% { transform: scaleX(1); }
-  25% { transform: scaleX(0.2); }
-  50% { transform: scaleX(1); }
-  75% { transform: scaleX(0.2); }
-  100% { transform: scaleX(1); }
-}
-
-.coin-spin {
-  animation: coin-spin 0.6s linear infinite;
-  transform-style: preserve-3d;
-}
-
-/* Coin bounce animation */
-@keyframes coin-bounce {
-  0%, 100% { transform: translate(-50%, -50%) translateY(0); }
-  50% { transform: translate(-50%, -50%) translateY(-8px); }
-}
-
-.coin-bounce {
-  animation: coin-bounce 1.2s ease-in-out infinite;
-}
-
-/* Star twinkle animation */
-@keyframes star-twinkle {
-  0%, 100% { opacity: 0.2; transform: scale(1); }
-  50% { opacity: 1; transform: scale(1.3); }
-}
-
-.star-twinkle {
-  animation: star-twinkle 2s ease-in-out infinite;
-}
-
-/* Particle float animation */
-@keyframes particle-float {
-  0% { transform: translateY(0) scale(1); opacity: 0; }
-  10% { opacity: 1; }
-  90% { opacity: 1; }
-  100% { transform: translateY(-200px) scale(0.5); opacity: 0; }
-}
-
-.particle-float {
-  animation: particle-float 4s ease-out infinite;
-}
-
-/* Rupee falling animation */
-@keyframes rupee-fall {
-  0% { transform: translateY(0) rotate(0deg); opacity: 0; }
-  10% { opacity: 1; }
-  90% { opacity: 1; }
-  100% { transform: translateY(350px) rotate(360deg); opacity: 0; }
-}
-
-.rupee-fall {
-  animation: rupee-fall 5s linear infinite;
-}
-
-/* Sparkle effect for profitable jar */
-@keyframes sparkle {
-  0%, 100% {
+/* Floating ember animation */
+@keyframes emberFloat {
+  0% {
+    transform: translateY(0) translateX(0) scale(1);
     opacity: 0;
-    transform: scale(0) rotate(0deg);
   }
-  50% {
-    opacity: 1;
-    transform: scale(1.2) rotate(180deg);
+  10% { opacity: 0.6; }
+  50% { transform: translateY(-80px) translateX(10px) scale(0.7); }
+  100% {
+    transform: translateY(-150px) translateX(-5px) scale(0.3);
+    opacity: 0;
   }
 }
 
-.sparkle {
-  position: absolute;
-  width: 12px;
-  height: 12px;
-  background: radial-gradient(circle, #fff 0%, #f8d800 40%, transparent 70%);
-  border-radius: 50%;
-  pointer-events: none;
-}
-
-.sparkle-1 {
-  top: 20%;
-  left: 25%;
-  animation: sparkle 1.2s ease-in-out infinite;
-}
-
-.sparkle-2 {
-  top: 30%;
-  right: 20%;
-  animation: sparkle 1.5s ease-in-out infinite 0.2s;
-}
-
-.sparkle-3 {
-  top: 15%;
-  left: 55%;
-  animation: sparkle 1.8s ease-in-out infinite 0.4s;
-}
-
-.sparkle-4 {
-  top: 40%;
-  right: 30%;
-  animation: sparkle 1.3s ease-in-out infinite 0.6s;
-}
-
-/* Pixel sparkle star shape */
-.sparkle::before {
-  content: '';
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  width: 2px;
-  height: 14px;
-  background: #fff;
-  transform: translate(-50%, -50%);
-}
-
-.sparkle::after {
-  content: '';
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  width: 14px;
-  height: 2px;
-  background: #fff;
-  transform: translate(-50%, -50%);
-}
-
-/* CRT screen flicker effect */
-@keyframes crt-flicker {
-  0% { opacity: 0.97; }
-  5% { opacity: 1; }
-  10% { opacity: 0.98; }
-  15% { opacity: 1; }
-  100% { opacity: 1; }
-}
-
-.crt-effect {
-  animation: crt-flicker 0.15s infinite;
-}
-
-/* Glow pulse for headers */
-@keyframes glow-pulse {
-  0%, 100% { filter: drop-shadow(0 0 5px currentColor); }
-  50% { filter: drop-shadow(0 0 15px currentColor) drop-shadow(0 0 25px currentColor); }
-}
-
-.glow-pulse {
-  animation: glow-pulse 2s ease-in-out infinite;
+.ember-float {
+  animation: emberFloat 3s ease-out infinite;
 }
 
 /* Danger pulse for negative values */
 @keyframes danger-pulse {
   0%, 100% {
-    text-shadow: 0 0 5px #e94f37;
-    transform: scale(1);
+    text-shadow: 0 0 10px rgba(253, 64, 64, 0.5);
   }
   50% {
-    text-shadow: 0 0 15px #e94f37, 0 0 25px #e94f37;
-    transform: scale(1.02);
+    text-shadow: 0 0 20px rgba(253, 64, 64, 0.8), 0 0 30px rgba(253, 64, 64, 0.4);
   }
 }
 
@@ -417,12 +319,10 @@ body {
 /* Treasure glow for positive values */
 @keyframes treasure-glow {
   0%, 100% {
-    text-shadow: 0 0 5px #58d858;
-    filter: brightness(1);
+    text-shadow: 0 0 10px rgba(39, 174, 96, 0.5);
   }
   50% {
-    text-shadow: 0 0 20px #58d858, 0 0 40px #58d858;
-    filter: brightness(1.2);
+    text-shadow: 0 0 20px rgba(39, 174, 96, 0.8), 0 0 30px rgba(39, 174, 96, 0.4);
   }
 }
 
@@ -430,97 +330,80 @@ body {
   animation: treasure-glow 1.5s ease-in-out infinite;
 }
 
-/* Fire particle rise animation */
-@keyframes fireRise {
-  0% {
-    transform: translateY(0) scale(1);
-    opacity: 0;
-  }
-  10% {
-    opacity: 1;
-  }
-  50% {
-    transform: translateY(-40px) translateX(5px) scale(0.8);
-    opacity: 0.8;
-  }
-  100% {
-    transform: translateY(-80px) translateX(-5px) scale(0.3);
-    opacity: 0;
-  }
+/* Pink glow */
+.text-glow-pink {
+  text-shadow: 0 0 10px var(--uni-pink), 0 0 20px var(--uni-pink);
 }
 
-/* Coin bobbing animation (for coins inside jar) */
-@keyframes coinBob {
-  0%, 100% {
-    transform: translateY(0);
-  }
-  50% {
-    transform: translateY(-2px);
-  }
+.glow-pulse {
+  animation: pulse-glow 2s ease-in-out infinite;
 }
 
-.coin-bob {
-  animation: coinBob 2s ease-in-out infinite;
+/* =============================================================================
+   UTILITY CLASSES
+   ============================================================================= */
+
+/* Spacing utilities */
+.p-card { padding: var(--space-lg); }
+.p-card-sm { padding: var(--space-md); }
+.gap-section { gap: var(--space-lg); }
+.mb-section { margin-bottom: var(--space-lg); }
+
+/* Text colors */
+.text-pink { color: var(--uni-pink); }
+.text-gold { color: var(--retro-gold); }
+.text-green { color: var(--retro-green); }
+.text-red { color: var(--retro-red); }
+.text-muted { color: #666; }
+.text-dim { color: #444; }
+
+/* Status badges */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  border-radius: 4px;
+  font-size: 0.625rem;
 }
 
-/* Arrow pulse animation */
-@keyframes arrowPulse {
-  0%, 100% {
-    opacity: 0.7;
-    transform: translateX(0);
-  }
-  50% {
-    opacity: 1;
-    transform: translateX(5px);
-  }
+.badge-danger {
+  background: rgba(253, 64, 64, 0.15);
+  border: 1px solid rgba(253, 64, 64, 0.3);
+  color: #FD4040;
 }
 
-/* Fire glow animation */
-@keyframes fireGlow {
-  0% {
-    opacity: 0.3;
-    transform: scale(1);
-  }
-  100% {
-    opacity: 0.5;
-    transform: scale(1.1);
-  }
+.badge-success {
+  background: rgba(39, 174, 96, 0.15);
+  border: 1px solid rgba(39, 174, 96, 0.3);
+  color: #27AE60;
 }
 
-/* Animated stripes for danger bar */
-@keyframes stripesMove {
-  0% {
-    background-position: 0 0;
-  }
-  100% {
-    background-position: 22px 0;
-  }
-}
+/* =============================================================================
+   SCROLLBAR
+   ============================================================================= */
 
-/* Scrollbar styling */
 ::-webkit-scrollbar {
-  width: 12px;
+  width: 8px;
 }
 
 ::-webkit-scrollbar-track {
-  background: #1a1a2e;
+  background: #0d0e12;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #4a4a6a;
-  border: 2px solid #1a1a2e;
+  background: #2D2F36;
+  border-radius: 4px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #6a6a8a;
+  background: #40444F;
 }
 
-
 /* =============================================================================
-   PIXEL SPRITE STYLES - For image-based sprites
+   PIXEL SPRITE STYLES
    ============================================================================= */
 
-/* Pixel-perfect rendering for all sprites */
 img[class*="pixel"], 
 img.pixel-sprite,
 .pixel-sprite img {
@@ -529,298 +412,17 @@ img.pixel-sprite,
   -ms-interpolation-mode: nearest-neighbor;
 }
 
-/* Jar container styles */
-.pixel-jar-container {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-}
-
-/* Burn pile container with fire glow effect */
-.burn-pile-container {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-}
-
-/* Fire glow animation for burn pile */
-.fire-glow {
-  filter: drop-shadow(0 0 10px rgba(255, 69, 0, 0.5));
-  animation: fireGlowPulse 1.5s ease-in-out infinite alternate;
-}
-
-@keyframes fireGlowPulse {
-  0% {
-    filter: drop-shadow(0 0 10px rgba(255, 69, 0, 0.4));
-  }
-  100% {
-    filter: drop-shadow(0 0 20px rgba(255, 69, 0, 0.7)) 
-            drop-shadow(0 0 30px rgba(255, 165, 0, 0.4));
-  }
-}
-
-/* Arrow pulse animation */
-.arrow-pulse {
-  animation: arrowPulseAnim 1.5s ease-in-out infinite;
-}
-
-@keyframes arrowPulseAnim {
-  0%, 100% {
-    opacity: 0.7;
-    transform: translateX(0);
-  }
-  50% {
-    opacity: 1;
-    transform: translateX(8px);
-  }
-}
-
-/* Danger stripes for burn bar */
-.danger-stripes {
-  background-image: repeating-linear-gradient(
-    45deg,
-    transparent,
-    transparent 10px,
-    rgba(0, 0, 0, 0.1) 10px,
-    rgba(0, 0, 0, 0.1) 20px
-  );
-  background-size: 28px 28px;
-  animation: stripesMove 1s linear infinite;
-}
-
-/* Jar visualization container */
-.jar-visualization {
-  padding: 1rem;
-}
-
-/* Responsive adjustments for mobile */
-@media (max-width: 768px) {
-  .pixel-jar-container img {
-    width: 96px;
-    height: auto;
-  }
-  
-  .burn-pile-container img {
-    max-width: 200px;
-    height: auto;
-  }
-}
-
-
 /* =============================================================================
-   ENHANCED ANIMATIONS - Logo, Embers, Coin Shimmer
+   RESPONSIVE ADJUSTMENTS
    ============================================================================= */
 
-/* Logo bounce animation */
-@keyframes logoBounce {
-  0%, 100% { 
-    transform: translateY(0) rotate(0deg); 
+@media (max-width: 768px) {
+  :root {
+    --space-lg: 20px;
+    --space-xl: 28px;
   }
-  25% { 
-    transform: translateY(-3px) rotate(-2deg); 
+  
+  .text-display {
+    font-size: 1.25rem;
   }
-  75% { 
-    transform: translateY(-3px) rotate(2deg); 
-  }
-}
-
-.logo-bounce {
-  animation: logoBounce 2s ease-in-out infinite;
-}
-
-.logo-bounce:hover {
-  animation: logoBounce 0.5s ease-in-out infinite;
-  filter: drop-shadow(0 0 10px #FF007A);
-}
-
-/* Floating ember animation */
-@keyframes emberFloat {
-  0% {
-    transform: translateY(0) translateX(0) scale(1);
-    opacity: 0;
-  }
-  10% {
-    opacity: 0.8;
-  }
-  50% {
-    transform: translateY(-100px) translateX(10px) scale(0.7);
-    opacity: 0.6;
-  }
-  100% {
-    transform: translateY(-200px) translateX(-5px) scale(0.3);
-    opacity: 0;
-  }
-}
-
-.ember-float {
-  animation: emberFloat 3s ease-out infinite;
-}
-
-/* Coin shimmer effect */
-@keyframes coinShimmer {
-  0%, 100% {
-    filter: brightness(1);
-  }
-  50% {
-    filter: brightness(1.3) drop-shadow(0 0 5px #FFD700);
-  }
-}
-
-.coin-shimmer {
-  animation: coinShimmer 2s ease-in-out infinite;
-}
-
-/* Enhanced scanlines for more CRT feel */
-.scanlines::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: 
-    linear-gradient(
-      rgba(18, 16, 16, 0) 50%,
-      rgba(0, 0, 0, 0.15) 50%
-    );
-  background-size: 100% 4px;
-  pointer-events: none;
-  z-index: 99;
-}
-
-/* Screen flicker overlay */
-@keyframes screenFlicker {
-  0% { opacity: 0.27861; }
-  5% { opacity: 0.34769; }
-  10% { opacity: 0.23604; }
-  15% { opacity: 0.90626; }
-  20% { opacity: 0.18128; }
-  25% { opacity: 0.83891; }
-  30% { opacity: 0.65583; }
-  35% { opacity: 0.67807; }
-  40% { opacity: 0.26559; }
-  45% { opacity: 0.84693; }
-  50% { opacity: 0.96019; }
-  55% { opacity: 0.08594; }
-  60% { opacity: 0.20313; }
-  65% { opacity: 0.71988; }
-  70% { opacity: 0.53455; }
-  75% { opacity: 0.37288; }
-  80% { opacity: 0.71428; }
-  85% { opacity: 0.70419; }
-  90% { opacity: 0.7003; }
-  95% { opacity: 0.36108; }
-  100% { opacity: 0.24387; }
-}
-
-/* Subtle vignette effect */
-.crt-effect::before {
-  content: '';
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: radial-gradient(
-    ellipse at center,
-    transparent 0%,
-    transparent 60%,
-    rgba(0, 0, 0, 0.3) 100%
-  );
-  pointer-events: none;
-  z-index: 98;
-}
-
-/* Tooltip arrow animation */
-@keyframes tooltipPop {
-  0% {
-    transform: translate(-50%, 5px) scale(0.9);
-    opacity: 0;
-  }
-  100% {
-    transform: translate(-50%, 0) scale(1);
-    opacity: 1;
-  }
-}
-
-/* Profit bar fill animation */
-@keyframes profitFill {
-  0% {
-    width: 0%;
-  }
-}
-
-/* Pulsing glow for close-to-profitable state */
-@keyframes almostThere {
-  0%, 100% {
-    box-shadow: 0 0 5px #FFD700;
-  }
-  50% {
-    box-shadow: 0 0 20px #FFD700, 0 0 30px #FF007A;
-  }
-}
-
-.almost-profitable {
-  animation: almostThere 1s ease-in-out infinite;
-}
-
-/* Shake animation for very unprofitable */
-@keyframes shake {
-  0%, 100% { transform: translateX(0); }
-  10%, 30%, 50%, 70%, 90% { transform: translateX(-2px); }
-  20%, 40%, 60%, 80% { transform: translateX(2px); }
-}
-
-.shake {
-  animation: shake 0.5s ease-in-out;
-}
-
-/* Rainbow glow for profitable state */
-@keyframes rainbowGlow {
-  0% { filter: drop-shadow(0 0 10px #FF007A); }
-  25% { filter: drop-shadow(0 0 10px #7B61FF); }
-  50% { filter: drop-shadow(0 0 10px #27AE60); }
-  75% { filter: drop-shadow(0 0 10px #FFD700); }
-  100% { filter: drop-shadow(0 0 10px #FF007A); }
-}
-
-.rainbow-glow {
-  animation: rainbowGlow 3s linear infinite;
-}
-
-/* Floating coins animation for jar */
-@keyframes floatCoin {
-  0%, 100% {
-    transform: translateY(0) rotate(0deg);
-  }
-  25% {
-    transform: translateY(-5px) rotate(5deg);
-  }
-  75% {
-    transform: translateY(-5px) rotate(-5deg);
-  }
-}
-
-.float-coin {
-  animation: floatCoin 3s ease-in-out infinite;
-}
-
-/* Fire crackle effect */
-@keyframes fireCrackle {
-  0%, 100% {
-    transform: scaleY(1) scaleX(1);
-  }
-  25% {
-    transform: scaleY(1.05) scaleX(0.98);
-  }
-  50% {
-    transform: scaleY(0.98) scaleX(1.02);
-  }
-  75% {
-    transform: scaleY(1.02) scaleX(0.99);
-  }
-}
-
-.fire-crackle {
-  animation: fireCrackle 0.3s ease-in-out infinite;
 }
