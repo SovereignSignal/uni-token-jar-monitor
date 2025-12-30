@@ -81,7 +81,13 @@ async function getPrices(coingeckoIds: string[]): Promise<Record<string, number>
   return prices;
 }
 
-export interface TokenWithValue extends TokenBalance {
+// Serializable version of TokenBalance (no BigInt)
+export interface TokenWithValue {
+  address: string;
+  symbol: string;
+  decimals: number;
+  balanceFormatted: string;
+  coingeckoId?: string;
   priceUsd: number | null;
   valueUsd: number | null;
 }
@@ -138,8 +144,13 @@ export async function priceTokenBalances(balances: TokenBalance[]): Promise<Pric
       unpricedCount++;
     }
 
+    // Return serializable object (exclude bigint balance)
     return {
-      ...balance,
+      address: balance.address,
+      symbol: balance.symbol,
+      decimals: balance.decimals,
+      balanceFormatted: balance.balanceFormatted,
+      coingeckoId: balance.coingeckoId,
       priceUsd,
       valueUsd,
     };
