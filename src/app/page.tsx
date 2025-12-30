@@ -385,10 +385,10 @@ export default function Home() {
 
           {/* Stats Grid - Separate Cards */}
           <div className="grid md:grid-cols-2 gap-5">
-            {/* Breakdown Card */}
-            <div className="card p-5">
+            {/* Breakdown Card - matched height with tokens */}
+            <div className="card p-5 flex flex-col min-h-[200px]">
               <h2 className="text-[9px] text-[#FF007A] mb-4 tracking-widest">BREAKDOWN</h2>
-              <div className="space-y-3">
+              <div className="space-y-3 flex-1">
                 <div className="flex justify-between items-center">
                   <Tooltip text="Total value of tokens in the jar">
                     <span className="text-[10px] text-gray-400">JAR VALUE</span>
@@ -419,28 +419,30 @@ export default function Home() {
                 </div>
               </div>
               
-              {/* UNI Price - integrated into breakdown */}
-              <div className="mt-4 pt-4 border-t border-gray-800/50 flex justify-between items-center">
-                <span className="text-[10px] text-gray-400">UNI PRICE</span>
+              {/* UNI Price - reference info with divider */}
+              <div className="mt-auto pt-4 border-t border-gray-800/50 flex justify-between items-center">
+                <Tooltip text="Current UNI token price">
+                  <span className="text-[10px] text-gray-400">UNI PRICE</span>
+                </Tooltip>
                 <span className="text-[13px] text-[#FF007A] font-bold">
                   ${data.uniPriceUsd.toFixed(2)}
                 </span>
               </div>
             </div>
 
-            {/* Tokens Card */}
-            <div className="card p-5">
+            {/* Tokens Card - matched height with breakdown */}
+            <div className="card p-5 flex flex-col min-h-[200px]">
               <h2 className="text-[9px] text-[#FF007A] mb-4 tracking-widest">
                 TOKENS <span className="text-gray-600">(&gt;$1K)</span>
               </h2>
 
               {data.displayTokens.length === 0 ? (
-                <div className="text-center py-6">
+                <div className="flex-1 flex flex-col items-center justify-center">
                   <p className="text-gray-500 text-[10px]">NO LARGE HOLDINGS</p>
                   <p className="text-gray-600 text-[8px] mt-1">(small balances only)</p>
                 </div>
               ) : (
-                <div className="space-y-2 max-h-28 overflow-y-auto">
+                <div className="space-y-2 max-h-28 overflow-y-auto flex-1">
                   {data.displayTokens.map((token) => (
                     <div
                       key={token.address}
@@ -462,7 +464,7 @@ export default function Home() {
               )}
 
               {(data.otherTokensCount > 0 || data.unpricedTokensCount > 0) && (
-                <div className="mt-4 pt-3 border-t border-gray-800/50 text-[8px] text-gray-500">
+                <div className="mt-auto pt-3 border-t border-gray-800/50 text-[8px] text-gray-500">
                   {data.otherTokensCount > 0 && (
                     <div className="flex justify-between">
                       <span>Other x{data.otherTokensCount}</span>

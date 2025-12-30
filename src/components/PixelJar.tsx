@@ -42,14 +42,23 @@ export function PixelJar({ jarValue, maxValue = 50000, size = "normal" }: PixelJ
 
   return (
     <div className="pixel-jar-container relative flex flex-col items-center">
+      {/* Glow effect behind jar */}
+      <div 
+        className="absolute inset-0 blur-2xl opacity-40"
+        style={{
+          background: 'radial-gradient(ellipse at center, rgba(255,0,122,0.6) 0%, rgba(255,95,162,0.3) 40%, transparent 70%)',
+          transform: 'scale(1.2)',
+        }}
+      />
       <Image
         src={spritePath}
         alt={`Jar ${fillLevel * 20}% full`}
         width={dimensions.width}
         height={dimensions.height}
-        className="pixel-sprite"
+        className="pixel-sprite relative z-10"
         style={{
           imageRendering: "pixelated",
+          filter: 'drop-shadow(0 0 15px rgba(255,0,122,0.4))',
         }}
         priority
       />
