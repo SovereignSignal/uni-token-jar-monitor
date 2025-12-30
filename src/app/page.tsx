@@ -252,7 +252,7 @@ export default function Home() {
           {/* Glowing Logo Sprite - single image with text baked in */}
           <div className="relative">
             <Image
-              src="/assets/logo-glow.png"
+              src="/assets/logo-transparent.png"
               alt="UNI JAR - Uniswap Fee Burn Monitor"
               width={220}
               height={80}

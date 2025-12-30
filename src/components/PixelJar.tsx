@@ -97,19 +97,20 @@ function getPileSpriteInfo(size: "small" | "medium" | "large" | "huge", displayS
   width: number;
   height: number;
 } {
-  // New square sprites - scale to be proportionate with jar (jar is 180x360 at large)
-  // Using square aspect ratio since new sprites are square
-  const baseSize = displaySize === "large" ? 200 : 120;
+  // Pile should be proportionate with jar (jar is 180x360 at large)
+  // Pile height should be roughly 60-80% of jar height to look balanced
+  // Jar is 360px tall, so pile should be ~220-280px
+  const baseSize = displaySize === "large" ? 280 : 160;
   
   switch (size) {
     case "small":
-      return { path: "/assets/pile/pile-small.png", width: Math.round(baseSize * 0.7), height: Math.round(baseSize * 0.7) };
+      return { path: "/assets/pile/pile-small.png", width: Math.round(baseSize * 0.75), height: Math.round(baseSize * 0.75) };
     case "medium":
-      return { path: "/assets/pile/pile-medium.png", width: Math.round(baseSize * 0.85), height: Math.round(baseSize * 0.85) };
+      return { path: "/assets/pile/pile-medium.png", width: Math.round(baseSize * 0.9), height: Math.round(baseSize * 0.9) };
     case "large":
       return { path: "/assets/pile/pile-large.png", width: baseSize, height: baseSize };
     case "huge":
-      return { path: "/assets/pile/pile-huge.png", width: Math.round(baseSize * 1.2), height: Math.round(baseSize * 1.2) };
+      return { path: "/assets/pile/pile-huge.png", width: Math.round(baseSize * 1.15), height: Math.round(baseSize * 1.15) };
   }
 }
 
