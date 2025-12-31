@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getTokenJarBalances } from "@/lib/ethereum";
+import { getTokenJarBalances, getDataSource } from "@/lib/ethereum";
 import { priceTokenBalances } from "@/lib/pricing";
 import { calculateProfitability, type ProfitabilityData } from "@/lib/profitability";
 import { serverCache, CACHE_KEYS, CACHE_TTL } from "@/lib/cache";
@@ -61,7 +61,7 @@ export async function GET(): Promise<NextResponse<TokenJarApiResponse>> {
         success: true,
         data: {
           ...cached.data,
-          dataSource: "llamarpc.com (cached)",
+          dataSource: `${getDataSource()} (cached)`,
           cacheStatus: "fresh",
           dataAge,
         },
@@ -79,7 +79,7 @@ export async function GET(): Promise<NextResponse<TokenJarApiResponse>> {
         success: true,
         data: {
           ...cached.data,
-          dataSource: "llamarpc.com (cached, refreshing...)",
+          dataSource: `${getDataSource()} (cached, refreshing...)`,
           cacheStatus: "stale",
           dataAge,
         },
@@ -96,7 +96,7 @@ export async function GET(): Promise<NextResponse<TokenJarApiResponse>> {
       success: true,
       data: {
         ...freshData,
-        dataSource: "llamarpc.com (live)",
+        dataSource: `${getDataSource()} (live)`,
         cacheStatus: "miss",
         dataAge: 0,
       },
