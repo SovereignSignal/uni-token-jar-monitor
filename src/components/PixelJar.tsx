@@ -46,8 +46,8 @@ export function PixelJar({ jarValue, burnCost, size = "normal" }: PixelJarProps)
   
   // Larger sizes for better visual impact
   const dimensions = size === "large" 
-    ? { width: 280, height: 420 }
-    : { width: 180, height: 280 };
+    ? { width: 320, height: 480 }
+    : { width: 200, height: 300 };
 
   return (
     <div className="pixel-jar-container relative flex flex-col items-center">
@@ -108,8 +108,8 @@ export function BurnPile({ jarValue, burnCost, size = "normal" }: BurnPileProps)
   
   // Match jar proportions - slightly smaller than jar for visual balance
   const dimensions = size === "large" 
-    ? { width: 240, height: 240 }
-    : { width: 160, height: 160 };
+    ? { width: 280, height: 280 }
+    : { width: 180, height: 180 };
 
   // Glow color changes based on flame level
   const glowColor = flameLevel === "large" 
