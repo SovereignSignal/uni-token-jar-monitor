@@ -434,32 +434,41 @@ export default function Home() {
               </div>
             </div>
 
-          </div>
-
-          {/* Contracts Card - Separate, cleaner */}
-          <div className="card p-5">
-            <h2 className="text-[9px] text-[#FF007A] mb-4 tracking-widest">CONTRACTS</h2>
-            <div className="grid md:grid-cols-2 gap-4">
-              <div className="flex items-center justify-between">
-                <span className="text-[9px] text-gray-500 font-medium">TOKENJAR</span>
-                <a
-                  href={`https://etherscan.io/address/${TOKENJAR_ADDRESS}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-[10px] text-blue-400 hover:text-blue-300 font-mono transition-colors"
-                >
-                  {truncateAddress(TOKENJAR_ADDRESS)}
-                </a>
+            {/* Contracts Card - Side by side with Breakdown */}
+            <div className="card p-5 flex flex-col min-h-[200px]">
+              <h2 className="text-[9px] text-[#FF007A] mb-4 tracking-widest">CONTRACTS</h2>
+              <div className="space-y-4 flex-1">
+                <div>
+                  <span className="text-[9px] text-gray-500 font-medium block mb-1">TOKENJAR</span>
+                  <a
+                    href={`https://etherscan.io/address/${TOKENJAR_ADDRESS}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-[10px] text-blue-400 hover:text-blue-300 font-mono transition-colors break-all"
+                  >
+                    {TOKENJAR_ADDRESS}
+                  </a>
+                </div>
+                <div>
+                  <span className="text-[9px] text-gray-500 font-medium block mb-1">FIREPIT</span>
+                  <a
+                    href={`https://etherscan.io/address/${FIREPIT_ADDRESS}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-[10px] text-blue-400 hover:text-blue-300 font-mono transition-colors break-all"
+                  >
+                    {FIREPIT_ADDRESS}
+                  </a>
+                </div>
               </div>
-              <div className="flex items-center justify-between">
-                <span className="text-[9px] text-gray-500 font-medium">FIREPIT</span>
+              <div className="mt-auto pt-4 border-t border-gray-800/50">
                 <a
-                  href={`https://etherscan.io/address/${FIREPIT_ADDRESS}`}
+                  href="https://etherscan.io/address/0xf38521f130fcCF29dB1961597bc5d2B60F995f85#tokentxns"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="text-[10px] text-blue-400 hover:text-blue-300 font-mono transition-colors"
+                  className="text-[9px] text-gray-500 hover:text-[#FF007A] transition-colors"
                 >
-                  {truncateAddress(FIREPIT_ADDRESS)}
+                  View all transactions →
                 </a>
               </div>
             </div>
