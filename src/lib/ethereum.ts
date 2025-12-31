@@ -66,13 +66,21 @@ interface AlchemyTokenMetadata {
 async function fetchTokenBalancesFromAlchemy(): Promise<TokenBalance[]> {
   const alchemyKey = process.env.ALCHEMY_API_KEY;
   if (!alchemyKey) {
-    console.log("No Alchemy API key, skipping Alchemy token fetch");
+    console.warn("[Alchemy] No ALCHEMY_API_KEY environment variable set - using fallback mode");
+    return [];
+  }
+
+  // Validate API key format (should be alphanumeric, typically 32 chars)
+  if (alchemyKey.length < 20) {
+    console.error("[Alchemy] API key appears invalid (too short)");
     return [];
   }
 
   const balances: TokenBalance[] = [];
 
   try {
+    console.log("[Alchemy] Fetching token balances for TokenJar...");
+
     // Step 1: Get all token balances
     const balancesResponse = await fetch(
       `https://eth-mainnet.g.alchemy.com/v2/${alchemyKey}`,
@@ -88,19 +96,33 @@ async function fetchTokenBalancesFromAlchemy(): Promise<TokenBalance[]> {
       }
     );
 
-    const balancesData: AlchemyTokenBalancesResponse = await balancesResponse.json();
-    
-    if (!balancesData.result?.tokenBalances) {
-      console.error("No token balances in Alchemy response");
+    if (!balancesResponse.ok) {
+      console.error(`[Alchemy] HTTP error: ${balancesResponse.status} ${balancesResponse.statusText}`);
       return [];
     }
+
+    const balancesData: AlchemyTokenBalancesResponse = await balancesResponse.json();
+
+    // Check for JSON-RPC errors
+    if ((balancesData as unknown as { error?: { message: string } }).error) {
+      const errorData = balancesData as unknown as { error: { message: string; code?: number } };
+      console.error(`[Alchemy] RPC error: ${errorData.error.message} (code: ${errorData.error.code})`);
+      return [];
+    }
+    
+    if (!balancesData.result?.tokenBalances) {
+      console.error("[Alchemy] No token balances in response - unexpected format");
+      return [];
+    }
+
+    console.log(`[Alchemy] Received ${balancesData.result.tokenBalances.length} total token entries`);
 
     // Filter out zero balances
     const nonZeroBalances = balancesData.result.tokenBalances.filter(
       (tb) => tb.tokenBalance && tb.tokenBalance !== "0x0" && tb.tokenBalance !== "0x"
     );
 
-    console.log(`Alchemy found ${nonZeroBalances.length} tokens with non-zero balances`);
+    console.log(`[Alchemy] Found ${nonZeroBalances.length} tokens with non-zero balances`);
 
     // Step 2: Get metadata for each token (batch in groups of 100)
     const batchSize = 100;
@@ -172,9 +194,10 @@ async function fetchTokenBalancesFromAlchemy(): Promise<TokenBalance[]> {
       balances.push(...batchResults);
     }
 
+    console.log(`[Alchemy] Successfully fetched ${balances.length} token balances with metadata`);
     return balances;
   } catch (error) {
-    console.error("Error fetching from Alchemy:", error);
+    console.error("[Alchemy] Fatal error fetching token balances:", error);
     return [];
   }
 }

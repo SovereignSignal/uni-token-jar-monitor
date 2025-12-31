@@ -21,6 +21,8 @@ async function fetchDeFiLlamaPrices(addresses: string[]): Promise<Record<string,
     return {};
   }
 
+  console.log(`[DeFiLlama] Fetching prices for ${addresses.length} tokens...`);
+
   // DeFiLlama expects format: ethereum:0x...
   // Batch in groups of 100 to avoid URL length limits
   const BATCH_SIZE = 100;
@@ -40,7 +42,7 @@ async function fetchDeFiLlamaPrices(addresses: string[]): Promise<Record<string,
       });
 
       if (!response.ok) {
-        console.error(`DeFiLlama API error: ${response.status}`);
+        console.error(`[DeFiLlama] HTTP error: ${response.status} ${response.statusText}`);
         continue;
       }
 
@@ -48,6 +50,7 @@ async function fetchDeFiLlamaPrices(addresses: string[]): Promise<Record<string,
 
       // Extract prices from response
       if (data.coins) {
+        let pricedCount = 0;
         for (const [key, priceData] of Object.entries(data.coins)) {
           // Key format is "ethereum:0x..."
           const address = key.replace("ethereum:", "").toLowerCase();
@@ -57,14 +60,19 @@ async function fetchDeFiLlamaPrices(addresses: string[]): Promise<Record<string,
               price: pd.price,
               confidence: pd.confidence || 0.5,
             };
+            pricedCount++;
           }
         }
+        console.log(`[DeFiLlama] Batch ${Math.floor(i / BATCH_SIZE) + 1}: got prices for ${pricedCount}/${batch.length} tokens`);
+      } else {
+        console.warn(`[DeFiLlama] Batch ${Math.floor(i / BATCH_SIZE) + 1}: no coins in response`);
       }
     } catch (error) {
-      console.error("DeFiLlama API error:", error);
+      console.error(`[DeFiLlama] Batch ${Math.floor(i / BATCH_SIZE) + 1} error:`, error);
     }
   }
 
+  console.log(`[DeFiLlama] Total: got prices for ${Object.keys(results).length}/${addresses.length} tokens`);
   return results;
 }
 
