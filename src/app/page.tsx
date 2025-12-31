@@ -246,48 +246,29 @@ export default function Home() {
 
   return (
     <main className="min-h-screen p-4 md:p-8 max-w-4xl mx-auto">
-      {/* Header - Big Banner */}
-      <header className="card mb-6 p-4 md:p-6">
-        {/* Centered Big Banner */}
-        <div className="flex justify-center mb-4">
+      {/* Header - Clean Banner Only */}
+      <header className="mb-6">
+        <div className="flex justify-center py-4">
           <Image
             src="/assets/ui/header-banner.png"
             alt="UNI JAR - Uniswap Fee Burn Monitor"
-            width={400}
-            height={120}
+            width={420}
+            height={130}
             className="pixel-sprite"
             style={{ 
               imageRendering: 'pixelated',
-              filter: 'drop-shadow(0 0 15px rgba(255,0,122,0.5))'
+              filter: 'drop-shadow(0 0 20px rgba(255,0,122,0.6))'
             }}
             priority
           />
         </div>
         
-        {/* Status Bar - Below Banner */}
-        <div className="flex items-center justify-center gap-4 pt-2 border-t border-gray-800/50">
-          <div className="flex gap-1">
-            {hearts.map((filled, i) => (
-              <PixelHeart key={i} filled={filled} />
-            ))}
-          </div>
-          
-          <div className="flex items-center gap-2">
-            <StatusIndicator status={status} />
-            {lastFetch && (
-              <span className="text-[8px] text-gray-600">
-                {formatTimeAgo(lastFetch)}
-              </span>
-            )}
-          </div>
-          
-          <button
-            onClick={fetchData}
-            disabled={isRefreshing}
-            className="retro-btn text-[9px] px-3 py-2"
-          >
-            {isRefreshing ? "..." : "SCOUT"}
-          </button>
+        {/* Explainer Section */}
+        <div className="card p-4 text-center">
+          <p className="text-[10px] text-gray-400 leading-relaxed max-w-lg mx-auto">
+            <span className="text-[#FF007A] font-medium">Uniswap Fee Switch Monitor</span> — Track the TokenJar vault that collects protocol fees. 
+            When the vault value exceeds the cost to burn 4,000 UNI tokens, anyone can trigger a burn and claim the rewards.
+          </p>
         </div>
       </header>
 
@@ -503,10 +484,38 @@ export default function Home() {
         </div>
       )}
 
-      {/* Footer */}
-      <footer className="mt-12 text-center text-[8px] text-gray-600">
-        <p>Auto-refreshes every 30 seconds • Prices via CoinGecko</p>
-        <p className="mt-1 text-gray-700">Not financial advice</p>
+      {/* Footer with Status Controls */}
+      <footer className="mt-12 pt-6 border-t border-gray-800/30">
+        {/* Status Bar */}
+        <div className="flex items-center justify-center gap-4 mb-4">
+          <div className="flex gap-1">
+            {hearts.map((filled, i) => (
+              <PixelHeart key={i} filled={filled} />
+            ))}
+          </div>
+          
+          <div className="flex items-center gap-2">
+            <StatusIndicator status={status} />
+            {lastFetch && (
+              <span className="text-[8px] text-gray-600">
+                {formatTimeAgo(lastFetch)}
+              </span>
+            )}
+          </div>
+          
+          <button
+            onClick={fetchData}
+            disabled={isRefreshing}
+            className="retro-btn text-[9px] px-3 py-2"
+          >
+            {isRefreshing ? "..." : "SCOUT"}
+          </button>
+        </div>
+        
+        <div className="text-center text-[8px] text-gray-600">
+          <p>Auto-refreshes every 30 seconds • Prices via CoinGecko</p>
+          <p className="mt-1 text-gray-700">Not financial advice</p>
+        </div>
       </footer>
     </main>
   );
