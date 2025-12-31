@@ -5,6 +5,7 @@ import Image from "next/image";
 import { REFRESH_INTERVAL_MS, TOKENJAR_ADDRESS, FIREPIT_ADDRESS } from "@/lib/constants";
 import type { TokenJarApiResponse } from "./api/tokenjar/route";
 import type { ProfitabilityData } from "@/lib/profitability";
+import type { BurnHistory } from "@/lib/burnHistory";
 import JarVisualization from "@/components/PixelJar";
 
 type DataStatus = "loading" | "fresh" | "stale" | "error";
@@ -208,6 +209,10 @@ export default function Home() {
   const [error, setError] = useState<string | null>(null);
   const [lastFetch, setLastFetch] = useState<number | null>(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [burnHistory, setBurnHistory] = useState<BurnHistory | null>(null);
+  const [dataSource, setDataSource] = useState<string>("");
+  const [dataAge, setDataAge] = useState<number>(0);
+  const [cacheStatus, setCacheStatus] = useState<string>("");
 
   const fetchData = useCallback(async () => {
     setIsRefreshing(true);
@@ -218,6 +223,11 @@ export default function Home() {
         setData(result.data);
         setError(null);
         setLastFetch(Date.now());
+        // Extract cache metadata
+        const extendedData = result.data as ProfitabilityData & { dataSource?: string; dataAge?: number; cacheStatus?: string };
+        if (extendedData.dataSource) setDataSource(extendedData.dataSource);
+        if (extendedData.dataAge !== undefined) setDataAge(extendedData.dataAge);
+        if (extendedData.cacheStatus) setCacheStatus(extendedData.cacheStatus);
       } else {
         setError(result.error || "Failed to fetch data");
       }
@@ -228,11 +238,30 @@ export default function Home() {
     }
   }, []);
 
+  // Fetch burn history separately (less frequent)
+  const fetchBurnHistory = useCallback(async () => {
+    try {
+      const response = await fetch("/api/burns");
+      const result = await response.json();
+      if (result.success && result.data) {
+        setBurnHistory(result.data);
+      }
+    } catch (err) {
+      console.error("Failed to fetch burn history:", err);
+    }
+  }, []);
+
   useEffect(() => {
     fetchData();
+    fetchBurnHistory();
     const interval = setInterval(fetchData, REFRESH_INTERVAL_MS);
-    return () => clearInterval(interval);
-  }, [fetchData]);
+    // Refresh burn history every 5 minutes
+    const burnInterval = setInterval(fetchBurnHistory, 5 * 60 * 1000);
+    return () => {
+      clearInterval(interval);
+      clearInterval(burnInterval);
+    };
+  }, [fetchData, fetchBurnHistory]);
 
   const [, setTick] = useState(0);
   useEffect(() => {
@@ -481,6 +510,53 @@ export default function Home() {
               </div>
             </div>
           </div>
+
+          {/* Burn History Card */}
+          <div className="card p-5">
+            <h2 className="text-[9px] text-[#FF007A] mb-4 tracking-widest">BURN HISTORY</h2>
+            {burnHistory && burnHistory.burns.length > 0 ? (
+              <div className="space-y-3">
+                <div className="flex justify-between items-center pb-3 border-b border-gray-800/50">
+                  <span className="text-[9px] text-gray-500">Total Burned</span>
+                  <span className="text-[11px] text-orange-400 font-medium">
+                    {parseFloat(burnHistory.totalBurned).toLocaleString(undefined, { maximumFractionDigits: 0 })} UNI
+                  </span>
+                </div>
+                <div className="space-y-2 max-h-48 overflow-y-auto">
+                  {burnHistory.burns.slice(0, 10).map((burn, i) => (
+                    <div key={i} className="flex justify-between items-center text-[9px]">
+                      <div className="flex items-center gap-2">
+                        <span className="text-orange-400">🔥</span>
+                        <span className="text-gray-400">
+                          {new Date(burn.timestamp * 1000).toLocaleDateString("en-US", {
+                            month: "short",
+                            day: "numeric",
+                          })}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <span className="text-gray-300">
+                          {parseFloat(burn.uniAmount).toLocaleString(undefined, { maximumFractionDigits: 0 })} UNI
+                        </span>
+                        <a
+                          href={`https://etherscan.io/tx/${burn.txHash}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-blue-400 hover:text-blue-300"
+                        >
+                          ↗
+                        </a>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ) : (
+              <p className="text-[9px] text-gray-500 text-center py-4">
+                No burns recorded yet. The fee switch was recently activated.
+              </p>
+            )}
+          </div>
         </div>
       )}
 
@@ -513,7 +589,12 @@ export default function Home() {
         </div>
         
         <div className="text-center text-[8px] text-gray-600">
-          <p>Auto-refreshes every 30 seconds • Prices via CoinGecko</p>
+          <p>Auto-refreshes every 30 seconds • Prices via DeFiLlama</p>
+          {dataSource && (
+            <p className="mt-1 text-gray-500">
+              Data: {dataSource} {dataAge > 0 && `(${dataAge}s ago)`}
+            </p>
+          )}
           <p className="mt-1 text-gray-700">Not financial advice</p>
         </div>
       </footer>
