@@ -3,6 +3,7 @@ import { getTokenJarBalances, getDataSource } from "@/lib/ethereum";
 import { priceTokenBalances } from "@/lib/pricing";
 import { calculateProfitability, type ProfitabilityData } from "@/lib/profitability";
 import { serverCache, CACHE_KEYS, CACHE_TTL } from "@/lib/cache";
+import { getDuneFeeSummary, isDuneConfigured } from "@/lib/dune";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -11,8 +12,15 @@ export interface TokenJarApiResponse {
   success: boolean;
   data?: ProfitabilityData & {
     dataSource: string;
+    dataSourceType?: "dune" | "alchemy" | "fallback";
     cacheStatus: "fresh" | "stale" | "miss";
     dataAge: number; // seconds since data was fetched
+    duneData?: {
+      tokenJarBalanceUsd: number;
+      unclaimedValueUsd: number;
+      collectibleUsd: number;
+      tokenCount: number;
+    };
   };
   error?: string;
 }
@@ -20,27 +28,80 @@ export interface TokenJarApiResponse {
 // Background refresh flag to prevent multiple simultaneous refreshes
 let isRefreshing = false;
 
-async function fetchFreshData(): Promise<ProfitabilityData> {
-  // Fetch token balances from TokenJar
+interface EnhancedProfitabilityData extends ProfitabilityData {
+  duneData?: {
+    tokenJarBalanceUsd: number;
+    unclaimedValueUsd: number;
+    collectibleUsd: number;
+    tokenCount: number;
+  };
+  dataSourceType: "dune" | "alchemy" | "fallback";
+}
+
+async function fetchFreshData(): Promise<EnhancedProfitabilityData> {
+  // Fetch token balances from TokenJar (Alchemy or fallback)
   const balances = await getTokenJarBalances();
 
   // Price the tokens
   const pricedBalances = await priceTokenBalances(balances);
 
-  // Calculate profitability
+  // Calculate profitability from on-chain data
   const profitabilityData = calculateProfitability(pricedBalances);
 
-  return profitabilityData;
+  // Try to get accurate data from Dune Analytics
+  let duneData: EnhancedProfitabilityData["duneData"] | undefined;
+  let dataSourceType: EnhancedProfitabilityData["dataSourceType"] = "alchemy";
+
+  if (isDuneConfigured()) {
+    try {
+      const duneFeeSummary = await getDuneFeeSummary();
+      if (duneFeeSummary) {
+        duneData = {
+          tokenJarBalanceUsd: duneFeeSummary.tokenJarBalanceUsd,
+          unclaimedValueUsd: duneFeeSummary.unclaimedValueUsd,
+          collectibleUsd: duneFeeSummary.collectibleUsd,
+          tokenCount: duneFeeSummary.tokens.length,
+        };
+        dataSourceType = "dune";
+        console.log(`[Dune] Using Dune data: TokenJar=$${duneData.tokenJarBalanceUsd.toFixed(2)}, Unclaimed=$${duneData.unclaimedValueUsd.toFixed(2)}`);
+
+        // Override the totalJarValueUsd with Dune's more accurate data
+        // Dune tracks all 520+ tokens while Alchemy may miss some
+        const duneTotal = duneFeeSummary.tokenJarBalanceUsd;
+        const burnCostUsd = profitabilityData.burnCostUsd;
+        const gasEstimateUsd = profitabilityData.gasEstimateUsd;
+        const totalCostUsd = burnCostUsd + gasEstimateUsd;
+        const netProfitUsd = duneTotal - totalCostUsd;
+
+        return {
+          ...profitabilityData,
+          totalJarValueUsd: duneTotal,
+          netProfitUsd,
+          isProfitable: netProfitUsd > 0,
+          duneData,
+          dataSourceType,
+        };
+      }
+    } catch (error) {
+      console.error("[Dune] Failed to fetch Dune data, using Alchemy fallback:", error);
+    }
+  }
+
+  // Return Alchemy-based data if Dune is not available
+  return {
+    ...profitabilityData,
+    dataSourceType,
+  };
 }
 
 async function refreshInBackground(): Promise<void> {
   if (isRefreshing) return;
-  
+
   isRefreshing = true;
   try {
     const freshData = await fetchFreshData();
     serverCache.set(CACHE_KEYS.PROFITABILITY_DATA, freshData, CACHE_TTL.PROFITABILITY_DATA);
-    console.log("Cache refreshed successfully");
+    console.log(`Cache refreshed successfully (source: ${freshData.dataSourceType})`);
   } catch (error) {
     console.error("Background refresh failed:", error);
   } finally {
@@ -48,10 +109,21 @@ async function refreshInBackground(): Promise<void> {
   }
 }
 
+function getDataSourceLabel(dataSourceType?: "dune" | "alchemy" | "fallback", cacheStatus?: string): string {
+  const source = dataSourceType === "dune" ? "dune.com" : getDataSource();
+  if (cacheStatus === "live") {
+    return `${source} (live)`;
+  }
+  if (cacheStatus === "refreshing") {
+    return `${source} (cached, refreshing...)`;
+  }
+  return `${source} (cached)`;
+}
+
 export async function GET(): Promise<NextResponse<TokenJarApiResponse>> {
   try {
     // Check cache first
-    const cached = serverCache.get<ProfitabilityData>(CACHE_KEYS.PROFITABILITY_DATA);
+    const cached = serverCache.get<EnhancedProfitabilityData>(CACHE_KEYS.PROFITABILITY_DATA);
     const isExpired = serverCache.isExpired(CACHE_KEYS.PROFITABILITY_DATA);
 
     if (cached && !isExpired) {
@@ -61,7 +133,9 @@ export async function GET(): Promise<NextResponse<TokenJarApiResponse>> {
         success: true,
         data: {
           ...cached.data,
-          dataSource: `${getDataSource()} (cached)`,
+          dataSource: getDataSourceLabel(cached.data.dataSourceType),
+          dataSourceType: cached.data.dataSourceType,
+          duneData: cached.data.duneData,
           cacheStatus: "fresh",
           dataAge,
         },
@@ -71,7 +145,7 @@ export async function GET(): Promise<NextResponse<TokenJarApiResponse>> {
     if (cached && isExpired) {
       // Stale cache - return stale data but trigger background refresh
       const dataAge = Math.floor((Date.now() - cached.timestamp) / 1000);
-      
+
       // Trigger background refresh (don't await)
       refreshInBackground();
 
@@ -79,7 +153,9 @@ export async function GET(): Promise<NextResponse<TokenJarApiResponse>> {
         success: true,
         data: {
           ...cached.data,
-          dataSource: `${getDataSource()} (cached, refreshing...)`,
+          dataSource: getDataSourceLabel(cached.data.dataSourceType, "refreshing"),
+          dataSourceType: cached.data.dataSourceType,
+          duneData: cached.data.duneData,
           cacheStatus: "stale",
           dataAge,
         },
@@ -88,7 +164,7 @@ export async function GET(): Promise<NextResponse<TokenJarApiResponse>> {
 
     // Cache miss - fetch fresh data
     const freshData = await fetchFreshData();
-    
+
     // Store in cache
     serverCache.set(CACHE_KEYS.PROFITABILITY_DATA, freshData, CACHE_TTL.PROFITABILITY_DATA);
 
@@ -96,7 +172,9 @@ export async function GET(): Promise<NextResponse<TokenJarApiResponse>> {
       success: true,
       data: {
         ...freshData,
-        dataSource: `${getDataSource()} (live)`,
+        dataSource: getDataSourceLabel(freshData.dataSourceType, "live"),
+        dataSourceType: freshData.dataSourceType,
+        duneData: freshData.duneData,
         cacheStatus: "miss",
         dataAge: 0,
       },
@@ -105,7 +183,7 @@ export async function GET(): Promise<NextResponse<TokenJarApiResponse>> {
     console.error("TokenJar API error:", error);
 
     // If we have stale cache, return it on error
-    const cached = serverCache.get<ProfitabilityData>(CACHE_KEYS.PROFITABILITY_DATA);
+    const cached = serverCache.get<EnhancedProfitabilityData>(CACHE_KEYS.PROFITABILITY_DATA);
     if (cached) {
       const dataAge = Math.floor((Date.now() - cached.timestamp) / 1000);
       return NextResponse.json({
@@ -113,6 +191,8 @@ export async function GET(): Promise<NextResponse<TokenJarApiResponse>> {
         data: {
           ...cached.data,
           dataSource: "llamarpc.com (cached, error on refresh)",
+          dataSourceType: cached.data.dataSourceType,
+          duneData: cached.data.duneData,
           cacheStatus: "stale",
           dataAge,
         },
