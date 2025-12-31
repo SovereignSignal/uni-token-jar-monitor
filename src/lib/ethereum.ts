@@ -117,12 +117,29 @@ async function fetchTokenBalancesFromAlchemy(): Promise<TokenBalance[]> {
 
     console.log(`[Alchemy] Received ${balancesData.result.tokenBalances.length} total token entries`);
 
-    // Filter out zero balances
-    const nonZeroBalances = balancesData.result.tokenBalances.filter(
-      (tb) => tb.tokenBalance && tb.tokenBalance !== "0x0" && tb.tokenBalance !== "0x"
-    );
+    // Filter out zero balances - be more lenient with the filter
+    const nonZeroBalances = balancesData.result.tokenBalances.filter((tb) => {
+      if (!tb.tokenBalance) return false;
+      // Check if it's a meaningful balance (not zero)
+      const balanceStr = tb.tokenBalance.toLowerCase();
+      if (balanceStr === "0x0" || balanceStr === "0x" || balanceStr === "0x0000000000000000000000000000000000000000000000000000000000000000") {
+        return false;
+      }
+      // Also filter out very small hex values that are effectively zero
+      try {
+        const balanceBigInt = BigInt(tb.tokenBalance);
+        return balanceBigInt > 0n;
+      } catch {
+        return false;
+      }
+    });
 
     console.log(`[Alchemy] Found ${nonZeroBalances.length} tokens with non-zero balances`);
+
+    // Log some sample tokens for debugging
+    if (nonZeroBalances.length > 0) {
+      console.log(`[Alchemy] Sample tokens: ${nonZeroBalances.slice(0, 5).map(t => t.contractAddress.slice(0, 10)).join(', ')}...`);
+    }
 
     // Step 2: Get metadata for each token (batch in groups of 100)
     const batchSize = 100;
