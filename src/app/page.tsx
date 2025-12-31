@@ -515,7 +515,17 @@ export default function Home() {
 
           {/* Burn History Card */}
           <div className="card p-5">
-            <h2 className="text-[9px] text-[#FF007A] mb-4 tracking-widest">BURN HISTORY</h2>
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-[9px] text-[#FF007A] tracking-widest">BURN HISTORY</h2>
+              <a
+                href={`https://etherscan.io/token/0x1f9840a85d5af5bf1d1762f925bdaddc4201f984?a=0x000000000000000000000000000000000000dead`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-[8px] text-blue-400 hover:text-blue-300 transition-colors"
+              >
+                View all on Etherscan →
+              </a>
+            </div>
             {burnHistory && burnHistory.burns.length > 0 ? (
               <div className="space-y-3">
                 <div className="flex justify-between items-center pb-3 border-b border-gray-800/50">
@@ -524,33 +534,73 @@ export default function Home() {
                     {parseFloat(burnHistory.totalBurned).toLocaleString(undefined, { maximumFractionDigits: 0 })} UNI
                   </span>
                 </div>
-                <div className="space-y-2 max-h-48 overflow-y-auto">
-                  {burnHistory.burns.slice(0, 10).map((burn, i) => (
-                    <div key={i} className="flex justify-between items-center text-[9px]">
-                      <div className="flex items-center gap-2">
-                        <span className="text-orange-400">🔥</span>
-                        <span className="text-gray-400">
-                          {new Date(burn.timestamp * 1000).toLocaleDateString("en-US", {
-                            month: "short",
-                            day: "numeric",
-                          })}
-                        </span>
+                {/* Table Header */}
+                <div className="grid grid-cols-12 gap-2 text-[8px] text-gray-600 uppercase tracking-wider pb-2 border-b border-gray-800/30">
+                  <div className="col-span-3">Date</div>
+                  <div className="col-span-3 text-right">Amount</div>
+                  <div className="col-span-4">From</div>
+                  <div className="col-span-2 text-right">Tx</div>
+                </div>
+                <div className="space-y-2 max-h-64 overflow-y-auto">
+                  {burnHistory.burns.slice(0, 15).map((burn, i) => {
+                    const amount = parseFloat(burn.uniAmount);
+                    const isSignificant = amount >= 1000;
+                    const isTreasuryBurn = amount >= 1000000;
+
+                    return (
+                      <div
+                        key={i}
+                        className={`grid grid-cols-12 gap-2 items-center text-[9px] py-1 ${
+                          isTreasuryBurn ? 'bg-orange-500/10 -mx-2 px-2 rounded' : ''
+                        }`}
+                      >
+                        <div className="col-span-3 flex items-center gap-1">
+                          <span className={isTreasuryBurn ? 'text-orange-400' : 'text-gray-500'}>
+                            {isTreasuryBurn ? '🔥' : '•'}
+                          </span>
+                          <span className="text-gray-400">
+                            {new Date(burn.timestamp * 1000).toLocaleDateString("en-US", {
+                              month: "short",
+                              day: "numeric",
+                            })}
+                          </span>
+                        </div>
+                        <div className={`col-span-3 text-right font-medium ${
+                          isTreasuryBurn ? 'text-orange-400' : isSignificant ? 'text-gray-300' : 'text-gray-500'
+                        }`}>
+                          {amount >= 1000000
+                            ? `${(amount / 1000000).toFixed(0)}M`
+                            : amount >= 1000
+                              ? `${(amount / 1000).toFixed(0)}K`
+                              : amount.toLocaleString(undefined, { maximumFractionDigits: 0 })
+                          } UNI
+                        </div>
+                        <div className="col-span-4">
+                          <a
+                            href={`https://etherscan.io/address/${burn.burner}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-gray-500 hover:text-blue-400 font-mono transition-colors"
+                          >
+                            {burn.burner.slice(0, 6)}...{burn.burner.slice(-4)}
+                          </a>
+                        </div>
+                        <div className="col-span-2 text-right">
+                          <a
+                            href={`https://etherscan.io/tx/${burn.txHash}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-blue-400 hover:text-blue-300 font-mono transition-colors"
+                          >
+                            {burn.txHash.slice(0, 6)}...
+                          </a>
+                        </div>
                       </div>
-                      <div className="flex items-center gap-3">
-                        <span className="text-gray-300">
-                          {parseFloat(burn.uniAmount).toLocaleString(undefined, { maximumFractionDigits: 0 })} UNI
-                        </span>
-                        <a
-                          href={`https://etherscan.io/tx/${burn.txHash}`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-blue-400 hover:text-blue-300"
-                        >
-                          ↗
-                        </a>
-                      </div>
-                    </div>
-                  ))}
+                    );
+                  })}
+                </div>
+                <div className="pt-3 border-t border-gray-800/30 text-[8px] text-gray-600">
+                  <p>Note: Small burns (&lt;4K UNI) may be test transactions or direct transfers to 0xdead.</p>
                 </div>
               </div>
             ) : (
