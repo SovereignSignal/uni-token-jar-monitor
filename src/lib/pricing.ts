@@ -54,13 +54,18 @@ async function fetchDeFiLlamaPrices(addresses: string[]): Promise<Record<string,
         for (const [key, priceData] of Object.entries(data.coins)) {
           // Key format is "ethereum:0x..."
           const address = key.replace("ethereum:", "").toLowerCase();
-          const pd = priceData as { price?: number; confidence?: number };
+          const pd = priceData as { price?: number | string; confidence?: number | string };
           if (pd.price !== undefined) {
-            results[address] = {
-              price: pd.price,
-              confidence: pd.confidence || 0.5,
-            };
-            pricedCount++;
+            // Ensure price is always a number (DeFiLlama sometimes returns strings)
+            const price = typeof pd.price === "string" ? parseFloat(pd.price) : pd.price;
+            const confidence = typeof pd.confidence === "string"
+              ? parseFloat(pd.confidence)
+              : (pd.confidence || 0.5);
+
+            if (!isNaN(price) && price > 0) {
+              results[address] = { price, confidence };
+              pricedCount++;
+            }
           }
         }
         console.log(`[DeFiLlama] Batch ${Math.floor(i / BATCH_SIZE) + 1}: got prices for ${pricedCount}/${batch.length} tokens`);

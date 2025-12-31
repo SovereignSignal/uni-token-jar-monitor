@@ -1,13 +1,22 @@
 import { createPublicClient, http, parseAbiItem, formatUnits, type Address } from "viem";
 import { mainnet } from "viem/chains";
-import { FIREPIT_ADDRESS, UNI_TOKEN_ADDRESS } from "./constants";
+import { FIREPIT_ADDRESS, UNI_TOKEN_ADDRESS, BURN_ADDRESS } from "./constants";
 import { serverCache, CACHE_KEYS, CACHE_TTL } from "./cache";
 
-// Free RPC for burn history queries
-const client = createPublicClient({
-  chain: mainnet,
-  transport: http("https://eth.llamarpc.com"),
-});
+// Use Alchemy if available, fallback to LlamaRPC
+function getClient() {
+  const alchemyKey = process.env.ALCHEMY_API_KEY;
+  if (alchemyKey) {
+    return createPublicClient({
+      chain: mainnet,
+      transport: http(`https://eth-mainnet.g.alchemy.com/v2/${alchemyKey}`),
+    });
+  }
+  return createPublicClient({
+    chain: mainnet,
+    transport: http("https://eth.llamarpc.com"),
+  });
+}
 
 export interface BurnEvent {
   txHash: string;
@@ -26,29 +35,36 @@ export interface BurnHistory {
 }
 
 /**
- * Fetch burn history by looking at Transfer events to the Firepit (burn address)
- * The Firepit receives UNI tokens when burns are executed
+ * Fetch burn history by looking at Transfer events to the Firepit and 0xdead
+ * The Firepit receives UNI tokens when burns are executed, then forwards to 0xdead
+ * We check both destinations to catch all burn events
  */
 export async function getBurnHistory(): Promise<BurnHistory> {
   // Check cache first
   const cached = serverCache.get<BurnHistory>(CACHE_KEYS.BURN_HISTORY);
   if (cached && !serverCache.isExpired(CACHE_KEYS.BURN_HISTORY)) {
+    console.log("[BurnHistory] Returning cached data");
     return cached.data;
   }
 
-  try {
-    // Look for Transfer events of UNI token to the Firepit address
-    // This indicates a burn event
-    const currentBlock = await client.getBlockNumber();
-    const lookbackBlocks = 500_000n; // ~70 days
-    const fromBlock = currentBlock - lookbackBlocks;
+  const client = getClient();
 
-    // Get Transfer events where UNI is sent to Firepit
+  try {
+    const currentBlock = await client.getBlockNumber();
+    console.log(`[BurnHistory] Current block: ${currentBlock}`);
+
+    // Look back ~70 days - fee switch activated around Dec 27, 2025
+    const lookbackBlocks = 500_000n;
+    const fromBlock = currentBlock - lookbackBlocks;
+    console.log(`[BurnHistory] Searching from block ${fromBlock} to ${currentBlock}`);
+
     const transferEvent = parseAbiItem(
       "event Transfer(address indexed from, address indexed to, uint256 value)"
     );
 
-    const logs = await client.getLogs({
+    // Search for UNI transfers to Firepit
+    console.log(`[BurnHistory] Searching for UNI transfers to Firepit: ${FIREPIT_ADDRESS}`);
+    const firepitLogs = await client.getLogs({
       address: UNI_TOKEN_ADDRESS as Address,
       event: transferEvent,
       args: {
@@ -57,6 +73,30 @@ export async function getBurnHistory(): Promise<BurnHistory> {
       fromBlock,
       toBlock: currentBlock,
     });
+    console.log(`[BurnHistory] Found ${firepitLogs.length} transfers to Firepit`);
+
+    // Also search for UNI transfers to 0xdead (the actual burn destination)
+    console.log(`[BurnHistory] Searching for UNI transfers to dead address: ${BURN_ADDRESS}`);
+    const deadLogs = await client.getLogs({
+      address: UNI_TOKEN_ADDRESS as Address,
+      event: transferEvent,
+      args: {
+        to: BURN_ADDRESS as Address,
+      },
+      fromBlock,
+      toBlock: currentBlock,
+    });
+    console.log(`[BurnHistory] Found ${deadLogs.length} transfers to dead address`);
+
+    // Combine logs - use transfers to 0xdead as the primary source (actual burns)
+    // but also include Firepit transfers in case mechanism changes
+    const seenTxHashes = new Set<string>();
+    const logs = [...deadLogs, ...firepitLogs].filter(log => {
+      if (seenTxHashes.has(log.transactionHash)) return false;
+      seenTxHashes.add(log.transactionHash);
+      return true;
+    });
+    console.log(`[BurnHistory] Total unique burn transactions: ${logs.length}`);
 
     // Process logs into burn events
     const burns: BurnEvent[] = [];
@@ -103,10 +143,11 @@ export async function getBurnHistory(): Promise<BurnHistory> {
 
     return result;
   } catch (error) {
-    console.error("Failed to fetch burn history:", error);
+    console.error("[BurnHistory] Failed to fetch burn history:", error);
 
     // Return cached data if available, even if stale
     if (cached) {
+      console.log("[BurnHistory] Returning stale cached data due to error");
       return cached.data;
     }
 
