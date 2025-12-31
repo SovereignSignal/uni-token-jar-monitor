@@ -4,7 +4,7 @@ import { useMemo } from "react";
 import Image from "next/image";
 
 // =============================================================================
-// PIXEL JAR COMPONENT - Unicorn jar with dynamic flames based on profitability
+// PIXEL JAR COMPONENT - Jar fill level based on value vs burn cost
 // =============================================================================
 
 interface PixelJarProps {
@@ -13,36 +13,39 @@ interface PixelJarProps {
   size?: "normal" | "large";
 }
 
-// Flame level based on how close to profitability (jar value / burn cost)
-// Higher ratio = closer to profitable = bigger flames
-function getFlameLevel(jarValue: number, burnCost: number): "none" | "small" | "medium" | "large" {
-  if (burnCost <= 0) return "none";
+// Fill level based on jar value vs burn cost ratio
+// The jar fills up as it gets closer to being profitable
+function getFillLevel(jarValue: number, burnCost: number): "empty" | "quarter" | "half" | "threequarter" | "full" {
+  if (burnCost <= 0) return "empty";
   
-  const profitRatio = jarValue / burnCost; // 0 to 1+ (1 = break even, >1 = profitable)
+  const fillRatio = jarValue / burnCost; // 0 to 1+ (1 = break even, >1 = profitable)
   
-  if (profitRatio < 0.3) return "none";       // < 30% - no flames
-  if (profitRatio < 0.6) return "small";      // 30-60% - small flames
-  if (profitRatio < 0.85) return "medium";    // 60-85% - medium flames
-  return "large";                              // 85%+ - large flames (close to/at profitability!)
+  if (fillRatio < 0.2) return "empty";           // < 20% - nearly empty
+  if (fillRatio < 0.4) return "quarter";         // 20-40% - quarter full
+  if (fillRatio < 0.6) return "half";            // 40-60% - half full
+  if (fillRatio < 0.8) return "threequarter";    // 60-80% - three quarters
+  return "full";                                  // 80%+ - full (close to/at profitability!)
 }
 
-// Map flame level to sprite filename
-function getJarSprite(flameLevel: "none" | "small" | "medium" | "large"): string {
-  switch (flameLevel) {
-    case "none":
-      return "/assets/jar/unicorn-jar-no-flames.png";
-    case "small":
-      return "/assets/jar/unicorn-jar-small-flames.png";
-    case "medium":
-      return "/assets/jar/unicorn-jar-medium-flames.png";
-    case "large":
-      return "/assets/jar/unicorn-jar-large-flames.png";
+// Map fill level to sprite filename
+function getJarSprite(fillLevel: "empty" | "quarter" | "half" | "threequarter" | "full"): string {
+  switch (fillLevel) {
+    case "empty":
+      return "/assets/jar/jar-empty.png";
+    case "quarter":
+      return "/assets/jar/jar-quarter.png";
+    case "half":
+      return "/assets/jar/jar-half.png";
+    case "threequarter":
+      return "/assets/jar/jar-threequarter.png";
+    case "full":
+      return "/assets/jar/jar-full.png";
   }
 }
 
 export function PixelJar({ jarValue, burnCost, size = "normal" }: PixelJarProps) {
-  const flameLevel = useMemo(() => getFlameLevel(jarValue, burnCost), [jarValue, burnCost]);
-  const spritePath = useMemo(() => getJarSprite(flameLevel), [flameLevel]);
+  const fillLevel = useMemo(() => getFillLevel(jarValue, burnCost), [jarValue, burnCost]);
+  const spritePath = useMemo(() => getJarSprite(fillLevel), [fillLevel]);
   
   // Larger sizes for better visual impact
   const dimensions = size === "large" 
@@ -64,7 +67,7 @@ export function PixelJar({ jarValue, burnCost, size = "normal" }: PixelJarProps)
       />
       <Image
         src={spritePath}
-        alt={`Unicorn Jar - ${flameLevel} flames`}
+        alt={`Unicorn Jar - ${fillLevel}`}
         width={dimensions.width}
         height={dimensions.height}
         className="pixel-sprite relative z-10"
@@ -79,13 +82,25 @@ export function PixelJar({ jarValue, burnCost, size = "normal" }: PixelJarProps)
 }
 
 // =============================================================================
-// BURN PILE COMPONENT - Coin pile with dynamic flames based on profitability
+// BURN PILE COMPONENT - Pile grows and flames intensify as profitability increases
 // =============================================================================
 
 interface BurnPileProps {
   jarValue: number;
   burnCost: number;
   size?: "normal" | "large";
+}
+
+// Flame level based on how close to profitability
+function getFlameLevel(jarValue: number, burnCost: number): "none" | "small" | "medium" | "large" {
+  if (burnCost <= 0) return "none";
+  
+  const profitRatio = jarValue / burnCost;
+  
+  if (profitRatio < 0.3) return "none";       // < 30% - no flames
+  if (profitRatio < 0.6) return "small";      // 30-60% - small flames
+  if (profitRatio < 0.85) return "medium";    // 60-85% - medium flames
+  return "large";                              // 85%+ - large flames
 }
 
 // Map flame level to burn pile sprite filename
@@ -106,7 +121,7 @@ export function BurnPile({ jarValue, burnCost, size = "normal" }: BurnPileProps)
   const flameLevel = useMemo(() => getFlameLevel(jarValue, burnCost), [jarValue, burnCost]);
   const spritePath = useMemo(() => getBurnPileSprite(flameLevel), [flameLevel]);
   
-  // Match jar proportions - slightly smaller than jar for visual balance
+  // Match jar proportions
   const dimensions = size === "large" 
     ? { width: 280, height: 280 }
     : { width: 180, height: 180 };
@@ -122,7 +137,7 @@ export function BurnPile({ jarValue, burnCost, size = "normal" }: BurnPileProps)
 
   return (
     <div className="burn-pile-container relative flex flex-col items-center justify-center">
-      {/* Glow effect behind pile - intensifies with flames */}
+      {/* Glow effect behind pile */}
       <div 
         className="absolute blur-3xl"
         style={{
@@ -168,6 +183,9 @@ interface JarVisualizationProps {
 
 // Format currency for display
 function formatCurrency(value: number): string {
+  if (value >= 1000000) {
+    return `$${(value / 1000000).toFixed(2)}M`;
+  }
   if (value >= 1000) {
     return `$${(value / 1000).toFixed(1)}K`;
   }
@@ -212,7 +230,7 @@ export default function JarVisualization({
           </span>
         </div>
 
-        {/* Right side: Jar with dynamic flames */}
+        {/* Right side: Jar with fill level based on value */}
         <div className="flex flex-col items-center justify-center flex-1">
           <span className="text-[10px] text-green-400 mb-4 tracking-widest uppercase font-medium">Vault</span>
           <PixelJar jarValue={totalValue} burnCost={burnCost} size="large" />
