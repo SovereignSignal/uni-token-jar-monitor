@@ -84,19 +84,10 @@ function truncateAddress(address: string): string {
   return `${address.slice(0, 6)}...${address.slice(-4)}`;
 }
 
-// Pixel heart - Uniswap pink
-function PixelHeart({ filled }: { filled: boolean }) {
-  return (
-    <svg viewBox="0 0 8 8" width="12" height="12" style={{ imageRendering: "pixelated" }}>
-      <rect x="1" y="1" width="2" height="2" fill={filled ? "#FF007A" : "#2D2F36"} />
-      <rect x="5" y="1" width="2" height="2" fill={filled ? "#FF007A" : "#2D2F36"} />
-      <rect x="0" y="2" width="8" height="3" fill={filled ? "#FF007A" : "#2D2F36"} />
-      <rect x="1" y="5" width="6" height="1" fill={filled ? "#c7005f" : "#1a1c22"} />
-      <rect x="2" y="6" width="4" height="1" fill={filled ? "#c7005f" : "#1a1c22"} />
-      <rect x="3" y="7" width="2" height="1" fill={filled ? "#c7005f" : "#1a1c22"} />
-      {filled && <rect x="1" y="2" width="1" height="1" fill="#ff5fa2" />}
-    </svg>
-  );
+// Format timestamp to UTC time string
+function formatUtcTime(timestamp: number): string {
+  const date = new Date(timestamp);
+  return date.toISOString().slice(11, 19) + " UTC";
 }
 
 // Floating ember particles
@@ -271,8 +262,6 @@ export default function Home() {
   }, []);
 
   const status = getDataStatus(lastFetch, !!error);
-  const healthPercent = data ? Math.max(0, Math.min(100, ((data.netProfitUsd + 30000) / 60000) * 100)) : 50;
-  const hearts = [healthPercent > 66, healthPercent > 33, healthPercent > 0];
 
   return (
     <main className="min-h-screen p-4 md:p-8 max-w-4xl mx-auto">
@@ -577,21 +566,15 @@ export default function Home() {
       <footer className="mt-12 pt-6 border-t border-gray-800/30">
         {/* Status Bar */}
         <div className="flex items-center justify-center gap-4 mb-4">
-          <div className="flex gap-1">
-            {hearts.map((filled, i) => (
-              <PixelHeart key={i} filled={filled} />
-            ))}
-          </div>
-          
           <div className="flex items-center gap-2">
             <StatusIndicator status={status} />
             {lastFetch && (
-              <span className="text-[8px] text-gray-600">
-                {formatTimeAgo(lastFetch)}
+              <span className="text-[9px] text-gray-500">
+                {formatUtcTime(lastFetch)}
               </span>
             )}
           </div>
-          
+
           <button
             onClick={fetchData}
             disabled={isRefreshing}
@@ -600,12 +583,12 @@ export default function Home() {
             {isRefreshing ? "..." : "SCOUT"}
           </button>
         </div>
-        
+
         <div className="text-center text-[8px] text-gray-600">
           <p>Auto-refreshes every 30 seconds • Prices via DeFiLlama</p>
           {dataSource && (
             <p className="mt-1 text-gray-500">
-              Data: {dataSource} {dataAge > 0 && `(${dataAge}s ago)`}
+              Data: {dataSource}
             </p>
           )}
           <p className="mt-1 text-gray-700">Not financial advice</p>
