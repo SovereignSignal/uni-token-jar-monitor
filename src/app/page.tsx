@@ -246,50 +246,48 @@ export default function Home() {
 
   return (
     <main className="min-h-screen p-4 md:p-8 max-w-4xl mx-auto">
-      {/* Header */}
-      <header className="card mb-6 p-3 md:p-4">
-        <div className="flex items-center justify-between w-full">
-          {/* Glowing Logo Banner - cohesive design with integrated text */}
-          <div className="relative">
-            <Image
-              src="/assets/ui/header-banner.png"
-              alt="UNI JAR - Uniswap Fee Burn Monitor"
-              width={280}
-              height={80}
-              className="pixel-sprite"
-              style={{ 
-                imageRendering: 'pixelated',
-                filter: 'drop-shadow(0 0 10px rgba(255,0,122,0.4))'
-              }}
-              priority
-            />
+      {/* Header - Big Banner */}
+      <header className="card mb-6 p-4 md:p-6">
+        {/* Centered Big Banner */}
+        <div className="flex justify-center mb-4">
+          <Image
+            src="/assets/ui/header-banner.png"
+            alt="UNI JAR - Uniswap Fee Burn Monitor"
+            width={400}
+            height={120}
+            className="pixel-sprite"
+            style={{ 
+              imageRendering: 'pixelated',
+              filter: 'drop-shadow(0 0 15px rgba(255,0,122,0.5))'
+            }}
+            priority
+          />
+        </div>
+        
+        {/* Status Bar - Below Banner */}
+        <div className="flex items-center justify-center gap-4 pt-2 border-t border-gray-800/50">
+          <div className="flex gap-1">
+            {hearts.map((filled, i) => (
+              <PixelHeart key={i} filled={filled} />
+            ))}
           </div>
           
-          {/* Status & Controls */}
-          <div className="flex items-center gap-4">
-            <div className="hidden sm:flex gap-1">
-              {hearts.map((filled, i) => (
-                <PixelHeart key={i} filled={filled} />
-              ))}
-            </div>
-            
-            <div className="flex items-center gap-2">
-              <StatusIndicator status={status} />
-              {lastFetch && (
-                <span className="text-[8px] text-gray-600">
-                  {formatTimeAgo(lastFetch)}
-                </span>
-              )}
-            </div>
-            
-            <button
-              onClick={fetchData}
-              disabled={isRefreshing}
-              className="retro-btn text-[9px] px-3 py-2"
-            >
-              {isRefreshing ? "..." : "SCOUT"}
-            </button>
+          <div className="flex items-center gap-2">
+            <StatusIndicator status={status} />
+            {lastFetch && (
+              <span className="text-[8px] text-gray-600">
+                {formatTimeAgo(lastFetch)}
+              </span>
+            )}
           </div>
+          
+          <button
+            onClick={fetchData}
+            disabled={isRefreshing}
+            className="retro-btn text-[9px] px-3 py-2"
+          >
+            {isRefreshing ? "..." : "SCOUT"}
+          </button>
         </div>
       </header>
 
