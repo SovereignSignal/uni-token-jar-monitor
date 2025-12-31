@@ -14,18 +14,7 @@ export interface TokenJarApiResponse {
 
 export async function GET(): Promise<NextResponse<TokenJarApiResponse>> {
   try {
-    // Check for API key
-    if (!process.env.ALCHEMY_API_KEY) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: "ALCHEMY_API_KEY not configured. Please set this environment variable.",
-        },
-        { status: 500 }
-      );
-    }
-
-    // Fetch token balances from TokenJar
+    // Fetch token balances from TokenJar (using free RPC providers)
     const balances = await getTokenJarBalances();
 
     // Price the tokens
