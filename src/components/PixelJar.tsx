@@ -46,8 +46,8 @@ export function PixelJar({ jarValue, burnCost, size = "normal" }: PixelJarProps)
   
   // Larger sizes for better visual impact
   const dimensions = size === "large" 
-    ? { width: 220, height: 340 }
-    : { width: 160, height: 250 };
+    ? { width: 200, height: 310 }
+    : { width: 150, height: 230 };
 
   return (
     <div className="pixel-jar-container relative flex flex-col items-center">
@@ -87,10 +87,10 @@ interface BurnPileProps {
 }
 
 export function BurnPile({ size = "normal" }: BurnPileProps) {
-  // Match jar proportions
+  // Match jar proportions - slightly smaller than jar for visual balance
   const dimensions = size === "large" 
-    ? { width: 200, height: 320 }
-    : { width: 140, height: 220 };
+    ? { width: 180, height: 280 }
+    : { width: 120, height: 190 };
 
   return (
     <div className="burn-pile-container relative flex flex-col items-center justify-center">

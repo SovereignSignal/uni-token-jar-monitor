@@ -90,8 +90,23 @@ async function fetchTokenBalancesFromAlchemy(): Promise<TokenBalance[]> {
 
     const balancesData: AlchemyTokenBalancesResponse = await balancesResponse.json();
     
+    // Log the response for debugging
+    console.log("Alchemy response status:", balancesResponse.status);
+    console.log("Alchemy response has result:", !!balancesData.result);
+    console.log("Alchemy response has tokenBalances:", !!balancesData.result?.tokenBalances);
+    
+    if (balancesData.result?.tokenBalances) {
+      console.log("Token balances count:", balancesData.result.tokenBalances.length);
+    }
+    
+    // Check for errors in response
+    if ((balancesData as any).error) {
+      console.error("Alchemy API error:", (balancesData as any).error);
+      return [];
+    }
+    
     if (!balancesData.result?.tokenBalances) {
-      console.error("No token balances in Alchemy response");
+      console.error("No token balances in Alchemy response, full response:", JSON.stringify(balancesData).slice(0, 500));
       return [];
     }
 
