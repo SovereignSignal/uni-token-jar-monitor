@@ -46,8 +46,8 @@ export function PixelJar({ jarValue, burnCost, size = "normal" }: PixelJarProps)
   
   // Larger sizes for better visual impact
   const dimensions = size === "large" 
-    ? { width: 200, height: 310 }
-    : { width: 150, height: 230 };
+    ? { width: 280, height: 420 }
+    : { width: 180, height: 280 };
 
   return (
     <div className="pixel-jar-container relative flex flex-col items-center">
@@ -79,41 +79,70 @@ export function PixelJar({ jarValue, burnCost, size = "normal" }: PixelJarProps)
 }
 
 // =============================================================================
-// BURN PILE COMPONENT - Sacrifice pile of coins
+// BURN PILE COMPONENT - Coin pile with dynamic flames based on profitability
 // =============================================================================
 
 interface BurnPileProps {
+  jarValue: number;
+  burnCost: number;
   size?: "normal" | "large";
 }
 
-export function BurnPile({ size = "normal" }: BurnPileProps) {
+// Map flame level to burn pile sprite filename
+function getBurnPileSprite(flameLevel: "none" | "small" | "medium" | "large"): string {
+  switch (flameLevel) {
+    case "none":
+      return "/assets/pile/burn-pile-no-flames.png";
+    case "small":
+      return "/assets/pile/burn-pile-small-flames.png";
+    case "medium":
+      return "/assets/pile/burn-pile-medium-flames.png";
+    case "large":
+      return "/assets/pile/burn-pile-large-flames.png";
+  }
+}
+
+export function BurnPile({ jarValue, burnCost, size = "normal" }: BurnPileProps) {
+  const flameLevel = useMemo(() => getFlameLevel(jarValue, burnCost), [jarValue, burnCost]);
+  const spritePath = useMemo(() => getBurnPileSprite(flameLevel), [flameLevel]);
+  
   // Match jar proportions - slightly smaller than jar for visual balance
   const dimensions = size === "large" 
-    ? { width: 180, height: 280 }
-    : { width: 120, height: 190 };
+    ? { width: 240, height: 240 }
+    : { width: 160, height: 160 };
+
+  // Glow color changes based on flame level
+  const glowColor = flameLevel === "large" 
+    ? 'rgba(255,50,0,0.6)' 
+    : flameLevel === "medium"
+    ? 'rgba(255,100,0,0.5)'
+    : flameLevel === "small"
+    ? 'rgba(255,150,50,0.4)'
+    : 'rgba(255,180,100,0.3)';
 
   return (
     <div className="burn-pile-container relative flex flex-col items-center justify-center">
-      {/* Glow effect behind pile */}
+      {/* Glow effect behind pile - intensifies with flames */}
       <div 
-        className="absolute blur-3xl opacity-40"
+        className="absolute blur-3xl"
         style={{
-          background: 'radial-gradient(ellipse at center, rgba(255,100,0,0.6) 0%, rgba(255,50,0,0.3) 40%, transparent 70%)',
-          width: '140%',
-          height: '110%',
-          top: '0%',
-          left: '-20%',
+          background: `radial-gradient(ellipse at center, ${glowColor} 0%, transparent 70%)`,
+          width: '160%',
+          height: '140%',
+          top: '-20%',
+          left: '-30%',
+          opacity: flameLevel === "none" ? 0.3 : flameLevel === "small" ? 0.5 : flameLevel === "medium" ? 0.7 : 0.9,
         }}
       />
       <Image
-        src="/assets/pile/sacrifice-pile.png"
-        alt="Sacrifice pile"
+        src={spritePath}
+        alt={`Burn pile - ${flameLevel} flames`}
         width={dimensions.width}
         height={dimensions.height}
         className="pixel-sprite relative z-10"
         style={{
           imageRendering: "pixelated",
-          filter: 'drop-shadow(0 0 10px rgba(255,100,0,0.4))',
+          filter: `drop-shadow(0 0 ${flameLevel === "large" ? "20px" : "10px"} ${glowColor})`,
         }}
         priority
       />
@@ -156,14 +185,14 @@ export default function JarVisualization({
   const jarPercent = total > 0 ? (totalValue / total) * 100 : 3;
 
   return (
-    <div className="jar-visualization w-full max-w-2xl mx-auto">
+    <div className="jar-visualization w-full max-w-3xl mx-auto">
       {/* Main visualization area - side by side, centered vertically */}
-      <div className="flex items-center justify-center gap-4 md:gap-8 py-4">
+      <div className="flex items-center justify-center gap-6 md:gap-12 py-6">
         {/* Left side: Burn Pile */}
         <div className="flex flex-col items-center justify-center flex-1">
-          <span className="text-[10px] text-red-400 mb-3 tracking-widest uppercase font-medium">Sacrifice</span>
-          <BurnPile size="large" />
-          <span className="text-lg text-red-400 mt-3 font-bold">
+          <span className="text-[10px] text-red-400 mb-4 tracking-widest uppercase font-medium">Burn</span>
+          <BurnPile jarValue={totalValue} burnCost={burnCost} size="large" />
+          <span className="text-xl text-red-400 mt-4 font-bold">
             {formatCurrency(burnCost)}
           </span>
         </div>
@@ -185,16 +214,16 @@ export default function JarVisualization({
 
         {/* Right side: Jar with dynamic flames */}
         <div className="flex flex-col items-center justify-center flex-1">
-          <span className="text-[10px] text-green-400 mb-3 tracking-widest uppercase font-medium">Vault</span>
+          <span className="text-[10px] text-green-400 mb-4 tracking-widest uppercase font-medium">Vault</span>
           <PixelJar jarValue={totalValue} burnCost={burnCost} size="large" />
-          <span className={`text-lg mt-3 font-bold ${isProfitable ? 'text-green-400' : 'text-yellow-400'}`}>
+          <span className={`text-xl mt-4 font-bold ${isProfitable ? 'text-green-400' : 'text-yellow-400'}`}>
             {formatCurrency(totalValue)}
           </span>
         </div>
       </div>
 
       {/* Comparison bar */}
-      <div className="mt-4">
+      <div className="mt-6">
         <div className="flex items-center justify-between mb-2">
           <span className="text-[10px] text-red-400/90 font-medium">{burnPercent.toFixed(0)}% burn</span>
           <span className="text-[8px] text-gray-600/70 uppercase tracking-wider">Burn vs Reward</span>
@@ -202,7 +231,7 @@ export default function JarVisualization({
             {jarPercent.toFixed(0)}% reward
           </span>
         </div>
-        <div className="h-2.5 flex rounded-sm overflow-hidden bg-gray-900">
+        <div className="h-3 flex rounded-sm overflow-hidden bg-gray-900">
           {/* Burn portion (red) */}
           <div
             className="bg-gradient-to-r from-red-600/70 to-red-500/70 transition-all duration-500"
