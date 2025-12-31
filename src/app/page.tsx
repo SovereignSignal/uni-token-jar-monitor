@@ -7,6 +7,7 @@ import type { TokenJarApiResponse } from "./api/tokenjar/route";
 import type { ProfitabilityData } from "@/lib/profitability";
 import type { BurnHistory } from "@/lib/burnHistory";
 import JarVisualization from "@/components/PixelJar";
+import TokenTabs from "@/components/TokenTabs";
 
 type DataStatus = "loading" | "fresh" | "stale" | "error";
 
@@ -436,7 +437,7 @@ export default function Home() {
             {/* Tokens Card - matched height with breakdown */}
             <div className="card p-5 flex flex-col min-h-[200px]">
               <h2 className="text-[9px] text-[#FF007A] mb-4 tracking-widest">
-                TOKENS <span className="text-gray-600">(&gt;$1K)</span>
+                TOKENS <span className="text-gray-600">(top by value)</span>
               </h2>
 
               {data.displayTokens.length === 0 ? (
@@ -446,7 +447,7 @@ export default function Home() {
                 </div>
               ) : (
                 <div className="space-y-2 max-h-28 overflow-y-auto flex-1">
-                  {data.displayTokens.map((token) => (
+                  {data.displayTokens.slice(0, 5).map((token) => (
                     <div
                       key={token.address}
                       className="flex justify-between items-center py-1 text-[10px]"
@@ -466,19 +467,16 @@ export default function Home() {
                 </div>
               )}
 
-              {(data.otherTokensCount > 0 || data.unpricedTokensCount > 0) && (
-                <div className="mt-auto pt-3 border-t border-gray-800/50 text-[9px] text-gray-400">
-                  {data.otherTokensCount > 0 && (
-                    <div className="flex justify-between">
-                      <span>Other x{data.otherTokensCount}</span>
-                      <span className="text-yellow-400/70">{formatUsd(data.otherTokensValueUsd)}</span>
-                    </div>
-                  )}
-                  {data.unpricedTokensCount > 0 && (
-                    <div className="mt-1 text-gray-500">Unpriced: {data.unpricedTokensCount}</div>
-                  )}
-                </div>
-              )}
+              {/* Summary counts */}
+              <div className="mt-auto pt-3 border-t border-gray-800/50 text-[9px] text-gray-400">
+                {data.categorizedTokens && (
+                  <div className="flex justify-between gap-4">
+                    <span className="text-green-400">💰 {data.categorizedTokens.priced.count} priced</span>
+                    <span className="text-purple-400">🔄 {data.categorizedTokens.lp.count} LP</span>
+                    <span className="text-gray-500">❓ {data.categorizedTokens.unknown.count} unknown</span>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
 
@@ -510,6 +508,11 @@ export default function Home() {
               </div>
             </div>
           </div>
+
+          {/* Full Token Explorer */}
+          {data.categorizedTokens && (
+            <TokenTabs categorizedTokens={data.categorizedTokens} />
+          )}
 
           {/* Burn History Card */}
           <div className="card p-5">
