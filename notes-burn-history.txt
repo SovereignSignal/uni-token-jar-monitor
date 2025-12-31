@@ -1,0 +1,20 @@
+Burn History Investigation (Dec 31, 2025):
+
+Firepit Address: 0x0D5Cd355e2aBEB8fb1552F56c965B867346d6721
+- Created 14 days ago
+- ETH Balance: 0 ETH
+- Token Transfers: "There are no matching entries"
+
+This means the Firepit contract hasn't received any UNI tokens yet!
+The fee switch was activated but no burns have been executed yet.
+
+The TokenJar is accumulating fees but hasn't reached profitability threshold.
+Current status: ~56% to profitability, needs ~$10K more value before burn is profitable.
+
+The burn history showing "No burns recorded yet" is CORRECT.
+No burns have happened because:
+1. The fee switch was just activated 14 days ago
+2. The jar hasn't accumulated enough value to make burning profitable
+3. No one has triggered a burn yet
+
+This is accurate - we should keep the "No burns recorded yet" message.

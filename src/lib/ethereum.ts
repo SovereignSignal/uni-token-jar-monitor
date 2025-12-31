@@ -50,8 +50,37 @@ let tokensCacheTimestamp = 0;
 const TOKENS_CACHE_TTL_MS = 10 * 60 * 1000; // 10 minutes
 
 /**
+ * Fetch token list from Etherscan API (free tier, no API key needed for basic calls)
+ */
+async function fetchTokensFromEtherscan(): Promise<Set<Address>> {
+  const tokens = new Set<Address>();
+  
+  try {
+    // Use Etherscan's tokentx endpoint to get all token transfers to the address
+    // This is rate-limited but works without an API key
+    const url = `https://api.etherscan.io/api?module=account&action=tokentx&address=${TOKENJAR_ADDRESS}&startblock=0&endblock=99999999&sort=desc`;
+    
+    const response = await fetch(url);
+    const data = await response.json();
+    
+    if (data.status === "1" && Array.isArray(data.result)) {
+      for (const tx of data.result) {
+        if (tx.contractAddress) {
+          tokens.add(tx.contractAddress.toLowerCase() as Address);
+        }
+      }
+      console.log(`Etherscan returned ${data.result.length} token transfers, ${tokens.size} unique tokens`);
+    }
+  } catch (error) {
+    console.error("Error fetching from Etherscan:", error);
+  }
+  
+  return tokens;
+}
+
+/**
  * Discover tokens that have been transferred to the TokenJar
- * by scanning Transfer event logs
+ * by scanning Transfer event logs and Etherscan API
  */
 async function discoverTokens(): Promise<Set<Address>> {
   const now = Date.now();
@@ -70,8 +99,15 @@ async function discoverTokens(): Promise<Set<Address>> {
     Object.keys(KNOWN_TOKENS).map((addr) => addr.toLowerCase() as Address)
   );
 
+  // Try Etherscan API first (most comprehensive)
+  const etherscanTokens = await fetchTokensFromEtherscan();
+  for (const token of etherscanTokens) {
+    tokens.add(token);
+  }
+
+  // Also scan Transfer events as backup
   try {
-    // Get Transfer events TO the TokenJar
+    // Get Transfer events TO the TokenJar (regular transfers)
     const logs = await client.getLogs({
       event: parseAbiItem("event Transfer(address indexed from, address indexed to, uint256 value)"),
       args: {
@@ -85,11 +121,15 @@ async function discoverTokens(): Promise<Set<Address>> {
     for (const log of logs) {
       tokens.add(log.address.toLowerCase() as Address);
     }
+    
+    console.log(`RPC event scan found ${logs.length} transfers`);
   } catch (error) {
     console.error("Error discovering tokens via events:", error);
-    // Fall back to known tokens only
+    // Continue with what we have from Etherscan
   }
 
+  console.log(`Total unique tokens discovered: ${tokens.size}`);
+  
   discoveredTokensCache = tokens;
   tokensCacheTimestamp = now;
 
@@ -142,6 +182,7 @@ export async function getTokenJarBalances(): Promise<TokenBalance[]> {
 
   // Discover all tokens
   const tokenAddresses = await discoverTokens();
+  console.log(`Fetching balances for ${tokenAddresses.size} tokens...`);
 
   // Fetch balances in parallel (batch of 20 to avoid rate limits)
   const balances: TokenBalance[] = [];
@@ -188,6 +229,7 @@ export async function getTokenJarBalances(): Promise<TokenBalance[]> {
     }
   }
 
+  console.log(`Found ${balances.length} tokens with non-zero balances`);
   return balances;
 }
 

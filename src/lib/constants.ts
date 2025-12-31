@@ -17,7 +17,8 @@ export const PRICE_CACHE_TTL_MS = 60_000; // 60 seconds
 export const GAS_ESTIMATE_USD = 50;
 
 // Token discovery - look back this many blocks for Transfer events
-export const TOKEN_DISCOVERY_LOOKBACK_BLOCKS = 200_000n; // ~30 days at 12s/block
+// Increased to capture all tokens since TokenJar deployment
+export const TOKEN_DISCOVERY_LOOKBACK_BLOCKS = 500_000n; // ~70 days at 12s/block
 
 // Well-known tokens with CoinGecko IDs for reliable pricing
 // All addresses MUST be lowercase for proper matching with discovered tokens

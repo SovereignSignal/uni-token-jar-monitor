@@ -434,50 +434,6 @@ export default function Home() {
               </div>
             </div>
 
-            {/* Tokens Card - matched height with breakdown */}
-            <div className="card p-5 flex flex-col min-h-[200px]">
-              <h2 className="text-[9px] text-[#FF007A] mb-4 tracking-widest">
-                TOKENS <span className="text-gray-600">(top by value)</span>
-              </h2>
-
-              {data.displayTokens.length === 0 ? (
-                <div className="flex-1 flex flex-col items-center justify-center">
-                  <p className="text-gray-500 text-[10px]">NO LARGE HOLDINGS</p>
-                  <p className="text-gray-600 text-[8px] mt-1">(small balances only)</p>
-                </div>
-              ) : (
-                <div className="space-y-2 max-h-28 overflow-y-auto flex-1">
-                  {data.displayTokens.slice(0, 5).map((token) => (
-                    <div
-                      key={token.address}
-                      className="flex justify-between items-center py-1 text-[10px]"
-                    >
-                      <div className="flex items-center gap-2">
-                        <span
-                          className="w-2 h-2 rounded-sm"
-                          style={{ background: getTokenColor(token.symbol) }}
-                        />
-                        <span className="text-white">{token.symbol}</span>
-                      </div>
-                      <span className="text-green-400 text-[9px]">
-                        {token.valueUsd ? formatUsd(token.valueUsd) : "-"}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              )}
-
-              {/* Summary counts */}
-              <div className="mt-auto pt-3 border-t border-gray-800/50 text-[9px] text-gray-400">
-                {data.categorizedTokens && (
-                  <div className="flex justify-between gap-4">
-                    <span className="text-green-400">💰 {data.categorizedTokens.priced.count} priced</span>
-                    <span className="text-purple-400">🔄 {data.categorizedTokens.lp.count} LP</span>
-                    <span className="text-gray-500">❓ {data.categorizedTokens.unknown.count} unknown</span>
-                  </div>
-                )}
-              </div>
-            </div>
           </div>
 
           {/* Contracts Card - Separate, cleaner */}

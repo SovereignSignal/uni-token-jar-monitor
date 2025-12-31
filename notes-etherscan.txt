@@ -1,0 +1,17 @@
+Etherscan TokenJar Analysis (Dec 31, 2025):
+
+TokenJar Address: 0xf38521f130fcCF29dB1961597bc5d2B60F995f85
+Token Holdings: >$516.80 (>201 Tokens)
+
+Key observation: We're only showing 41 tokens but Etherscan shows 201+ tokens.
+
+The issue is that most tokens are UNI-V2 LP tokens (Uniswap V2 LP positions).
+These are being transferred from Null: 0x000...000 (minting) to the TokenJar.
+
+Recent transfers show:
+- Remove Liquidity operations
+- Match Token operations  
+- All incoming to TokenJar from Null address (LP token mints)
+
+The LP tokens are being correctly identified but not categorized properly.
+Need to investigate why LP count shows 0 when there should be ~160+ LP tokens.
