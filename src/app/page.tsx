@@ -276,15 +276,15 @@ export default function Home() {
 
   return (
     <main className="min-h-screen p-4 md:p-8 max-w-4xl mx-auto">
-      {/* Header - Clean Banner Only */}
+      {/* Header - Full Width Banner */}
       <header className="mb-6">
-        <div className="flex justify-center py-4">
+        <div className="card p-6 flex justify-center">
           <Image
             src="/assets/ui/header-banner.png"
             alt="UNI JAR - Uniswap Fee Burn Monitor"
-            width={420}
-            height={130}
-            className="pixel-sprite"
+            width={600}
+            height={180}
+            className="pixel-sprite w-full max-w-2xl"
             style={{ 
               imageRendering: 'pixelated',
               filter: 'drop-shadow(0 0 20px rgba(255,0,122,0.6))'
@@ -293,12 +293,57 @@ export default function Home() {
           />
         </div>
         
-        {/* Explainer Section */}
-        <div className="card p-4 text-center">
-          <p className="text-[10px] text-gray-400 leading-relaxed max-w-lg mx-auto">
-            <span className="text-[#FF007A] font-medium">Uniswap Fee Switch Monitor</span> — Track the TokenJar vault that collects protocol fees. 
-            When the vault value exceeds the cost to burn 4,000 UNI tokens, anyone can trigger a burn and claim the rewards.
-          </p>
+        {/* Explainer Section with Decorative Icons */}
+        <div className="card p-5 mt-4">
+          <div className="flex items-center justify-center gap-6">
+            {/* Left decorative icons */}
+            <div className="hidden md:flex items-center gap-3 opacity-60">
+              <Image
+                src="/assets/ui/icon-unicorn.png"
+                alt=""
+                width={40}
+                height={40}
+                className="pixel-sprite"
+                style={{ imageRendering: 'pixelated' }}
+              />
+              <Image
+                src="/assets/ui/icon-coin.png"
+                alt=""
+                width={32}
+                height={32}
+                className="pixel-sprite"
+                style={{ imageRendering: 'pixelated' }}
+              />
+            </div>
+            
+            {/* Explainer text */}
+            <div className="text-center flex-1 max-w-xl">
+              <p className="text-[11px] text-gray-400 leading-relaxed">
+                <span className="text-[#FF007A] font-medium">Uniswap Fee Switch Monitor</span> — Track the TokenJar vault that collects protocol fees. 
+                When the vault value exceeds the cost to burn <span className="text-yellow-400">4,000 UNI</span> tokens, anyone can trigger a burn and claim the rewards.
+              </p>
+            </div>
+            
+            {/* Right decorative icons */}
+            <div className="hidden md:flex items-center gap-3 opacity-60">
+              <Image
+                src="/assets/ui/icon-coin.png"
+                alt=""
+                width={32}
+                height={32}
+                className="pixel-sprite"
+                style={{ imageRendering: 'pixelated' }}
+              />
+              <Image
+                src="/assets/ui/icon-flame.png"
+                alt=""
+                width={40}
+                height={40}
+                className="pixel-sprite"
+                style={{ imageRendering: 'pixelated' }}
+              />
+            </div>
+          </div>
         </div>
       </header>
 
