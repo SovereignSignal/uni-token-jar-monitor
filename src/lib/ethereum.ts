@@ -9,10 +9,10 @@ import {
 
 // Free RPC endpoints (no API key required)
 const FREE_RPC_ENDPOINTS = [
-  "https://rpc.ankr.com/eth",
   "https://eth.llamarpc.com",
   "https://1rpc.io/eth",
-  "https://cloudflare-eth.com",
+  "https://ethereum.publicnode.com",
+  "https://eth.drpc.org",
 ];
 
 // Create Ethereum client with free RPC (Alchemy as optional fallback)
