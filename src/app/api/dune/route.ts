@@ -1,5 +1,5 @@
-import { NextResponse } from "next/server";
-import { getDuneFeeSummary, isDuneConfigured } from "@/lib/dune";
+import { NextRequest, NextResponse } from "next/server";
+import { getDuneFeeSummary, isDuneConfigured, getRawDuneData } from "@/lib/dune";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -22,13 +22,20 @@ export interface DuneApiResponse {
   error?: string;
 }
 
-export async function GET(): Promise<NextResponse<DuneApiResponse>> {
+export async function GET(request: NextRequest): Promise<NextResponse<DuneApiResponse | { debug: unknown }>> {
   if (!isDuneConfigured()) {
     return NextResponse.json({
       success: false,
       configured: false,
       error: "DUNE_API_KEY not configured",
     });
+  }
+
+  // Debug mode - return raw data structure
+  const debug = request.nextUrl.searchParams.get("debug");
+  if (debug === "true") {
+    const rawData = await getRawDuneData();
+    return NextResponse.json({ debug: rawData });
   }
 
   try {
@@ -45,9 +52,9 @@ export async function GET(): Promise<NextResponse<DuneApiResponse>> {
     // Get top 10 tokens by total value
     const topTokens = feeSummary.tokens
       .map((t) => ({
-        symbol: t.token_symbol,
-        tokenjarUsd: t.tokenjar_balance_usd || 0,
-        unclaimedUsd: t.unclaimed_balance_usd || 0,
+        symbol: t.token_symbol || t.symbol || "Unknown",
+        tokenjarUsd: t.tokenjar_balance_usd || t.tokenjar_usd || t.jar_usd || 0,
+        unclaimedUsd: t.unclaimed_balance_usd || t.unclaimed_usd || 0,
       }))
       .sort((a, b) => (b.tokenjarUsd + b.unclaimedUsd) - (a.tokenjarUsd + a.unclaimedUsd))
       .slice(0, 10);

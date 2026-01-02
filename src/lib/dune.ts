@@ -29,15 +29,26 @@ interface DuneQueryResult<T> {
   };
 }
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export interface FeeByTokenRow {
-  token_address: string;
-  token_symbol: string;
+  // Known possible column names (varies by query)
+  token_address?: string;
+  token_symbol?: string;
   token_name?: string;
-  tokenjar_balance: number;
-  tokenjar_balance_usd: number;
+  tokenjar_balance?: number;
+  tokenjar_balance_usd?: number;
   unclaimed_balance?: number;
   unclaimed_balance_usd?: number;
   total_balance_usd?: number;
+  // Alternative column names from Dune
+  symbol?: string;
+  address?: string;
+  tokenjar_usd?: number;
+  unclaimed_usd?: number;
+  jar_usd?: number;
+  jar_balance_usd?: number;
+  // Catch-all for unknown fields
+  [key: string]: string | number | undefined;
 }
 
 export interface FeeSummary {
@@ -81,6 +92,17 @@ async function fetchDuneQuery<T>(queryId: number): Promise<DuneQueryResult<T> | 
     const data = await response.json();
     console.log(`[Dune] Query ${queryId} returned ${data.result?.rows?.length || 0} rows`);
 
+    // Log column names to help debug field mapping
+    if (data.result?.metadata?.column_names) {
+      console.log(`[Dune] Column names: ${data.result.metadata.column_names.join(", ")}`);
+    }
+
+    // Log first row to see actual data structure
+    if (data.result?.rows?.[0]) {
+      console.log(`[Dune] First row keys: ${Object.keys(data.result.rows[0]).join(", ")}`);
+      console.log(`[Dune] First row sample:`, JSON.stringify(data.result.rows[0]));
+    }
+
     return data as DuneQueryResult<T>;
   } catch (error) {
     console.error(`[Dune] Error fetching query ${queryId}:`, error);
@@ -111,13 +133,29 @@ export async function getDuneFeeSummary(): Promise<FeeSummary | null> {
 
   const tokens = tokenData.result.rows;
 
+  // Helper to get value from token using multiple possible column names
+  function getTokenJarUsd(token: FeeByTokenRow): number {
+    return (
+      token.tokenjar_balance_usd ||
+      token.tokenjar_usd ||
+      token.jar_usd ||
+      token.jar_balance_usd ||
+      token.total_balance_usd ||
+      0
+    );
+  }
+
+  function getUnclaimedUsd(token: FeeByTokenRow): number {
+    return token.unclaimed_balance_usd || token.unclaimed_usd || 0;
+  }
+
   // Calculate totals
   let tokenJarBalanceUsd = 0;
   let unclaimedValueUsd = 0;
 
   for (const token of tokens) {
-    tokenJarBalanceUsd += token.tokenjar_balance_usd || 0;
-    unclaimedValueUsd += token.unclaimed_balance_usd || 0;
+    tokenJarBalanceUsd += getTokenJarUsd(token);
+    unclaimedValueUsd += getUnclaimedUsd(token);
   }
 
   const summary: FeeSummary = {
@@ -144,4 +182,40 @@ export async function getDuneFeeSummary(): Promise<FeeSummary | null> {
  */
 export function isDuneConfigured(): boolean {
   return !!process.env.DUNE_API_KEY;
+}
+
+/**
+ * Get raw Dune data for debugging
+ */
+export async function getRawDuneData(): Promise<{
+  columnNames: string[];
+  sampleRow: Record<string, unknown> | null;
+  rowCount: number;
+}> {
+  const apiKey = process.env.DUNE_API_KEY;
+  if (!apiKey) {
+    return { columnNames: [], sampleRow: null, rowCount: 0 };
+  }
+
+  try {
+    const response = await fetch(
+      `https://api.dune.com/api/v1/query/${DUNE_QUERIES.FEES_BY_TOKEN}/results?limit=5`,
+      {
+        headers: { "X-Dune-API-Key": apiKey },
+      }
+    );
+
+    if (!response.ok) {
+      return { columnNames: [], sampleRow: null, rowCount: 0 };
+    }
+
+    const data = await response.json();
+    return {
+      columnNames: data.result?.metadata?.column_names || [],
+      sampleRow: data.result?.rows?.[0] || null,
+      rowCount: data.result?.metadata?.total_row_count || 0,
+    };
+  } catch {
+    return { columnNames: [], sampleRow: null, rowCount: 0 };
+  }
 }
