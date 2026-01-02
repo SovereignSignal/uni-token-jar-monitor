@@ -51,6 +51,7 @@ export const CACHE_KEYS = {
 // Cache TTLs (in milliseconds)
 export const CACHE_TTL = {
   TOKEN_BALANCES: 5 * 60 * 1000, // 5 minutes - balances don't change frequently
-  PROFITABILITY_DATA: 2 * 60 * 1000, // 2 minutes - includes prices
+  PROFITABILITY_DATA: 4 * 60 * 60 * 1000, // 4 hours - Dune API refresh limit
   BURN_HISTORY: 10 * 60 * 1000, // 10 minutes - historical data rarely changes
+  DUNE_DATA: 4 * 60 * 60 * 1000, // 4 hours - per Uniswap Foundation request
 } as const;

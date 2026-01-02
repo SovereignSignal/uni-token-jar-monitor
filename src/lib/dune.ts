@@ -3,7 +3,7 @@
  * Uses official Uniswap Foundation dashboards
  */
 
-import { serverCache, CACHE_KEYS, CACHE_TTL } from "./cache";
+import { serverCache, CACHE_TTL } from "./cache";
 
 // Dune query IDs from official Uniswap dashboards
 const DUNE_QUERIES = {
@@ -131,8 +131,8 @@ export async function getDuneFeeSummary(): Promise<FeeSummary | null> {
     lastUpdated: Date.now(),
   };
 
-  // Cache for 5 minutes (Dune data refreshes ~30min)
-  serverCache.set(cacheKey, summary, 5 * 60 * 1000);
+  // Cache for 4 hours per Uniswap Foundation request
+  serverCache.set(cacheKey, summary, CACHE_TTL.DUNE_DATA);
 
   console.log(`[Dune] Fee summary: TokenJar=$${tokenJarBalanceUsd.toFixed(2)}, Unclaimed=$${unclaimedValueUsd.toFixed(2)}`);
 
