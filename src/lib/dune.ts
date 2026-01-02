@@ -29,24 +29,14 @@ interface DuneQueryResult<T> {
   };
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export interface FeeByTokenRow {
-  // Known possible column names (varies by query)
-  token_address?: string;
-  token_symbol?: string;
-  token_name?: string;
-  tokenjar_balance?: number;
-  tokenjar_balance_usd?: number;
-  unclaimed_balance?: number;
-  unclaimed_balance_usd?: number;
-  total_balance_usd?: number;
-  // Alternative column names from Dune
-  symbol?: string;
-  address?: string;
-  tokenjar_usd?: number;
-  unclaimed_usd?: number;
-  jar_usd?: number;
-  jar_balance_usd?: number;
+  // Actual column names from Dune query 6432620
+  symbol?: string; // Token symbol (may contain HTML link)
+  protocol_fees_formatted?: number; // Unclaimed protocol fees
+  token_jar_balance_formatted?: number; // TokenJar balance
+  value_uni?: number; // Total value in UNI
+  value_usd?: number; // Total value in USD - THIS IS THE KEY FIELD
+  pool_count?: number; // Number of pools
   // Catch-all for unknown fields
   [key: string]: string | number | undefined;
 }
@@ -133,35 +123,25 @@ export async function getDuneFeeSummary(): Promise<FeeSummary | null> {
 
   const tokens = tokenData.result.rows;
 
-  // Helper to get value from token using multiple possible column names
-  function getTokenJarUsd(token: FeeByTokenRow): number {
-    return (
-      token.tokenjar_balance_usd ||
-      token.tokenjar_usd ||
-      token.jar_usd ||
-      token.jar_balance_usd ||
-      token.total_balance_usd ||
-      0
-    );
-  }
-
-  function getUnclaimedUsd(token: FeeByTokenRow): number {
-    return token.unclaimed_balance_usd || token.unclaimed_usd || 0;
-  }
-
-  // Calculate totals
-  let tokenJarBalanceUsd = 0;
-  let unclaimedValueUsd = 0;
+  // Calculate totals using actual Dune column names
+  // value_usd is the total value (TokenJar + unclaimed combined)
+  // token_jar_balance_formatted is just the TokenJar portion
+  // protocol_fees_formatted is the unclaimed fees portion
+  let totalValueUsd = 0;
 
   for (const token of tokens) {
-    tokenJarBalanceUsd += getTokenJarUsd(token);
-    unclaimedValueUsd += getUnclaimedUsd(token);
+    // value_usd contains the total USD value for this token
+    totalValueUsd += Number(token.value_usd) || 0;
   }
 
+  console.log(`[Dune] Calculated total value: $${totalValueUsd.toFixed(2)} from ${tokens.length} tokens`);
+
+  // The Dune query gives us value_usd which is the total collectible value
+  // This represents what can be claimed from the TokenJar
   const summary: FeeSummary = {
-    tokenJarBalanceUsd,
-    unclaimedValueUsd,
-    collectibleUsd: tokenJarBalanceUsd + unclaimedValueUsd,
+    tokenJarBalanceUsd: totalValueUsd, // Total value in TokenJar
+    unclaimedValueUsd: 0, // Not separated in this query
+    collectibleUsd: totalValueUsd,
     tokenJarBalanceUni: 0, // Will be calculated from UNI price
     unclaimedValueUni: 0,
     collectibleUni: 0,
@@ -172,7 +152,7 @@ export async function getDuneFeeSummary(): Promise<FeeSummary | null> {
   // Cache for 4 hours per Uniswap Foundation request
   serverCache.set(cacheKey, summary, CACHE_TTL.DUNE_DATA);
 
-  console.log(`[Dune] Fee summary: TokenJar=$${tokenJarBalanceUsd.toFixed(2)}, Unclaimed=$${unclaimedValueUsd.toFixed(2)}`);
+  console.log(`[Dune] Fee summary: Total=$${totalValueUsd.toFixed(2)}`);
 
   return summary;
 }

@@ -51,12 +51,20 @@ export async function GET(request: NextRequest): Promise<NextResponse<DuneApiRes
 
     // Get top 10 tokens by total value
     const topTokens = feeSummary.tokens
-      .map((t) => ({
-        symbol: t.token_symbol || t.symbol || "Unknown",
-        tokenjarUsd: t.tokenjar_balance_usd || t.tokenjar_usd || t.jar_usd || 0,
-        unclaimedUsd: t.unclaimed_balance_usd || t.unclaimed_usd || 0,
-      }))
-      .sort((a, b) => (b.tokenjarUsd + b.unclaimedUsd) - (a.tokenjarUsd + a.unclaimedUsd))
+      .map((t) => {
+        // Extract symbol from HTML if needed (e.g., "<a href='...'>USDT</a>" -> "USDT")
+        let symbol = t.symbol || "Unknown";
+        const match = symbol.match(/>([^<]+)</);
+        if (match) {
+          symbol = match[1];
+        }
+        return {
+          symbol,
+          tokenjarUsd: Number(t.value_usd) || 0,
+          unclaimedUsd: 0, // Not separated in this query
+        };
+      })
+      .sort((a, b) => b.tokenjarUsd - a.tokenjarUsd)
       .slice(0, 10);
 
     return NextResponse.json({
