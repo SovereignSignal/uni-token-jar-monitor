@@ -104,13 +104,17 @@ async function fetchDuneQuery<T>(queryId: number): Promise<DuneQueryResult<T> | 
  * Get fee monitoring data from Dune
  * Returns TokenJar balance, unclaimed fees, and token breakdown
  */
-export async function getDuneFeeSummary(): Promise<FeeSummary | null> {
-  // Check cache first
+export async function getDuneFeeSummary(forceRefresh = false): Promise<FeeSummary | null> {
+  // Check cache first (unless force refresh requested)
   const cacheKey = "dune_fee_summary";
-  const cached = serverCache.get<FeeSummary>(cacheKey);
-  if (cached && !serverCache.isExpired(cacheKey)) {
-    console.log("[Dune] Returning cached fee summary");
-    return cached.data;
+  if (!forceRefresh) {
+    const cached = serverCache.get<FeeSummary>(cacheKey);
+    if (cached && !serverCache.isExpired(cacheKey)) {
+      console.log("[Dune] Returning cached fee summary");
+      return cached.data;
+    }
+  } else {
+    console.log("[Dune] Force refresh requested, bypassing cache");
   }
 
   // Fetch token breakdown

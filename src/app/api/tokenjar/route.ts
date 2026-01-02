@@ -38,7 +38,7 @@ interface EnhancedProfitabilityData extends ProfitabilityData {
   dataSourceType: "dune" | "alchemy" | "fallback";
 }
 
-async function fetchFreshData(): Promise<EnhancedProfitabilityData> {
+async function fetchFreshData(forceRefreshDune = false): Promise<EnhancedProfitabilityData> {
   // Fetch token balances from TokenJar (Alchemy or fallback)
   const balances = await getTokenJarBalances();
 
@@ -54,7 +54,7 @@ async function fetchFreshData(): Promise<EnhancedProfitabilityData> {
 
   if (isDuneConfigured()) {
     try {
-      const duneFeeSummary = await getDuneFeeSummary();
+      const duneFeeSummary = await getDuneFeeSummary(forceRefreshDune);
       if (duneFeeSummary) {
         duneData = {
           tokenJarBalanceUsd: duneFeeSummary.tokenJarBalanceUsd,
@@ -120,13 +120,17 @@ function getDataSourceLabel(dataSourceType?: "dune" | "alchemy" | "fallback", ca
   return `${source} (cached)`;
 }
 
-export async function GET(): Promise<NextResponse<TokenJarApiResponse>> {
+export async function GET(request: Request): Promise<NextResponse<TokenJarApiResponse>> {
   try {
-    // Check cache first
+    // Check for force refresh parameter
+    const url = new URL(request.url);
+    const forceRefresh = url.searchParams.get("refresh") === "true";
+
+    // Check cache first (unless force refresh)
     const cached = serverCache.get<EnhancedProfitabilityData>(CACHE_KEYS.PROFITABILITY_DATA);
     const isExpired = serverCache.isExpired(CACHE_KEYS.PROFITABILITY_DATA);
 
-    if (cached && !isExpired) {
+    if (!forceRefresh && cached && !isExpired) {
       // Fresh cache hit - return immediately
       const dataAge = Math.floor((Date.now() - cached.timestamp) / 1000);
       return NextResponse.json({
@@ -142,7 +146,7 @@ export async function GET(): Promise<NextResponse<TokenJarApiResponse>> {
       });
     }
 
-    if (cached && isExpired) {
+    if (!forceRefresh && cached && isExpired) {
       // Stale cache - return stale data but trigger background refresh
       const dataAge = Math.floor((Date.now() - cached.timestamp) / 1000);
 
@@ -162,8 +166,8 @@ export async function GET(): Promise<NextResponse<TokenJarApiResponse>> {
       });
     }
 
-    // Cache miss - fetch fresh data
-    const freshData = await fetchFreshData();
+    // Cache miss or force refresh - fetch fresh data
+    const freshData = await fetchFreshData(forceRefresh);
 
     // Store in cache
     serverCache.set(CACHE_KEYS.PROFITABILITY_DATA, freshData, CACHE_TTL.PROFITABILITY_DATA);

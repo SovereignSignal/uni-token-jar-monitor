@@ -38,8 +38,11 @@ export async function GET(request: NextRequest): Promise<NextResponse<DuneApiRes
     return NextResponse.json({ debug: rawData });
   }
 
+  // Force refresh parameter to bypass cache
+  const forceRefresh = request.nextUrl.searchParams.get("refresh") === "true";
+
   try {
-    const feeSummary = await getDuneFeeSummary();
+    const feeSummary = await getDuneFeeSummary(forceRefresh);
 
     if (!feeSummary) {
       return NextResponse.json({
