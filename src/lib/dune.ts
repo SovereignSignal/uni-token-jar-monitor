@@ -11,6 +11,8 @@ const DUNE_QUERIES = {
   FEES_BY_TOKEN: 6432620,
   // Fee Monitoring - Fees by Pool (ETH Mainnet)
   FEES_BY_POOL: 6432870,
+  // Fee Monitoring - Summary (has Unclaimed vs TokenJar breakdown)
+  SUMMARY: 6432715,
 };
 
 interface DuneQueryResult<T> {
@@ -49,6 +51,20 @@ export interface FeeByPoolRow {
   token1_fees?: string; // e.g., "0.236 WETH"
   fee_value_uni?: number; // Fee value in UNI
   fee_value_usd?: number; // Fee value in USD
+  [key: string]: string | number | undefined;
+}
+
+// Summary row from query 6432715
+export interface SummaryRow {
+  // These are the actual values from the Summary query
+  // Column names might vary - we'll handle multiple variations
+  unclaimed_usd?: number;
+  tokenjar_usd?: number;
+  releasable_usd?: number;
+  unclaimed_uni?: number;
+  tokenjar_uni?: number;
+  releasable_uni?: number;
+  threshold_uni?: number;
   [key: string]: string | number | undefined;
 }
 
@@ -143,11 +159,18 @@ export async function getDuneFeeSummary(forceRefresh = false): Promise<FeeSummar
     console.log("[Dune] Force refresh requested, bypassing cache");
   }
 
-  // Fetch token breakdown and pool data in parallel
-  const [tokenData, poolData] = await Promise.all([
+  // Fetch token breakdown, pool data, and summary in parallel
+  const [tokenData, poolData, summaryData] = await Promise.all([
     fetchDuneQuery<FeeByTokenRow>(DUNE_QUERIES.FEES_BY_TOKEN),
     fetchDuneQuery<FeeByPoolRow>(DUNE_QUERIES.FEES_BY_POOL),
+    fetchDuneQuery<SummaryRow>(DUNE_QUERIES.SUMMARY),
   ]);
+
+  // Log summary data for debugging
+  if (summaryData?.result?.rows?.[0]) {
+    console.log(`[Dune] Summary columns: ${Object.keys(summaryData.result.rows[0]).join(", ")}`);
+    console.log(`[Dune] Summary data:`, JSON.stringify(summaryData.result.rows[0]));
+  }
 
   if (!tokenData?.result?.rows) {
     console.error("[Dune] No token data returned");
@@ -175,39 +198,110 @@ export async function getDuneFeeSummary(forceRefresh = false): Promise<FeeSummar
     const pools = poolData.result.rows;
     console.log(`[Dune] Processing ${pools.length} pools`);
 
-    // Log first pool to see column names
+    // Log first pool to see all column names and values
     if (pools[0]) {
-      console.log(`[Dune] Pool columns: ${Object.keys(pools[0]).join(", ")}`);
+      const firstPool = pools[0];
+      console.log(`[Dune] Pool columns: ${Object.keys(firstPool).join(", ")}`);
+      console.log(`[Dune] First pool data:`, JSON.stringify(firstPool));
     }
 
-    // Sort by USD value and take top 10
+    // Helper to get value from pool with multiple possible column names
+    const getPoolValue = (pool: FeeByPoolRow, ...keys: string[]): string | number | undefined => {
+      for (const key of keys) {
+        const value = pool[key];
+        if (value !== undefined && value !== null && value !== "") {
+          return value;
+        }
+      }
+      return undefined;
+    };
+
+    // Sort by USD value (try multiple possible column names)
     const sortedPools = [...pools]
-      .sort((a, b) => (Number(b.fee_value_usd) || 0) - (Number(a.fee_value_usd) || 0))
+      .sort((a, b) => {
+        const aVal = Number(getPoolValue(a, "fee_value_usd", "value_usd", "usd_value", "fee_usd")) || 0;
+        const bVal = Number(getPoolValue(b, "fee_value_usd", "value_usd", "usd_value", "fee_usd")) || 0;
+        return bVal - aVal;
+      })
       .slice(0, 10);
 
     for (const pool of sortedPools) {
+      // Try multiple possible column name variations
+      const tokenPair = getPoolValue(pool, "token_pair", "pair", "pool_name", "name") as string || "Unknown";
+      const poolAddress = getPoolValue(pool, "pool_address", "address", "pool", "contract_address") as string || "";
+      const token0Fees = getPoolValue(pool, "token0_fees", "token0_fees_formatted", "token_0_fees", "fees_token0") as string || "0";
+      const token1Fees = getPoolValue(pool, "token1_fees", "token1_fees_formatted", "token_1_fees", "fees_token1") as string || "0";
+      const valueUni = Number(getPoolValue(pool, "fee_value_uni", "value_uni", "uni_value", "fee_uni")) || 0;
+      const valueUsd = Number(getPoolValue(pool, "fee_value_usd", "value_usd", "usd_value", "fee_usd")) || 0;
+
       topPools.push({
-        tokenPair: String(pool.token_pair || "Unknown"),
-        poolAddress: String(pool.pool_address || ""),
-        token0Fees: String(pool.token0_fees || "0"),
-        token1Fees: String(pool.token1_fees || "0"),
-        valueUni: Number(pool.fee_value_uni) || 0,
-        valueUsd: Number(pool.fee_value_usd) || 0,
+        tokenPair,
+        poolAddress,
+        token0Fees,
+        token1Fees,
+        valueUni,
+        valueUsd,
       });
+
+      // Log the first pool mapping for debugging
+      if (topPools.length === 1) {
+        console.log(`[Dune] First pool mapped:`, topPools[0]);
+      }
+    }
+  } else {
+    console.log(`[Dune] No pool data available`);
+  }
+
+  // Try to get breakdown from summary data if available
+  let tokenJarBalanceUsd = totalValueUsd;
+  let unclaimedValueUsd = 0;
+  let tokenJarBalanceUni = totalValueUni;
+  let unclaimedValueUni = 0;
+
+  // Helper to extract summary values with multiple possible column names
+  const getSummaryValue = (row: SummaryRow | undefined, ...keys: string[]): number => {
+    if (!row) return 0;
+    for (const key of keys) {
+      const value = row[key];
+      if (value !== undefined && value !== null) {
+        return Number(value) || 0;
+      }
+    }
+    return 0;
+  };
+
+  if (summaryData?.result?.rows?.[0]) {
+    const summaryRow = summaryData.result.rows[0];
+
+    // Try to extract Unclaimed and TokenJar values separately
+    const summaryUnclaimedUsd = getSummaryValue(summaryRow, "unclaimed_usd", "unclaimed_value_usd", "unclaimed");
+    const summaryTokenJarUsd = getSummaryValue(summaryRow, "tokenjar_usd", "token_jar_usd", "tokenjar_balance_usd", "jar_usd");
+    const summaryUnclaimedUni = getSummaryValue(summaryRow, "unclaimed_uni", "unclaimed_value_uni");
+    const summaryTokenJarUni = getSummaryValue(summaryRow, "tokenjar_uni", "token_jar_uni", "tokenjar_balance_uni", "jar_uni");
+
+    if (summaryUnclaimedUsd > 0 || summaryTokenJarUsd > 0) {
+      unclaimedValueUsd = summaryUnclaimedUsd;
+      tokenJarBalanceUsd = summaryTokenJarUsd;
+      console.log(`[Dune] Using summary breakdown: Unclaimed=$${unclaimedValueUsd.toFixed(2)}, TokenJar=$${tokenJarBalanceUsd.toFixed(2)}`);
+    }
+
+    if (summaryUnclaimedUni > 0 || summaryTokenJarUni > 0) {
+      unclaimedValueUni = summaryUnclaimedUni;
+      tokenJarBalanceUni = summaryTokenJarUni;
     }
   }
 
-  // The Dune query gives us value_usd which is the total collectible value
-  // This represents the combined TokenJar balance + unclaimed fees
+  // Calculate collectible totals
+  const collectibleUsd = unclaimedValueUsd > 0 ? unclaimedValueUsd + tokenJarBalanceUsd : totalValueUsd;
+  const collectibleUni = unclaimedValueUni > 0 ? unclaimedValueUni + tokenJarBalanceUni : totalValueUni;
+
   const summary: FeeSummary = {
-    // For now, we show the total as "collectible" since the query combines them
-    // The breakdown would require the summary query (6432715) which has separate values
-    tokenJarBalanceUsd: totalValueUsd,
-    unclaimedValueUsd: 0,
-    collectibleUsd: totalValueUsd,
-    tokenJarBalanceUni: totalValueUni,
-    unclaimedValueUni: 0,
-    collectibleUni: totalValueUni,
+    tokenJarBalanceUsd,
+    unclaimedValueUsd,
+    collectibleUsd,
+    tokenJarBalanceUni,
+    unclaimedValueUni,
+    collectibleUni,
     tokens,
     topPools,
     lastUpdated: Date.now(),
@@ -261,5 +355,81 @@ export async function getRawDuneData(): Promise<{
     };
   } catch {
     return { columnNames: [], sampleRow: null, rowCount: 0 };
+  }
+}
+
+/**
+ * Get raw pool data for debugging
+ */
+export async function getRawPoolData(): Promise<{
+  columnNames: string[];
+  sampleRow: Record<string, unknown> | null;
+  rowCount: number;
+}> {
+  const apiKey = process.env.DUNE_API_KEY;
+  if (!apiKey) {
+    return { columnNames: [], sampleRow: null, rowCount: 0 };
+  }
+
+  try {
+    const response = await fetch(
+      `https://api.dune.com/api/v1/query/${DUNE_QUERIES.FEES_BY_POOL}/results?limit=5`,
+      {
+        headers: { "X-Dune-API-Key": apiKey },
+      }
+    );
+
+    if (!response.ok) {
+      console.error(`[Dune] Pool query HTTP error: ${response.status}`);
+      return { columnNames: [], sampleRow: null, rowCount: 0 };
+    }
+
+    const data = await response.json();
+    return {
+      columnNames: data.result?.metadata?.column_names || [],
+      sampleRow: data.result?.rows?.[0] || null,
+      rowCount: data.result?.metadata?.total_row_count || 0,
+    };
+  } catch (error) {
+    console.error("[Dune] Error fetching pool data:", error);
+    return { columnNames: [], sampleRow: null, rowCount: 0 };
+  }
+}
+
+/**
+ * Get raw summary data for debugging
+ */
+export async function getRawSummaryData(): Promise<{
+  columnNames: string[];
+  rows: Record<string, unknown>[];
+  rowCount: number;
+}> {
+  const apiKey = process.env.DUNE_API_KEY;
+  if (!apiKey) {
+    return { columnNames: [], rows: [], rowCount: 0 };
+  }
+
+  try {
+    const response = await fetch(
+      `https://api.dune.com/api/v1/query/${DUNE_QUERIES.SUMMARY}/results`,
+      {
+        headers: { "X-Dune-API-Key": apiKey },
+      }
+    );
+
+    if (!response.ok) {
+      console.error(`[Dune] Summary query HTTP error: ${response.status}`);
+      return { columnNames: [], rows: [], rowCount: 0 };
+    }
+
+    const data = await response.json();
+    return {
+      columnNames: data.result?.metadata?.column_names || [],
+      rows: data.result?.rows || [],
+      rowCount: data.result?.metadata?.total_row_count || 0,
+    };
+  } catch (error) {
+    console.error("[Dune] Error fetching summary data:", error);
+    return { columnNames: [], rows: [], rowCount: 0 };
   }
 }

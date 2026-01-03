@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getDuneFeeSummary, isDuneConfigured, getRawDuneData } from "@/lib/dune";
+import { getDuneFeeSummary, isDuneConfigured, getRawDuneData, getRawPoolData, getRawSummaryData } from "@/lib/dune";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -22,7 +22,7 @@ export interface DuneApiResponse {
   error?: string;
 }
 
-export async function GET(request: NextRequest): Promise<NextResponse<DuneApiResponse | { debug: unknown }>> {
+export async function GET(request: NextRequest): Promise<NextResponse<DuneApiResponse | { debug: unknown } | { debug_pools: unknown } | { debug_summary: unknown }>> {
   if (!isDuneConfigured()) {
     return NextResponse.json({
       success: false,
@@ -36,6 +36,20 @@ export async function GET(request: NextRequest): Promise<NextResponse<DuneApiRes
   if (debug === "true") {
     const rawData = await getRawDuneData();
     return NextResponse.json({ debug: rawData });
+  }
+
+  // Pool debug mode
+  const poolDebug = request.nextUrl.searchParams.get("debug_pools");
+  if (poolDebug === "true") {
+    const poolData = await getRawPoolData();
+    return NextResponse.json({ debug_pools: poolData });
+  }
+
+  // Summary debug mode
+  const summaryDebug = request.nextUrl.searchParams.get("debug_summary");
+  if (summaryDebug === "true") {
+    const summaryData = await getRawSummaryData();
+    return NextResponse.json({ debug_summary: summaryData });
   }
 
   // Force refresh parameter to bypass cache

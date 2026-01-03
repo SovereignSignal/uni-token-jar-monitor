@@ -208,6 +208,8 @@ export default function Home() {
   const [duneTokenCount, setDuneTokenCount] = useState<number | null>(null);
   const [collectibleUsd, setCollectibleUsd] = useState<number | null>(null);
   const [collectibleUni, setCollectibleUni] = useState<number | null>(null);
+  const [tokenJarBalanceUsd, setTokenJarBalanceUsd] = useState<number | null>(null);
+  const [unclaimedValueUsd, setUnclaimedValueUsd] = useState<number | null>(null);
   const [uniToThreshold, setUniToThreshold] = useState<number | null>(null);
   const [topPools, setTopPools] = useState<Array<{
     tokenPair: string;
@@ -236,6 +238,8 @@ export default function Home() {
             tokenCount: number;
             collectibleUsd: number;
             collectibleUni: number;
+            tokenJarBalanceUsd: number;
+            unclaimedValueUsd: number;
             uniToThreshold: number;
             topPools: Array<{
               tokenPair: string;
@@ -254,6 +258,8 @@ export default function Home() {
           setDuneTokenCount(extendedData.duneData.tokenCount);
           setCollectibleUsd(extendedData.duneData.collectibleUsd);
           setCollectibleUni(extendedData.duneData.collectibleUni);
+          setTokenJarBalanceUsd(extendedData.duneData.tokenJarBalanceUsd);
+          setUnclaimedValueUsd(extendedData.duneData.unclaimedValueUsd);
           setUniToThreshold(extendedData.duneData.uniToThreshold);
           setTopPools(extendedData.duneData.topPools || []);
         } else {
@@ -261,6 +267,8 @@ export default function Home() {
           setDuneTokenCount(null);
           setCollectibleUsd(null);
           setCollectibleUni(null);
+          setTokenJarBalanceUsd(null);
+          setUnclaimedValueUsd(null);
           setUniToThreshold(null);
           setTopPools([]);
         }
@@ -499,6 +507,28 @@ export default function Home() {
                     )}
                   </div>
                 </div>
+
+                {/* Show Unclaimed vs TokenJar breakdown if available */}
+                {unclaimedValueUsd !== null && unclaimedValueUsd > 0 && (
+                  <div className="pl-3 space-y-1.5 border-l-2 border-gray-800/50">
+                    <div className="flex justify-between items-center">
+                      <Tooltip text="Fees still in pools, not yet collected">
+                        <span className="text-[9px] text-gray-500">↳ Unclaimed</span>
+                      </Tooltip>
+                      <span className="text-[10px] text-gray-400">
+                        {formatUsd(unclaimedValueUsd)}
+                      </span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <Tooltip text="Already collected in TokenJar">
+                        <span className="text-[9px] text-gray-500">↳ In TokenJar</span>
+                      </Tooltip>
+                      <span className="text-[10px] text-gray-400">
+                        {formatUsd(tokenJarBalanceUsd ?? 0)}
+                      </span>
+                    </div>
+                  </div>
+                )}
 
                 <div className="flex justify-between items-center">
                   <Tooltip text="Cost to burn 4000 UNI tokens">
