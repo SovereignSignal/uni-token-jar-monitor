@@ -206,6 +206,7 @@ export default function Home() {
   const [dataAge, setDataAge] = useState<number>(0);
   const [cacheStatus, setCacheStatus] = useState<string>("");
   const [duneTokenCount, setDuneTokenCount] = useState<number | null>(null);
+  const [collectibleUsd, setCollectibleUsd] = useState<number | null>(null);
   const [collectibleUni, setCollectibleUni] = useState<number | null>(null);
   const [uniToThreshold, setUniToThreshold] = useState<number | null>(null);
   const [topPools, setTopPools] = useState<Array<{
@@ -233,6 +234,7 @@ export default function Home() {
           cacheStatus?: string;
           duneData?: {
             tokenCount: number;
+            collectibleUsd: number;
             collectibleUni: number;
             uniToThreshold: number;
             topPools: Array<{
@@ -250,9 +252,17 @@ export default function Home() {
         if (extendedData.cacheStatus) setCacheStatus(extendedData.cacheStatus);
         if (extendedData.duneData) {
           setDuneTokenCount(extendedData.duneData.tokenCount);
+          setCollectibleUsd(extendedData.duneData.collectibleUsd);
           setCollectibleUni(extendedData.duneData.collectibleUni);
           setUniToThreshold(extendedData.duneData.uniToThreshold);
           setTopPools(extendedData.duneData.topPools || []);
+        } else {
+          // Reset Dune-specific values when not available
+          setDuneTokenCount(null);
+          setCollectibleUsd(null);
+          setCollectibleUni(null);
+          setUniToThreshold(null);
+          setTopPools([]);
         }
       } else {
         setError(result.error || "Failed to fetch data");
@@ -420,54 +430,67 @@ export default function Home() {
                 }}
               />
               <JarVisualization
-                tokens={data.displayTokens.map((t) => ({
-                  symbol: t.symbol,
-                  valueUsd: t.valueUsd,
-                }))}
-                totalValue={data.totalJarValueUsd}
+                totalValue={collectibleUsd ?? data.totalJarValueUsd}
                 burnCost={data.burnCostUsd}
-                isProfitable={data.isProfitable}
+                isProfitable={(collectibleUsd ?? data.totalJarValueUsd) > data.burnCostUsd + data.gasEstimateUsd}
               />
             </div>
           </div>
 
           {/* Net Profit Card */}
-          <div className="card p-6">
-            <div className="text-center">
-              <span className="text-[11px] text-gray-400 uppercase tracking-wider font-medium">Net Profit</span>
-              <div 
-                className={`text-3xl md:text-4xl font-bold mt-2 mb-4 ${
-                  data.isProfitable ? 'text-green-400' : 'text-red-400'
-                }`}
-                style={{
-                  textShadow: data.isProfitable 
-                    ? '0 0 30px rgba(39,174,96,0.5)' 
-                    : '0 0 30px rgba(253,64,64,0.5)'
-                }}
-              >
-                {formatUsd(data.netProfitUsd, true)}
+          {(() => {
+            // Use Dune values when available for accurate calculations
+            const jarValue = collectibleUsd ?? data.totalJarValueUsd;
+            const totalCost = data.burnCostUsd + data.gasEstimateUsd;
+            const netProfit = jarValue - totalCost;
+            const isProfitable = netProfit > 0;
+
+            return (
+              <div className="card p-6">
+                <div className="text-center">
+                  <span className="text-[11px] text-gray-400 uppercase tracking-wider font-medium">Net Profit</span>
+                  <div
+                    className={`text-3xl md:text-4xl font-bold mt-2 mb-4 ${
+                      isProfitable ? 'text-green-400' : 'text-red-400'
+                    }`}
+                    style={{
+                      textShadow: isProfitable
+                        ? '0 0 30px rgba(39,174,96,0.5)'
+                        : '0 0 30px rgba(253,64,64,0.5)'
+                    }}
+                  >
+                    {formatUsd(netProfit, true)}
+                  </div>
+
+                  <StatusBadge netProfit={netProfit} burnCost={data.burnCostUsd} />
+                </div>
+
+                {/* Profit Gauge */}
+                <ProfitGauge currentValue={jarValue} burnCost={data.burnCostUsd} />
               </div>
-              
-              <StatusBadge netProfit={data.netProfitUsd} burnCost={data.burnCostUsd} />
-            </div>
-            
-            {/* Profit Gauge */}
-            <ProfitGauge currentValue={data.totalJarValueUsd} burnCost={data.burnCostUsd} />
-          </div>
+            );
+          })()}
 
           {/* Stats Grid - Separate Cards */}
           <div className="grid md:grid-cols-2 gap-5">
             {/* Breakdown Card - matched height with tokens */}
             <div className="card p-5 flex flex-col min-h-[200px]">
-              <h2 className="text-[9px] text-[#FF007A] mb-4 tracking-widest">BREAKDOWN</h2>
+              <div className="flex justify-between items-center mb-4">
+                <h2 className="text-[9px] text-[#FF007A] tracking-widest">BREAKDOWN</h2>
+                {collectibleUsd !== null && (
+                  <span className="text-[7px] text-gray-600 bg-gray-800/50 px-2 py-0.5 rounded">
+                    via dune.com
+                  </span>
+                )}
+              </div>
               <div className="space-y-3 flex-1">
                 <div className="flex justify-between items-center">
-                  <Tooltip text="Total value of tokens in the jar">
-                    <span className="text-[10px] text-gray-400">JAR VALUE</span>
+                  <Tooltip text="Total collectible value (TokenJar + unclaimed fees)">
+                    <span className="text-[10px] text-gray-400">COLLECTIBLE VALUE</span>
                   </Tooltip>
                   <div className="text-right">
-                    <span className="text-[11px] text-yellow-400 font-medium">
-                      {formatUsd(data.totalJarValueUsd)}
+                    <span className="text-[12px] text-green-400 font-bold">
+                      {formatUsd(collectibleUsd ?? data.totalJarValueUsd)}
                     </span>
                     {collectibleUni !== null && (
                       <span className="text-[9px] text-gray-500 block">

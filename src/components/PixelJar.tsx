@@ -169,13 +169,7 @@ export function BurnPile({ jarValue, burnCost, size = "normal" }: BurnPileProps)
 // MAIN VISUALIZATION COMPONENT
 // =============================================================================
 
-interface TokenData {
-  symbol: string;
-  valueUsd: number | null;
-}
-
 interface JarVisualizationProps {
-  tokens: TokenData[];
   totalValue: number;
   burnCost: number;
   isProfitable: boolean;
@@ -186,10 +180,8 @@ export default function JarVisualization({
   burnCost,
   isProfitable,
 }: JarVisualizationProps) {
-  // Calculate percentages for comparison bar
-  const total = burnCost + totalValue;
-  const burnPercent = total > 0 ? (burnCost / total) * 100 : 97;
-  const jarPercent = total > 0 ? (totalValue / total) * 100 : 3;
+  // Calculate progress percentage (how close to break-even)
+  const progressPercent = burnCost > 0 ? Math.min(100, (totalValue / burnCost) * 100) : 0;
 
   return (
     <div className="jar-visualization w-full max-w-3xl mx-auto">
@@ -197,7 +189,6 @@ export default function JarVisualization({
       <div className="flex items-center justify-center gap-6 md:gap-12 py-6">
         {/* Left side: Burn Pile */}
         <div className="flex flex-col items-center justify-center flex-1">
-          <span className="text-[10px] text-red-400 mb-4 tracking-widest uppercase font-medium">Burn</span>
           <BurnPile jarValue={totalValue} burnCost={burnCost} size="large" />
         </div>
 
@@ -218,34 +209,25 @@ export default function JarVisualization({
 
         {/* Right side: Jar with fill level based on value */}
         <div className="flex flex-col items-center justify-center flex-1">
-          <span className="text-[10px] text-green-400 mb-4 tracking-widest uppercase font-medium">Vault</span>
           <PixelJar jarValue={totalValue} burnCost={burnCost} size="large" />
         </div>
       </div>
 
-      {/* Comparison bar */}
-      <div className="mt-6">
-        <div className="flex items-center justify-between mb-2">
-          <span className="text-[10px] text-red-400/90 font-medium">{burnPercent.toFixed(0)}% burn</span>
-          <span className="text-[8px] text-gray-600/70 uppercase tracking-wider">Burn vs Reward</span>
-          <span className={`text-[10px] font-medium ${isProfitable ? 'text-green-400/90' : 'text-yellow-400/90'}`}>
-            {jarPercent.toFixed(0)}% reward
-          </span>
-        </div>
-        <div className="h-3 flex rounded-sm overflow-hidden bg-gray-900">
-          {/* Burn portion (red) */}
+      {/* Simple progress bar - no text labels */}
+      <div className="mt-4">
+        <div className="h-2 rounded-full overflow-hidden bg-gray-900/80">
           <div
-            className="bg-gradient-to-r from-red-600/70 to-red-500/70 transition-all duration-500"
-            style={{ width: `${burnPercent}%` }}
-          />
-          {/* Jar portion (green/gold) */}
-          <div
-            className={`transition-all duration-500 ${
-              isProfitable 
-                ? 'bg-gradient-to-r from-green-500/70 to-green-400/70' 
-                : 'bg-gradient-to-r from-yellow-600/70 to-yellow-500/70'
+            className={`h-full rounded-full transition-all duration-700 ${
+              isProfitable
+                ? 'bg-gradient-to-r from-green-600 to-green-400'
+                : 'bg-gradient-to-r from-[#FF007A] to-[#ff5fa2]'
             }`}
-            style={{ width: `${jarPercent}%` }}
+            style={{
+              width: `${progressPercent}%`,
+              boxShadow: isProfitable
+                ? '0 0 10px rgba(39, 174, 96, 0.5)'
+                : '0 0 10px rgba(255, 0, 122, 0.5)'
+            }}
           />
         </div>
       </div>
