@@ -388,6 +388,39 @@ export default function Home() {
         </div>
       </header>
 
+      {/* Status HUD */}
+      <div className="card p-4 mb-6">
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+          <div className="flex items-center justify-between md:justify-start gap-4">
+            <div className="flex items-center gap-2">
+              <StatusIndicator status={status} />
+              {lastFetch && (
+                <span className="text-[9px] text-gray-500">
+                  {formatUtcTime(lastFetch)}
+                </span>
+              )}
+            </div>
+
+            <button
+              onClick={fetchData}
+              disabled={isRefreshing}
+              className="retro-btn text-[9px] px-3 py-2"
+            >
+              {isRefreshing ? "..." : "SCOUT"}
+            </button>
+          </div>
+
+          <div className="text-center md:text-right text-[8px] text-gray-600">
+            <p>Auto-refreshes every 30 seconds • Prices via DeFiLlama</p>
+            {dataSource && (
+              <p className="mt-1 text-gray-500">
+                Data: {dataSource}
+              </p>
+            )}
+          </div>
+        </div>
+      </div>
+
       {/* Error State */}
       {error && (
         <div className="card p-5 mb-6 border-red-500/30">
@@ -780,33 +813,7 @@ export default function Home() {
 
       {/* Footer with Status Controls */}
       <footer className="mt-12 pt-6 border-t border-gray-800/30">
-        {/* Status Bar */}
-        <div className="flex items-center justify-center gap-4 mb-4">
-          <div className="flex items-center gap-2">
-            <StatusIndicator status={status} />
-            {lastFetch && (
-              <span className="text-[9px] text-gray-500">
-                {formatUtcTime(lastFetch)}
-              </span>
-            )}
-          </div>
-
-          <button
-            onClick={fetchData}
-            disabled={isRefreshing}
-            className="retro-btn text-[9px] px-3 py-2"
-          >
-            {isRefreshing ? "..." : "SCOUT"}
-          </button>
-        </div>
-
         <div className="text-center text-[8px] text-gray-600">
-          <p>Auto-refreshes every 30 seconds • Prices via DeFiLlama</p>
-          {dataSource && (
-            <p className="mt-1 text-gray-500">
-              Data: {dataSource}
-            </p>
-          )}
           <p className="mt-1 text-gray-700">Not financial advice</p>
         </div>
       </footer>

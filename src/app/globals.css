@@ -87,6 +87,16 @@ body {
     0 0 20px rgba(255, 0, 122, 0.08),
     inset 0 1px 0 rgba(255, 255, 255, 0.03);
   position: relative;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+@media (hover: hover) {
+  .card:hover {
+    border-color: rgba(255, 0, 122, 0.45);
+    box-shadow:
+      0 0 24px rgba(255, 0, 122, 0.12),
+      inset 0 1px 0 rgba(255, 255, 255, 0.03);
+  }
 }
 
 /* Card with pink glow effect */
@@ -167,6 +177,11 @@ body {
   background: linear-gradient(180deg, #3D3F46 0%, #2a2c32 100%);
   border-color: rgba(255, 0, 122, 0.6);
   box-shadow: 0 0 15px rgba(255, 0, 122, 0.2);
+}
+
+.retro-btn:focus-visible {
+  outline: 2px solid rgba(255, 0, 122, 0.6);
+  outline-offset: 2px;
 }
 
 .retro-btn:active {

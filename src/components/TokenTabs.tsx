@@ -193,7 +193,7 @@ export default function TokenTabs({ categorizedTokens, duneTokenCount }: TokenTa
       </div>
       
       {/* Tab Headers */}
-      <div className="flex gap-2 mb-4 p-1 bg-gray-900/50 rounded-lg">
+      <div className="flex gap-2 mb-4 p-1 bg-gray-900/70 rounded-lg border border-gray-800/60">
         {(Object.keys(TAB_CONFIG) as TabKey[]).map((key) => {
           const config = TAB_CONFIG[key];
           const category = categorizedTokens[key];
@@ -208,8 +208,8 @@ export default function TokenTabs({ categorizedTokens, duneTokenCount }: TokenTa
               }}
               className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-md text-[9px] transition-all duration-200 ${
                 isActive
-                  ? "bg-[#FF007A]/20 text-[#FF007A] shadow-lg shadow-[#FF007A]/10"
-                  : "text-gray-500 hover:text-gray-300 hover:bg-gray-800/50"
+                  ? "bg-[#FF007A]/20 text-[#FF007A] shadow-lg shadow-[#FF007A]/10 border border-[#FF007A]/20"
+                  : "text-gray-500 hover:text-gray-300 hover:bg-gray-800/60 border border-transparent"
               }`}
             >
               <span className="text-sm">{config.icon}</span>
@@ -246,7 +246,7 @@ export default function TokenTabs({ categorizedTokens, duneTokenCount }: TokenTa
       )}
 
       {/* Token List */}
-      <div className="space-y-1 max-h-96 overflow-y-auto custom-scrollbar">
+      <div className="space-y-1 max-h-96 overflow-y-auto custom-scrollbar rounded-lg bg-gray-900/20 border border-gray-800/30 p-1">
         {activeCategory.tokens.length === 0 ? (
           <EmptyState tab={activeTab} />
         ) : (

@@ -31,15 +31,15 @@ function getFillLevel(jarValue: number, burnCost: number): "empty" | "quarter" |
 function getJarSprite(fillLevel: "empty" | "quarter" | "half" | "threequarter" | "full"): string {
   switch (fillLevel) {
     case "empty":
-      return "/assets/jar/jar-empty.png";
+      return "/assets/jar/jar-fill-1.png";
     case "quarter":
-      return "/assets/jar/jar-quarter.png";
+      return "/assets/jar/jar-fill-2.png";
     case "half":
-      return "/assets/jar/jar-half.png";
+      return "/assets/jar/jar-fill-3.png";
     case "threequarter":
-      return "/assets/jar/jar-threequarter.png";
+      return "/assets/jar/jar-fill-5.png";
     case "full":
-      return "/assets/jar/jar-full.png";
+      return "/assets/jar/jar-fill-5.png";
   }
 }
 
@@ -186,9 +186,9 @@ export default function JarVisualization({
   return (
     <div className="jar-visualization w-full max-w-3xl mx-auto">
       {/* Main visualization area - side by side, centered vertically */}
-      <div className="flex items-center justify-center gap-6 md:gap-12 py-6">
+      <div className="flex flex-col md:flex-row items-center justify-center gap-4 md:gap-12 py-4 md:py-6">
         {/* Left side: Burn Pile */}
-        <div className="flex flex-col items-center justify-center flex-1">
+        <div className="flex flex-col items-center justify-center flex-1 scale-[0.85] md:scale-100">
           <BurnPile jarValue={totalValue} burnCost={burnCost} size="large" />
         </div>
 
@@ -199,7 +199,7 @@ export default function JarVisualization({
             alt="Arrow"
             width={48}
             height={24}
-            className="pixel-sprite opacity-70"
+            className="pixel-sprite opacity-70 rotate-90 md:rotate-0"
             style={{ imageRendering: "pixelated" }}
           />
           <span className="text-[9px] text-gray-400 text-center leading-tight font-medium tracking-wide">
@@ -208,7 +208,7 @@ export default function JarVisualization({
         </div>
 
         {/* Right side: Jar with fill level based on value */}
-        <div className="flex flex-col items-center justify-center flex-1">
+        <div className="flex flex-col items-center justify-center flex-1 scale-[0.85] md:scale-100">
           <PixelJar jarValue={totalValue} burnCost={burnCost} size="large" />
         </div>
       </div>
