@@ -64,10 +64,9 @@ async function fetchFreshData(forceRefreshDune = false): Promise<EnhancedProfita
     try {
       const duneFeeSummary = await getDuneFeeSummary(forceRefreshDune);
       if (duneFeeSummary) {
-        // Calculate UNI to threshold (4000 UNI burn requirement)
-        const burnThreshold = 4000;
-        const collectibleUni = duneFeeSummary.collectibleUni;
-        const uniToThreshold = Math.max(0, burnThreshold - collectibleUni);
+        // Use Dune's threshold calculation (more accurate than our own)
+        // thresholdDeltaUni = UNI still needed to reach 4000 burn threshold
+        const uniToThreshold = duneFeeSummary.thresholdDeltaUni;
 
         duneData = {
           // USD values
@@ -87,7 +86,7 @@ async function fetchFreshData(forceRefreshDune = false): Promise<EnhancedProfita
           topPools: duneFeeSummary.topPools,
         };
         dataSourceType = "dune";
-        console.log(`[Dune] Using Dune data: Total=$${duneData.collectibleUsd.toFixed(2)} (${duneData.collectibleUni.toFixed(2)} UNI), UNI to threshold=${uniToThreshold.toFixed(2)}`);
+        console.log(`[Dune] Using Dune data: Total=$${duneData.collectibleUsd.toFixed(2)} (${duneData.collectibleUni.toFixed(2)} UNI), UNI to threshold=${uniToThreshold} (from Dune)`);
 
         // Override the totalJarValueUsd with Dune's more accurate data
         // Dune tracks all 520+ tokens while Alchemy may miss some

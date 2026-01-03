@@ -86,6 +86,8 @@ export interface FeeSummary {
   tokenJarBalanceUni: number;
   unclaimedValueUni: number;
   collectibleUni: number;
+  // Threshold from Dune (UNI still needed to reach 4000 burn threshold)
+  thresholdDeltaUni: number;
   // Token breakdown
   tokens: FeeByTokenRow[];
   // Top pools by value
@@ -225,14 +227,28 @@ export async function getDuneFeeSummary(forceRefresh = false): Promise<FeeSummar
       })
       .slice(0, 10);
 
+    // Helper to extract address from HTML link or plain string
+    const extractAddress = (value: string | number | undefined): string => {
+      if (!value) return "";
+      const str = String(value);
+      // Check if it's HTML with an address link
+      const addressMatch = str.match(/0x[a-fA-F0-9]{40}/);
+      if (addressMatch) {
+        return addressMatch[0];
+      }
+      return str;
+    };
+
     for (const pool of sortedPools) {
       // Try multiple possible column name variations
-      const tokenPair = getPoolValue(pool, "token_pair", "pair", "pool_name", "name") as string || "Unknown";
-      const poolAddress = getPoolValue(pool, "pool_address", "address", "pool", "contract_address") as string || "";
+      const tokenPair = getPoolValue(pool, "pair", "token_pair", "pool_name", "name") as string || "Unknown";
+      // address_link contains HTML like <a href='https://etherscan.io/address/0x...'>
+      const rawAddress = getPoolValue(pool, "address_link", "pool_address", "address", "pool", "contract_address") as string || "";
+      const poolAddress = extractAddress(rawAddress);
       const token0Fees = getPoolValue(pool, "token0_fees", "token0_fees_formatted", "token_0_fees", "fees_token0") as string || "0";
       const token1Fees = getPoolValue(pool, "token1_fees", "token1_fees_formatted", "token_1_fees", "fees_token1") as string || "0";
-      const valueUni = Number(getPoolValue(pool, "fee_value_uni", "value_uni", "uni_value", "fee_uni")) || 0;
-      const valueUsd = Number(getPoolValue(pool, "fee_value_usd", "value_usd", "usd_value", "fee_usd")) || 0;
+      const valueUni = Number(getPoolValue(pool, "value_uni", "fee_value_uni", "uni_value", "fee_uni")) || 0;
+      const valueUsd = Number(getPoolValue(pool, "value_usd", "fee_value_usd", "usd_value", "fee_usd")) || 0;
 
       topPools.push({
         tokenPair,
@@ -257,6 +273,7 @@ export async function getDuneFeeSummary(forceRefresh = false): Promise<FeeSummar
   let unclaimedValueUsd = 0;
   let tokenJarBalanceUni = totalValueUni;
   let unclaimedValueUni = 0;
+  let thresholdDeltaUni = 0; // UNI still needed to reach 4000 threshold (from Dune)
 
   // Helper to extract summary values with multiple possible column names
   const getSummaryValue = (row: SummaryRow | undefined, ...keys: string[]): number => {
@@ -273,11 +290,14 @@ export async function getDuneFeeSummary(forceRefresh = false): Promise<FeeSummar
   if (summaryData?.result?.rows?.[0]) {
     const summaryRow = summaryData.result.rows[0];
 
-    // Try to extract Unclaimed and TokenJar values separately
-    const summaryUnclaimedUsd = getSummaryValue(summaryRow, "unclaimed_usd", "unclaimed_value_usd", "unclaimed");
-    const summaryTokenJarUsd = getSummaryValue(summaryRow, "tokenjar_usd", "token_jar_usd", "tokenjar_balance_usd", "jar_usd");
-    const summaryUnclaimedUni = getSummaryValue(summaryRow, "unclaimed_uni", "unclaimed_value_uni");
-    const summaryTokenJarUni = getSummaryValue(summaryRow, "tokenjar_uni", "token_jar_uni", "tokenjar_balance_uni", "jar_uni");
+    // Actual column names from Dune query 6432715:
+    // - total_collectible_usd/uni = Unclaimed fees still in pools
+    // - total_token_jar_usd/uni = Fees already collected in TokenJar
+    // - threshold_delta_uni = UNI still needed to reach 4000 threshold
+    const summaryUnclaimedUsd = getSummaryValue(summaryRow, "total_collectible_usd", "unclaimed_usd", "unclaimed_value_usd");
+    const summaryTokenJarUsd = getSummaryValue(summaryRow, "total_token_jar_usd", "tokenjar_usd", "token_jar_usd");
+    const summaryUnclaimedUni = getSummaryValue(summaryRow, "total_collectible_uni", "unclaimed_uni", "unclaimed_value_uni");
+    const summaryTokenJarUni = getSummaryValue(summaryRow, "total_token_jar_uni", "tokenjar_uni", "token_jar_uni");
 
     if (summaryUnclaimedUsd > 0 || summaryTokenJarUsd > 0) {
       unclaimedValueUsd = summaryUnclaimedUsd;
@@ -289,6 +309,10 @@ export async function getDuneFeeSummary(forceRefresh = false): Promise<FeeSummar
       unclaimedValueUni = summaryUnclaimedUni;
       tokenJarBalanceUni = summaryTokenJarUni;
     }
+
+    // Get threshold from Dune (UNI still needed to reach 4000)
+    thresholdDeltaUni = getSummaryValue(summaryRow, "threshold_delta_uni", "threshold_uni");
+    console.log(`[Dune] Threshold from Dune: ${thresholdDeltaUni.toFixed(2)} UNI still needed`);
   }
 
   // Calculate collectible totals
@@ -302,6 +326,7 @@ export async function getDuneFeeSummary(forceRefresh = false): Promise<FeeSummar
     tokenJarBalanceUni,
     unclaimedValueUni,
     collectibleUni,
+    thresholdDeltaUni,
     tokens,
     topPools,
     lastUpdated: Date.now(),
