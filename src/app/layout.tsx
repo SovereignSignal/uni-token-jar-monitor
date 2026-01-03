@@ -4,7 +4,7 @@ import "./globals.css";
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://uni-token-jar-monitor.up.railway.app";
 
 export const metadata: Metadata = {
-  title: "🦄 UNI Jar Monitor | Uniswap Fee Burn Tracker",
+  title: "UNI Jar Monitor | Uniswap Fee Burn Tracker",
   description: "Monitor Uniswap TokenJar profitability - Track when burning 4,000 UNI to claim accumulated protocol fees becomes profitable",
   icons: {
     icon: [
@@ -12,7 +12,7 @@ export const metadata: Metadata = {
     ],
   },
   openGraph: {
-    title: "🦄 UNI Jar Monitor | Uniswap Fee Burn Tracker",
+    title: "UNI Jar Monitor | Uniswap Fee Burn Tracker",
     description: "Monitor Uniswap TokenJar profitability - Track when burning 4,000 UNI to claim accumulated protocol fees becomes profitable",
     url: siteUrl,
     siteName: "UNI Jar Monitor",
@@ -29,7 +29,7 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "🦄 UNI Jar Monitor | Uniswap Fee Burn Tracker",
+    title: "UNI Jar Monitor | Uniswap Fee Burn Tracker",
     description: "Monitor Uniswap TokenJar profitability - Track when burning 4,000 UNI to claim accumulated protocol fees becomes profitable",
     images: [`${siteUrl}/og-image.png`],
   },
