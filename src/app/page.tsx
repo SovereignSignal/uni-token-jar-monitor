@@ -205,6 +205,7 @@ export default function Home() {
   const [dataSource, setDataSource] = useState<string>("");
   const [dataAge, setDataAge] = useState<number>(0);
   const [cacheStatus, setCacheStatus] = useState<string>("");
+  const [duneTokenCount, setDuneTokenCount] = useState<number | null>(null);
 
   const fetchData = useCallback(async () => {
     setIsRefreshing(true);
@@ -216,10 +217,16 @@ export default function Home() {
         setError(null);
         setLastFetch(Date.now());
         // Extract cache metadata
-        const extendedData = result.data as ProfitabilityData & { dataSource?: string; dataAge?: number; cacheStatus?: string };
+        const extendedData = result.data as ProfitabilityData & {
+          dataSource?: string;
+          dataAge?: number;
+          cacheStatus?: string;
+          duneData?: { tokenCount: number };
+        };
         if (extendedData.dataSource) setDataSource(extendedData.dataSource);
         if (extendedData.dataAge !== undefined) setDataAge(extendedData.dataAge);
         if (extendedData.cacheStatus) setCacheStatus(extendedData.cacheStatus);
+        if (extendedData.duneData?.tokenCount) setDuneTokenCount(extendedData.duneData.tokenCount);
       } else {
         setError(result.error || "Failed to fetch data");
       }
@@ -510,7 +517,7 @@ export default function Home() {
 
           {/* Full Token Explorer */}
           {data.categorizedTokens && (
-            <TokenTabs categorizedTokens={data.categorizedTokens} />
+            <TokenTabs categorizedTokens={data.categorizedTokens} duneTokenCount={duneTokenCount} />
           )}
 
           {/* Burn History Card */}

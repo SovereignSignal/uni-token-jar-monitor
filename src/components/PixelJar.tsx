@@ -181,17 +181,6 @@ interface JarVisualizationProps {
   isProfitable: boolean;
 }
 
-// Format currency for display
-function formatCurrency(value: number): string {
-  if (value >= 1000000) {
-    return `$${(value / 1000000).toFixed(2)}M`;
-  }
-  if (value >= 1000) {
-    return `$${(value / 1000).toFixed(1)}K`;
-  }
-  return `$${value.toLocaleString()}`;
-}
-
 export default function JarVisualization({
   totalValue,
   burnCost,
@@ -210,9 +199,6 @@ export default function JarVisualization({
         <div className="flex flex-col items-center justify-center flex-1">
           <span className="text-[10px] text-red-400 mb-4 tracking-widest uppercase font-medium">Burn</span>
           <BurnPile jarValue={totalValue} burnCost={burnCost} size="large" />
-          <span className="text-xl text-red-400 mt-4 font-bold">
-            {formatCurrency(burnCost)}
-          </span>
         </div>
 
         {/* Center: Arrow */}
@@ -234,9 +220,6 @@ export default function JarVisualization({
         <div className="flex flex-col items-center justify-center flex-1">
           <span className="text-[10px] text-green-400 mb-4 tracking-widest uppercase font-medium">Vault</span>
           <PixelJar jarValue={totalValue} burnCost={burnCost} size="large" />
-          <span className={`text-xl mt-4 font-bold ${isProfitable ? 'text-green-400' : 'text-yellow-400'}`}>
-            {formatCurrency(totalValue)}
-          </span>
         </div>
       </div>
 

@@ -9,6 +9,7 @@ interface TokenTabsProps {
     lp: TokenCategory;
     unknown: TokenCategory;
   };
+  duneTokenCount?: number | null;
 }
 
 type TabKey = "priced" | "lp" | "unknown";
@@ -159,16 +160,18 @@ function EmptyState({ tab }: { tab: TabKey }) {
   );
 }
 
-export default function TokenTabs({ categorizedTokens }: TokenTabsProps) {
+export default function TokenTabs({ categorizedTokens, duneTokenCount }: TokenTabsProps) {
   const [activeTab, setActiveTab] = useState<TabKey>("priced");
   const [expanded, setExpanded] = useState(false);
-  
+
   const activeCategory = categorizedTokens[activeTab];
   const displayLimit = expanded ? activeCategory.tokens.length : 8;
   const hasMore = activeCategory.tokens.length > 8;
-  
-  // Calculate total tokens across all categories
-  const totalTokens = categorizedTokens.priced.count + categorizedTokens.lp.count + categorizedTokens.unknown.count;
+
+  // Calculate total tokens across all categories (from Alchemy)
+  const alchemyTokens = categorizedTokens.priced.count + categorizedTokens.lp.count + categorizedTokens.unknown.count;
+  // Prefer Dune count if available (more accurate), otherwise show Alchemy count
+  const totalTokens = duneTokenCount ?? alchemyTokens;
 
   return (
     <div className="card p-5">
@@ -177,9 +180,16 @@ export default function TokenTabs({ categorizedTokens }: TokenTabsProps) {
         <h3 className="text-[11px] text-[#FF007A] tracking-widest font-medium">
           TOKEN EXPLORER
         </h3>
-        <span className="text-[9px] text-gray-500 font-mono">
-          {totalTokens} total
-        </span>
+        <div className="text-right">
+          <span className="text-[9px] text-gray-500 font-mono">
+            {totalTokens} tokens in jar
+          </span>
+          {duneTokenCount && duneTokenCount !== alchemyTokens && (
+            <span className="text-[8px] text-gray-600 block">
+              ({alchemyTokens} shown)
+            </span>
+          )}
+        </div>
       </div>
       
       {/* Tab Headers */}
