@@ -92,19 +92,18 @@ interface BurnPileProps {
 }
 
 // Flame level based on how close to profitability
-function getFlameLevel(jarValue: number, burnCost: number): "none" | "small" | "medium" | "large" {
+function getFlameLevel(jarValue: number, burnCost: number): "none" | "small" | "medium" {
   if (burnCost <= 0) return "none";
   
   const profitRatio = jarValue / burnCost;
   
   if (profitRatio < 0.3) return "none";       // < 30% - no flames
   if (profitRatio < 0.6) return "small";      // 30-60% - small flames
-  if (profitRatio < 0.85) return "medium";    // 60-85% - medium flames
-  return "large";                              // 85%+ - large flames
+  return "medium";                             // 60%+ - medium flames
 }
 
 // Map flame level to burn pile sprite filename
-function getBurnPileSprite(flameLevel: "none" | "small" | "medium" | "large"): string {
+function getBurnPileSprite(flameLevel: "none" | "small" | "medium"): string {
   switch (flameLevel) {
     case "none":
       return "/assets/pile/burn-pile-no-flames.png";
@@ -112,8 +111,6 @@ function getBurnPileSprite(flameLevel: "none" | "small" | "medium" | "large"): s
       return "/assets/pile/burn-pile-small-flames.png";
     case "medium":
       return "/assets/pile/burn-pile-medium-flames.png";
-    case "large":
-      return "/assets/pile/burn-pile-large-flames.png";
   }
 }
 
@@ -127,9 +124,7 @@ export function BurnPile({ jarValue, burnCost, size = "normal" }: BurnPileProps)
     : { width: 180, height: 180 };
 
   // Glow color changes based on flame level
-  const glowColor = flameLevel === "large" 
-    ? 'rgba(255,50,0,0.6)' 
-    : flameLevel === "medium"
+  const glowColor = flameLevel === "medium"
     ? 'rgba(255,100,0,0.5)'
     : flameLevel === "small"
     ? 'rgba(255,150,50,0.4)'
@@ -157,7 +152,7 @@ export function BurnPile({ jarValue, burnCost, size = "normal" }: BurnPileProps)
         className="pixel-sprite relative z-10"
         style={{
           imageRendering: "pixelated",
-          filter: `drop-shadow(0 0 ${flameLevel === "large" ? "20px" : "10px"} ${glowColor})`,
+          filter: `drop-shadow(0 0 ${flameLevel === "medium" ? "20px" : "10px"} ${glowColor})`,
         }}
         priority
       />
