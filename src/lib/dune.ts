@@ -9,8 +9,8 @@ import { serverCache, CACHE_TTL } from "./cache";
 const DUNE_QUERIES = {
   // Fee Monitoring - Unclaimed Fees and TokenJar per Token (ETH Mainnet)
   FEES_BY_TOKEN: 6432620,
-  // Second fee monitoring query (ETH Mainnet)
-  FEE_MONITORING_SUMMARY: 6432870,
+  // Fee Monitoring - Fees by Pool (ETH Mainnet)
+  FEES_BY_POOL: 6432870,
 };
 
 interface DuneQueryResult<T> {
@@ -32,8 +32,8 @@ interface DuneQueryResult<T> {
 export interface FeeByTokenRow {
   // Actual column names from Dune query 6432620
   symbol?: string; // Token symbol (may contain HTML link)
-  protocol_fees_formatted?: number; // Unclaimed protocol fees
-  token_jar_balance_formatted?: number; // TokenJar balance
+  protocol_fees_formatted?: number; // Unclaimed protocol fees (raw token amount)
+  token_jar_balance_formatted?: number; // TokenJar balance (raw token amount)
   value_uni?: number; // Total value in UNI
   value_usd?: number; // Total value in USD - THIS IS THE KEY FIELD
   pool_count?: number; // Number of pools
@@ -41,14 +41,40 @@ export interface FeeByTokenRow {
   [key: string]: string | number | undefined;
 }
 
+export interface FeeByPoolRow {
+  // Actual column names from Dune query 6432870
+  token_pair?: string; // e.g., "AAVE-WETH"
+  pool_address?: string; // Pool contract address
+  token0_fees?: string; // e.g., "2.194 AAVE"
+  token1_fees?: string; // e.g., "0.236 WETH"
+  fee_value_uni?: number; // Fee value in UNI
+  fee_value_usd?: number; // Fee value in USD
+  [key: string]: string | number | undefined;
+}
+
+export interface TopPool {
+  tokenPair: string;
+  poolAddress: string;
+  token0Fees: string;
+  token1Fees: string;
+  valueUni: number;
+  valueUsd: number;
+}
+
 export interface FeeSummary {
+  // USD values
   tokenJarBalanceUsd: number;
   unclaimedValueUsd: number;
-  collectibleUsd: number;
+  collectibleUsd: number; // Total = tokenJar + unclaimed
+  // UNI values
   tokenJarBalanceUni: number;
   unclaimedValueUni: number;
   collectibleUni: number;
+  // Token breakdown
   tokens: FeeByTokenRow[];
+  // Top pools by value
+  topPools: TopPool[];
+  // Metadata
   lastUpdated: number;
 }
 
@@ -102,7 +128,7 @@ async function fetchDuneQuery<T>(queryId: number): Promise<DuneQueryResult<T> | 
 
 /**
  * Get fee monitoring data from Dune
- * Returns TokenJar balance, unclaimed fees, and token breakdown
+ * Returns TokenJar balance, unclaimed fees, pool breakdown, and token breakdown
  */
 export async function getDuneFeeSummary(forceRefresh = false): Promise<FeeSummary | null> {
   // Check cache first (unless force refresh requested)
@@ -117,8 +143,11 @@ export async function getDuneFeeSummary(forceRefresh = false): Promise<FeeSummar
     console.log("[Dune] Force refresh requested, bypassing cache");
   }
 
-  // Fetch token breakdown
-  const tokenData = await fetchDuneQuery<FeeByTokenRow>(DUNE_QUERIES.FEES_BY_TOKEN);
+  // Fetch token breakdown and pool data in parallel
+  const [tokenData, poolData] = await Promise.all([
+    fetchDuneQuery<FeeByTokenRow>(DUNE_QUERIES.FEES_BY_TOKEN),
+    fetchDuneQuery<FeeByPoolRow>(DUNE_QUERIES.FEES_BY_POOL),
+  ]);
 
   if (!tokenData?.result?.rows) {
     console.error("[Dune] No token data returned");
@@ -129,34 +158,65 @@ export async function getDuneFeeSummary(forceRefresh = false): Promise<FeeSummar
 
   // Calculate totals using actual Dune column names
   // value_usd is the total value (TokenJar + unclaimed combined)
-  // token_jar_balance_formatted is just the TokenJar portion
-  // protocol_fees_formatted is the unclaimed fees portion
+  // value_uni is the total value in UNI
   let totalValueUsd = 0;
+  let totalValueUni = 0;
 
   for (const token of tokens) {
-    // value_usd contains the total USD value for this token
     totalValueUsd += Number(token.value_usd) || 0;
+    totalValueUni += Number(token.value_uni) || 0;
   }
 
-  console.log(`[Dune] Calculated total value: $${totalValueUsd.toFixed(2)} from ${tokens.length} tokens`);
+  console.log(`[Dune] Calculated total value: $${totalValueUsd.toFixed(2)} (${totalValueUni.toFixed(2)} UNI) from ${tokens.length} tokens`);
+
+  // Process top pools
+  const topPools: TopPool[] = [];
+  if (poolData?.result?.rows) {
+    const pools = poolData.result.rows;
+    console.log(`[Dune] Processing ${pools.length} pools`);
+
+    // Log first pool to see column names
+    if (pools[0]) {
+      console.log(`[Dune] Pool columns: ${Object.keys(pools[0]).join(", ")}`);
+    }
+
+    // Sort by USD value and take top 10
+    const sortedPools = [...pools]
+      .sort((a, b) => (Number(b.fee_value_usd) || 0) - (Number(a.fee_value_usd) || 0))
+      .slice(0, 10);
+
+    for (const pool of sortedPools) {
+      topPools.push({
+        tokenPair: String(pool.token_pair || "Unknown"),
+        poolAddress: String(pool.pool_address || ""),
+        token0Fees: String(pool.token0_fees || "0"),
+        token1Fees: String(pool.token1_fees || "0"),
+        valueUni: Number(pool.fee_value_uni) || 0,
+        valueUsd: Number(pool.fee_value_usd) || 0,
+      });
+    }
+  }
 
   // The Dune query gives us value_usd which is the total collectible value
-  // This represents what can be claimed from the TokenJar
+  // This represents the combined TokenJar balance + unclaimed fees
   const summary: FeeSummary = {
-    tokenJarBalanceUsd: totalValueUsd, // Total value in TokenJar
-    unclaimedValueUsd: 0, // Not separated in this query
+    // For now, we show the total as "collectible" since the query combines them
+    // The breakdown would require the summary query (6432715) which has separate values
+    tokenJarBalanceUsd: totalValueUsd,
+    unclaimedValueUsd: 0,
     collectibleUsd: totalValueUsd,
-    tokenJarBalanceUni: 0, // Will be calculated from UNI price
+    tokenJarBalanceUni: totalValueUni,
     unclaimedValueUni: 0,
-    collectibleUni: 0,
+    collectibleUni: totalValueUni,
     tokens,
+    topPools,
     lastUpdated: Date.now(),
   };
 
   // Cache for 4 hours per Uniswap Foundation request
   serverCache.set(cacheKey, summary, CACHE_TTL.DUNE_DATA);
 
-  console.log(`[Dune] Fee summary: Total=$${totalValueUsd.toFixed(2)}`);
+  console.log(`[Dune] Fee summary: Total=$${totalValueUsd.toFixed(2)}, Pools=${topPools.length}`);
 
   return summary;
 }

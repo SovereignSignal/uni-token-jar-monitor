@@ -206,6 +206,16 @@ export default function Home() {
   const [dataAge, setDataAge] = useState<number>(0);
   const [cacheStatus, setCacheStatus] = useState<string>("");
   const [duneTokenCount, setDuneTokenCount] = useState<number | null>(null);
+  const [collectibleUni, setCollectibleUni] = useState<number | null>(null);
+  const [uniToThreshold, setUniToThreshold] = useState<number | null>(null);
+  const [topPools, setTopPools] = useState<Array<{
+    tokenPair: string;
+    poolAddress: string;
+    token0Fees: string;
+    token1Fees: string;
+    valueUni: number;
+    valueUsd: number;
+  }>>([]);
 
   const fetchData = useCallback(async () => {
     setIsRefreshing(true);
@@ -216,17 +226,34 @@ export default function Home() {
         setData(result.data);
         setError(null);
         setLastFetch(Date.now());
-        // Extract cache metadata
+        // Extract cache metadata and Dune data
         const extendedData = result.data as ProfitabilityData & {
           dataSource?: string;
           dataAge?: number;
           cacheStatus?: string;
-          duneData?: { tokenCount: number };
+          duneData?: {
+            tokenCount: number;
+            collectibleUni: number;
+            uniToThreshold: number;
+            topPools: Array<{
+              tokenPair: string;
+              poolAddress: string;
+              token0Fees: string;
+              token1Fees: string;
+              valueUni: number;
+              valueUsd: number;
+            }>;
+          };
         };
         if (extendedData.dataSource) setDataSource(extendedData.dataSource);
         if (extendedData.dataAge !== undefined) setDataAge(extendedData.dataAge);
         if (extendedData.cacheStatus) setCacheStatus(extendedData.cacheStatus);
-        if (extendedData.duneData?.tokenCount) setDuneTokenCount(extendedData.duneData.tokenCount);
+        if (extendedData.duneData) {
+          setDuneTokenCount(extendedData.duneData.tokenCount);
+          setCollectibleUni(extendedData.duneData.collectibleUni);
+          setUniToThreshold(extendedData.duneData.uniToThreshold);
+          setTopPools(extendedData.duneData.topPools || []);
+        }
       } else {
         setError(result.error || "Failed to fetch data");
       }
@@ -438,11 +465,18 @@ export default function Home() {
                   <Tooltip text="Total value of tokens in the jar">
                     <span className="text-[10px] text-gray-400">JAR VALUE</span>
                   </Tooltip>
-                  <span className="text-[11px] text-yellow-400 font-medium">
-                    {formatUsd(data.totalJarValueUsd)}
-                  </span>
+                  <div className="text-right">
+                    <span className="text-[11px] text-yellow-400 font-medium">
+                      {formatUsd(data.totalJarValueUsd)}
+                    </span>
+                    {collectibleUni !== null && (
+                      <span className="text-[9px] text-gray-500 block">
+                        {collectibleUni.toLocaleString(undefined, { maximumFractionDigits: 0 })} UNI
+                      </span>
+                    )}
+                  </div>
                 </div>
-                
+
                 <div className="flex justify-between items-center">
                   <Tooltip text="Cost to burn 4000 UNI tokens">
                     <span className="text-[10px] text-gray-400">
@@ -453,7 +487,7 @@ export default function Home() {
                     -{formatUsd(data.burnCostUsd)}
                   </span>
                 </div>
-                
+
                 <div className="flex justify-between items-center">
                   <Tooltip text="Estimated gas for transaction">
                     <span className="text-[10px] text-gray-400">GAS EST.</span>
@@ -462,8 +496,20 @@ export default function Home() {
                     -{formatUsd(data.gasEstimateUsd)}
                   </span>
                 </div>
+
+                {/* UNI to Threshold */}
+                {uniToThreshold !== null && (
+                  <div className="flex justify-between items-center pt-2 border-t border-gray-800/30">
+                    <Tooltip text="UNI value needed to reach the 4000 UNI burn threshold">
+                      <span className="text-[10px] text-gray-400">UNI TO THRESHOLD</span>
+                    </Tooltip>
+                    <span className={`text-[11px] font-medium ${uniToThreshold <= 0 ? 'text-green-400' : 'text-orange-400'}`}>
+                      {uniToThreshold <= 0 ? '✓ Ready' : `${uniToThreshold.toLocaleString(undefined, { maximumFractionDigits: 0 })} UNI`}
+                    </span>
+                  </div>
+                )}
               </div>
-              
+
               {/* UNI Price - reference info with divider */}
               <div className="mt-auto pt-4 border-t border-gray-800/50 flex justify-between items-center">
                 <Tooltip text="Current UNI token price">
@@ -518,6 +564,66 @@ export default function Home() {
           {/* Full Token Explorer */}
           {data.categorizedTokens && (
             <TokenTabs categorizedTokens={data.categorizedTokens} duneTokenCount={duneTokenCount} />
+          )}
+
+          {/* Top Pools Section */}
+          {topPools.length > 0 && (
+            <div className="card p-5">
+              <div className="flex justify-between items-center mb-4">
+                <h2 className="text-[9px] text-[#FF007A] tracking-widest">TOP POOLS BY FEES</h2>
+                <span className="text-[8px] text-gray-500">{topPools.length} pools</span>
+              </div>
+
+              {/* Table Header */}
+              <div className="grid grid-cols-12 gap-2 text-[8px] text-gray-600 uppercase tracking-wider pb-2 border-b border-gray-800/30 mb-2">
+                <div className="col-span-3">Pair</div>
+                <div className="col-span-3">Token0 Fees</div>
+                <div className="col-span-3">Token1 Fees</div>
+                <div className="col-span-3 text-right">Value</div>
+              </div>
+
+              {/* Pool Rows */}
+              <div className="space-y-1 max-h-64 overflow-y-auto">
+                {topPools.map((pool, i) => (
+                  <div
+                    key={`${pool.poolAddress}-${i}`}
+                    className="grid grid-cols-12 gap-2 items-center text-[9px] py-2 hover:bg-[#FF007A]/5 rounded transition-colors group"
+                  >
+                    <div className="col-span-3">
+                      <a
+                        href={`https://etherscan.io/address/${pool.poolAddress}#readContract`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-gray-200 hover:text-[#FF007A] font-medium transition-colors"
+                      >
+                        {pool.tokenPair}
+                      </a>
+                      <span className="text-[7px] text-gray-600 block font-mono opacity-0 group-hover:opacity-100 transition-opacity">
+                        {pool.poolAddress.slice(0, 8)}...
+                      </span>
+                    </div>
+                    <div className="col-span-3 text-gray-400 font-mono text-[8px]">
+                      {pool.token0Fees}
+                    </div>
+                    <div className="col-span-3 text-gray-400 font-mono text-[8px]">
+                      {pool.token1Fees}
+                    </div>
+                    <div className="col-span-3 text-right">
+                      <span className="text-green-400 font-medium">
+                        ${pool.valueUsd.toLocaleString(undefined, { maximumFractionDigits: 0 })}
+                      </span>
+                      <span className="text-[7px] text-gray-600 block">
+                        {pool.valueUni.toFixed(1)} UNI
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              <div className="mt-3 pt-3 border-t border-gray-800/30 text-[8px] text-gray-600">
+                Click pool pair to view on Etherscan for manual claiming
+              </div>
+            </div>
           )}
 
           {/* Burn History Card */}

@@ -3,10 +3,28 @@ import { getTokenJarBalances, getDataSource } from "@/lib/ethereum";
 import { priceTokenBalances } from "@/lib/pricing";
 import { calculateProfitability, type ProfitabilityData } from "@/lib/profitability";
 import { serverCache, CACHE_KEYS, CACHE_TTL } from "@/lib/cache";
-import { getDuneFeeSummary, isDuneConfigured } from "@/lib/dune";
+import { getDuneFeeSummary, isDuneConfigured, type TopPool } from "@/lib/dune";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
+
+export interface DuneDataResponse {
+  // USD values
+  tokenJarBalanceUsd: number;
+  unclaimedValueUsd: number;
+  collectibleUsd: number;
+  // UNI values
+  tokenJarBalanceUni: number;
+  unclaimedValueUni: number;
+  collectibleUni: number;
+  // Threshold tracking
+  uniToThreshold: number; // How many UNI until the 4000 burn threshold
+  // Counts
+  tokenCount: number;
+  poolCount: number;
+  // Top pools
+  topPools: TopPool[];
+}
 
 export interface TokenJarApiResponse {
   success: boolean;
@@ -15,12 +33,7 @@ export interface TokenJarApiResponse {
     dataSourceType?: "dune" | "alchemy" | "fallback";
     cacheStatus: "fresh" | "stale" | "miss";
     dataAge: number; // seconds since data was fetched
-    duneData?: {
-      tokenJarBalanceUsd: number;
-      unclaimedValueUsd: number;
-      collectibleUsd: number;
-      tokenCount: number;
-    };
+    duneData?: DuneDataResponse;
   };
   error?: string;
 }
@@ -29,12 +42,7 @@ export interface TokenJarApiResponse {
 let isRefreshing = false;
 
 interface EnhancedProfitabilityData extends ProfitabilityData {
-  duneData?: {
-    tokenJarBalanceUsd: number;
-    unclaimedValueUsd: number;
-    collectibleUsd: number;
-    tokenCount: number;
-  };
+  duneData?: DuneDataResponse;
   dataSourceType: "dune" | "alchemy" | "fallback";
 }
 
@@ -56,18 +64,34 @@ async function fetchFreshData(forceRefreshDune = false): Promise<EnhancedProfita
     try {
       const duneFeeSummary = await getDuneFeeSummary(forceRefreshDune);
       if (duneFeeSummary) {
+        // Calculate UNI to threshold (4000 UNI burn requirement)
+        const burnThreshold = 4000;
+        const collectibleUni = duneFeeSummary.collectibleUni;
+        const uniToThreshold = Math.max(0, burnThreshold - collectibleUni);
+
         duneData = {
+          // USD values
           tokenJarBalanceUsd: duneFeeSummary.tokenJarBalanceUsd,
           unclaimedValueUsd: duneFeeSummary.unclaimedValueUsd,
           collectibleUsd: duneFeeSummary.collectibleUsd,
+          // UNI values
+          tokenJarBalanceUni: duneFeeSummary.tokenJarBalanceUni,
+          unclaimedValueUni: duneFeeSummary.unclaimedValueUni,
+          collectibleUni: duneFeeSummary.collectibleUni,
+          // Threshold
+          uniToThreshold,
+          // Counts
           tokenCount: duneFeeSummary.tokens.length,
+          poolCount: duneFeeSummary.topPools.length > 0 ? duneFeeSummary.topPools.length : 0,
+          // Top pools
+          topPools: duneFeeSummary.topPools,
         };
         dataSourceType = "dune";
-        console.log(`[Dune] Using Dune data: TokenJar=$${duneData.tokenJarBalanceUsd.toFixed(2)}, Unclaimed=$${duneData.unclaimedValueUsd.toFixed(2)}`);
+        console.log(`[Dune] Using Dune data: Total=$${duneData.collectibleUsd.toFixed(2)} (${duneData.collectibleUni.toFixed(2)} UNI), UNI to threshold=${uniToThreshold.toFixed(2)}`);
 
         // Override the totalJarValueUsd with Dune's more accurate data
         // Dune tracks all 520+ tokens while Alchemy may miss some
-        const duneTotal = duneFeeSummary.tokenJarBalanceUsd;
+        const duneTotal = duneFeeSummary.collectibleUsd;
         const burnCostUsd = profitabilityData.burnCostUsd;
         const gasEstimateUsd = profitabilityData.gasEstimateUsd;
         const totalCostUsd = burnCostUsd + gasEstimateUsd;
