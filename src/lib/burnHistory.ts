@@ -34,6 +34,41 @@ export interface BurnHistory {
   lastUpdated: number;
 }
 
+const MAX_BLOCKS_PER_QUERY = 50_000n;
+
+async function fetchLogsInChunks({
+  client,
+  address,
+  event,
+  args,
+  fromBlock,
+  toBlock,
+  label,
+}: {
+  client: ReturnType<typeof createPublicClient>;
+  address: Address;
+  event: ReturnType<typeof parseAbiItem>;
+  args: { to: Address };
+  fromBlock: bigint;
+  toBlock: bigint;
+  label: string;
+}) {
+  const logs = [];
+  for (let start = fromBlock; start <= toBlock; start += MAX_BLOCKS_PER_QUERY + 1n) {
+    const end = start + MAX_BLOCKS_PER_QUERY > toBlock ? toBlock : start + MAX_BLOCKS_PER_QUERY;
+    console.log(`[BurnHistory] Fetching ${label} logs from block ${start} to ${end}`);
+    const chunk = await client.getLogs({
+      address,
+      event,
+      args,
+      fromBlock: start,
+      toBlock: end,
+    });
+    logs.push(...chunk);
+  }
+  return logs;
+}
+
 /**
  * Fetch burn history by looking at Transfer events to the Firepit and 0xdead
  * The Firepit receives UNI tokens when burns are executed, then forwards to 0xdead
@@ -53,9 +88,9 @@ export async function getBurnHistory(): Promise<BurnHistory> {
     const currentBlock = await client.getBlockNumber();
     console.log(`[BurnHistory] Current block: ${currentBlock}`);
 
-    // Look back ~70 days - fee switch activated around Dec 27, 2025
-    const lookbackBlocks = 500_000n;
-    const fromBlock = currentBlock - lookbackBlocks;
+    // Look back ~2 years to ensure we capture early burns.
+    const lookbackBlocks = 5_000_000n;
+    const fromBlock = currentBlock > lookbackBlocks ? currentBlock - lookbackBlocks : 0n;
     console.log(`[BurnHistory] Searching from block ${fromBlock} to ${currentBlock}`);
 
     const transferEvent = parseAbiItem(
@@ -71,27 +106,27 @@ export async function getBurnHistory(): Promise<BurnHistory> {
 
     // Search for UNI transfers to Firepit
     console.log(`[BurnHistory] Searching for UNI transfers to Firepit: ${firepitAddress}`);
-    const firepitLogs = await client.getLogs({
+    const firepitLogs = await fetchLogsInChunks({
+      client,
       address: uniTokenAddress,
       event: transferEvent,
-      args: {
-        to: firepitAddress,
-      },
+      args: { to: firepitAddress },
       fromBlock,
       toBlock: currentBlock,
+      label: "Firepit",
     });
     console.log(`[BurnHistory] Found ${firepitLogs.length} transfers to Firepit`);
 
     // Also search for UNI transfers to 0xdead (the actual burn destination)
     console.log(`[BurnHistory] Searching for UNI transfers to dead address: ${burnAddress}`);
-    const deadLogs = await client.getLogs({
+    const deadLogs = await fetchLogsInChunks({
+      client,
       address: uniTokenAddress,
       event: transferEvent,
-      args: {
-        to: burnAddress,
-      },
+      args: { to: burnAddress },
       fromBlock,
       toBlock: currentBlock,
+      label: "Burn",
     });
     console.log(`[BurnHistory] Found ${deadLogs.length} transfers to dead address`);
 
