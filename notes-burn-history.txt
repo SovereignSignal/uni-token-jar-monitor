@@ -1,11 +1,17 @@
 Burn History Investigation (Jan 3, 2026):
 
+UPDATE 2 (Jan 4, 2026): Fixed TypeScript compilation error that was preventing
+burn history from working. The build was failing because log.args was typed as
+Record<string, unknown> which doesn't have the 'value' property. Added proper
+TypeScript types (TransferEventArgs, TransferLog) to fix the compilation.
+
 UPDATE: Fixed bug in burnHistory.ts that was preventing burn events from being displayed.
 
 Issues found and fixed:
 1. The code was checking `if (!log.args.from)` which could filter out valid logs
    if viem didn't decode the 'from' field for some reason
 2. Addresses weren't being normalized with getAddress() for reliable matching
+3. TypeScript types for log.args were not properly defined, causing build failures
 
 The 100M UNI treasury burn happened on Dec 28, 2025 and should now show up.
 Additionally, any Firepit burns (4000 UNI each) should also be tracked.

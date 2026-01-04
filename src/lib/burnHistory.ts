@@ -1,7 +1,19 @@
-import { createPublicClient, http, parseAbiItem, formatUnits, getAddress, type AbiEvent, type Address } from "viem";
+import { createPublicClient, http, parseAbiItem, formatUnits, getAddress, type AbiEvent, type Address, type Log } from "viem";
 import { mainnet } from "viem/chains";
 import { FIREPIT_ADDRESS, UNI_TOKEN_ADDRESS, BURN_ADDRESS } from "./constants";
 import { serverCache, CACHE_KEYS, CACHE_TTL } from "./cache";
+
+// Type for ERC-20 Transfer event args
+interface TransferEventArgs {
+  from: Address;
+  to: Address;
+  value: bigint;
+}
+
+// Type for Transfer event logs
+type TransferLog = Log<bigint, number, false> & {
+  args: TransferEventArgs;
+};
 
 // Use Alchemy if available, fallback to LlamaRPC
 function getClient() {
@@ -52,8 +64,8 @@ async function fetchLogsInChunks({
   fromBlock: bigint;
   toBlock: bigint;
   label: string;
-}) {
-  const logs = [];
+}): Promise<TransferLog[]> {
+  const logs: TransferLog[] = [];
   for (let start = fromBlock; start <= toBlock; start += MAX_BLOCKS_PER_QUERY + 1n) {
     const end = start + MAX_BLOCKS_PER_QUERY > toBlock ? toBlock : start + MAX_BLOCKS_PER_QUERY;
     console.log(`[BurnHistory] Fetching ${label} logs from block ${start} to ${end}`);
@@ -64,7 +76,8 @@ async function fetchLogsInChunks({
       fromBlock: start,
       toBlock: end,
     });
-    logs.push(...chunk);
+    // Cast to TransferLog since we know the event type
+    logs.push(...(chunk as unknown as TransferLog[]));
   }
   return logs;
 }
@@ -133,7 +146,8 @@ export async function getBurnHistory(): Promise<BurnHistory> {
     // Combine logs - use transfers to 0xdead as the primary source (actual burns)
     // but also include Firepit transfers in case mechanism changes
     const seenTxHashes = new Set<string>();
-    const logs = [...deadLogs, ...firepitLogs].filter(log => {
+    const allLogs: TransferLog[] = [...deadLogs, ...firepitLogs];
+    const logs = allLogs.filter(log => {
       if (seenTxHashes.has(log.transactionHash)) return false;
       seenTxHashes.add(log.transactionHash);
       return true;
