@@ -1,4 +1,4 @@
-import { createPublicClient, http, parseAbiItem, formatUnits, getAddress, type Address } from "viem";
+import { createPublicClient, http, parseAbiItem, formatUnits, getAddress, type AbiEvent, type Address } from "viem";
 import { mainnet } from "viem/chains";
 import { FIREPIT_ADDRESS, UNI_TOKEN_ADDRESS, BURN_ADDRESS } from "./constants";
 import { serverCache, CACHE_KEYS, CACHE_TTL } from "./cache";
@@ -47,7 +47,7 @@ async function fetchLogsInChunks({
 }: {
   client: ReturnType<typeof createPublicClient>;
   address: Address;
-  event: ReturnType<typeof parseAbiItem>;
+  event: AbiEvent;
   args: { to: Address };
   fromBlock: bigint;
   toBlock: bigint;
@@ -95,7 +95,7 @@ export async function getBurnHistory(): Promise<BurnHistory> {
 
     const transferEvent = parseAbiItem(
       "event Transfer(address indexed from, address indexed to, uint256 value)"
-    );
+    ) as AbiEvent;
 
     // Normalize addresses to checksum format for reliable matching
     const uniTokenAddress = getAddress(UNI_TOKEN_ADDRESS);
