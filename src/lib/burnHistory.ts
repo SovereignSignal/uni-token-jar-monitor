@@ -1,4 +1,4 @@
-import { createPublicClient, http, parseAbiItem, formatUnits, type Address } from "viem";
+import { createPublicClient, http, parseAbiItem, formatUnits, getAddress, type Address } from "viem";
 import { mainnet } from "viem/chains";
 import { FIREPIT_ADDRESS, UNI_TOKEN_ADDRESS, BURN_ADDRESS } from "./constants";
 import { serverCache, CACHE_KEYS, CACHE_TTL } from "./cache";
@@ -62,13 +62,20 @@ export async function getBurnHistory(): Promise<BurnHistory> {
       "event Transfer(address indexed from, address indexed to, uint256 value)"
     );
 
+    // Normalize addresses to checksum format for reliable matching
+    const uniTokenAddress = getAddress(UNI_TOKEN_ADDRESS);
+    const firepitAddress = getAddress(FIREPIT_ADDRESS);
+    const burnAddress = getAddress(BURN_ADDRESS);
+
+    console.log(`[BurnHistory] Using addresses: UNI=${uniTokenAddress}, Firepit=${firepitAddress}, Burn=${burnAddress}`);
+
     // Search for UNI transfers to Firepit
-    console.log(`[BurnHistory] Searching for UNI transfers to Firepit: ${FIREPIT_ADDRESS}`);
+    console.log(`[BurnHistory] Searching for UNI transfers to Firepit: ${firepitAddress}`);
     const firepitLogs = await client.getLogs({
-      address: UNI_TOKEN_ADDRESS as Address,
+      address: uniTokenAddress,
       event: transferEvent,
       args: {
-        to: FIREPIT_ADDRESS as Address,
+        to: firepitAddress,
       },
       fromBlock,
       toBlock: currentBlock,
@@ -76,12 +83,12 @@ export async function getBurnHistory(): Promise<BurnHistory> {
     console.log(`[BurnHistory] Found ${firepitLogs.length} transfers to Firepit`);
 
     // Also search for UNI transfers to 0xdead (the actual burn destination)
-    console.log(`[BurnHistory] Searching for UNI transfers to dead address: ${BURN_ADDRESS}`);
+    console.log(`[BurnHistory] Searching for UNI transfers to dead address: ${burnAddress}`);
     const deadLogs = await client.getLogs({
-      address: UNI_TOKEN_ADDRESS as Address,
+      address: uniTokenAddress,
       event: transferEvent,
       args: {
-        to: BURN_ADDRESS as Address,
+        to: burnAddress,
       },
       fromBlock,
       toBlock: currentBlock,
@@ -103,10 +110,14 @@ export async function getBurnHistory(): Promise<BurnHistory> {
     let totalBurnedWei = 0n;
 
     for (const log of logs) {
-      if (!log.args.value || !log.args.from) continue;
+      // Only require value - from might be undefined in some edge cases
+      if (!log.args.value) continue;
 
       const value = log.args.value;
       totalBurnedWei += value;
+
+      // Use from address if available, otherwise use "Unknown"
+      const burnerAddress = log.args.from || "0x0000000000000000000000000000000000000000";
 
       // Get block timestamp
       let timestamp = Date.now() / 1000;
@@ -125,7 +136,7 @@ export async function getBurnHistory(): Promise<BurnHistory> {
         timestamp,
         uniAmount: formatUnits(value, 18),
         uniAmountRaw: value.toString(),
-        burner: log.args.from,
+        burner: burnerAddress,
       });
     }
 

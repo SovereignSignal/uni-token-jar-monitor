@@ -1,20 +1,16 @@
-Burn History Investigation (Dec 31, 2025):
+Burn History Investigation (Jan 3, 2026):
+
+UPDATE: Fixed bug in burnHistory.ts that was preventing burn events from being displayed.
+
+Issues found and fixed:
+1. The code was checking `if (!log.args.from)` which could filter out valid logs
+   if viem didn't decode the 'from' field for some reason
+2. Addresses weren't being normalized with getAddress() for reliable matching
+
+The 100M UNI treasury burn happened on Dec 28, 2025 and should now show up.
+Additionally, any Firepit burns (4000 UNI each) should also be tracked.
 
 Firepit Address: 0x0D5Cd355e2aBEB8fb1552F56c965B867346d6721
-- Created 14 days ago
-- ETH Balance: 0 ETH
-- Token Transfers: "There are no matching entries"
+Burn Address: 0x000000000000000000000000000000000000dEaD
 
-This means the Firepit contract hasn't received any UNI tokens yet!
-The fee switch was activated but no burns have been executed yet.
-
-The TokenJar is accumulating fees but hasn't reached profitability threshold.
-Current status: ~56% to profitability, needs ~$10K more value before burn is profitable.
-
-The burn history showing "No burns recorded yet" is CORRECT.
-No burns have happened because:
-1. The fee switch was just activated 14 days ago
-2. The jar hasn't accumulated enough value to make burning profitable
-3. No one has triggered a burn yet
-
-This is accurate - we should keep the "No burns recorded yet" message.
+Reference: The uni-burn-bot (github.com/erin-koen/uni-burn-bot) tracks these same events.
