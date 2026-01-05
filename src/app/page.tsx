@@ -11,6 +11,8 @@ import TokenTabs from "@/components/TokenTabs";
 
 type DataStatus = "loading" | "fresh" | "stale" | "error";
 
+const FOUR_K_UNI_WEI = 4000n * 10n ** 18n;
+
 function getDataStatus(timestamp: number | null, error: boolean): DataStatus {
   if (error) return "error";
   if (!timestamp) return "loading";
@@ -77,6 +79,16 @@ function formatTimeAgo(timestamp: number): string {
   if (minutes < 60) return `${minutes}m`;
   const hours = Math.floor(minutes / 60);
   return `${hours}h`;
+}
+
+function formatDurationSeconds(totalSeconds: number): string {
+  const s = Math.max(0, Math.floor(totalSeconds));
+  const hours = Math.floor(s / 3600);
+  const minutes = Math.floor((s % 3600) / 60);
+  const seconds = s % 60;
+  if (hours > 0) return `${hours}h ${minutes}m ${seconds}s`;
+  if (minutes > 0) return `${minutes}m ${seconds}s`;
+  return `${seconds}s`;
 }
 
 // Truncate address for display
@@ -202,6 +214,7 @@ export default function Home() {
   const [lastFetch, setLastFetch] = useState<number | null>(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [burnHistory, setBurnHistory] = useState<BurnHistory | null>(null);
+  const [burnFilter, setBurnFilter] = useState<"all" | "exact4000">("all");
   const [dataSource, setDataSource] = useState<string>("");
   const [dataAge, setDataAge] = useState<number>(0);
   const [cacheStatus, setCacheStatus] = useState<string>("");
@@ -314,6 +327,55 @@ export default function Home() {
   }, []);
 
   const status = getDataStatus(lastFetch, !!error);
+
+  const filteredBurns = useMemo(() => {
+    const burns = burnHistory?.burns ?? [];
+    if (burnFilter === "all") return burns;
+    return burns.filter((b) => {
+      try {
+        return BigInt(b.uniAmountRaw) === FOUR_K_UNI_WEI;
+      } catch {
+        return false;
+      }
+    });
+  }, [burnHistory, burnFilter]);
+
+  const burnStats = useMemo(() => {
+    if (!burnHistory || filteredBurns.length === 0) return null;
+
+    const mostRecent = filteredBurns[0];
+    const timeSinceMostRecentSec = Math.floor(Date.now() / 1000) - mostRecent.timestamp;
+
+    const timestamps = filteredBurns
+      .map((b) => b.timestamp)
+      .filter((t): t is number => typeof t === "number" && Number.isFinite(t))
+      .sort((a, b) => b - a);
+
+    const deltas: number[] = [];
+    for (let i = 0; i < Math.min(timestamps.length - 1, 30); i++) {
+      deltas.push(timestamps[i] - timestamps[i + 1]);
+    }
+    const avgDeltaSec = deltas.length > 0 ? deltas.reduce((a, b) => a + b, 0) / deltas.length : null;
+
+    const counts = new Map<string, number>();
+    for (const burn of filteredBurns) {
+      const key = burn.initiator ?? burn.burner;
+      counts.set(key, (counts.get(key) ?? 0) + 1);
+    }
+    const topInitiators = Array.from(counts.entries())
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 3)
+      .map(([address, count]) => ({ address, count }));
+
+    return {
+      mostRecent,
+      timeSinceMostRecentSec,
+      avgDeltaSec,
+      totalTransactions: filteredBurns.length,
+      totalInitiators: counts.size,
+      topInitiators,
+    };
+  }, [burnHistory, filteredBurns]);
 
   return (
     <main className="min-h-screen p-4 md:p-8 max-w-4xl mx-auto">
@@ -727,24 +789,139 @@ export default function Home() {
             </div>
             {burnHistory && burnHistory.burns.length > 0 ? (
               <div className="space-y-3">
-                <div className="flex justify-between items-center pb-3 border-b border-gray-800/50">
-                  <span className="text-[9px] text-gray-500">Total Burned</span>
-                  <span className="text-[11px] text-orange-400 font-medium">
-                    {parseFloat(burnHistory.totalBurned).toLocaleString(undefined, { maximumFractionDigits: 0 })} UNI
-                  </span>
+                <div className="flex flex-col md:flex-row md:justify-between md:items-start gap-3 pb-3 border-b border-gray-800/50">
+                  <div className="flex items-center justify-between md:justify-start gap-3">
+                    <span className="text-[9px] text-gray-500">Total Burned</span>
+                    <span className="text-[11px] text-orange-400 font-medium">
+                      {parseFloat(burnHistory.totalBurned).toLocaleString(undefined, { maximumFractionDigits: 0 })} UNI
+                    </span>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => setBurnFilter("all")}
+                      className={`text-[8px] px-2 py-1 rounded border transition-colors ${
+                        burnFilter === "all"
+                          ? "bg-[#FF007A]/15 border-[#FF007A]/30 text-[#FF007A]"
+                          : "bg-gray-900/40 border-gray-800/50 text-gray-500 hover:text-gray-300"
+                      }`}
+                    >
+                      ALL
+                    </button>
+                    <button
+                      onClick={() => setBurnFilter("exact4000")}
+                      className={`text-[8px] px-2 py-1 rounded border transition-colors ${
+                        burnFilter === "exact4000"
+                          ? "bg-[#FF007A]/15 border-[#FF007A]/30 text-[#FF007A]"
+                          : "bg-gray-900/40 border-gray-800/50 text-gray-500 hover:text-gray-300"
+                      }`}
+                    >
+                      4,000 UNI
+                    </button>
+                    <span className="text-[8px] text-gray-600">
+                      {filteredBurns.length} tx
+                    </span>
+                  </div>
                 </div>
+
+                {burnStats && (
+                  <div className="grid md:grid-cols-2 gap-3 pb-3 border-b border-gray-800/30">
+                    <div className="bg-gray-900/20 border border-gray-800/30 rounded p-3">
+                      <div className="text-[8px] text-gray-600 uppercase tracking-wider mb-2">Most Recent Transaction</div>
+                      <div className="grid grid-cols-12 gap-2 text-[9px]">
+                        <div className="col-span-4 text-gray-500">Initiator</div>
+                        <div className="col-span-8">
+                          {burnStats.mostRecent.initiator ? (
+                            <a
+                              href={`https://etherscan.io/address/${burnStats.mostRecent.initiator}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-gray-300 hover:text-blue-400 font-mono transition-colors break-all"
+                            >
+                              {truncateAddress(burnStats.mostRecent.initiator)}
+                            </a>
+                          ) : (
+                            <span className="text-gray-600">—</span>
+                          )}
+                        </div>
+                        <div className="col-span-4 text-gray-500">Tx</div>
+                        <div className="col-span-8">
+                          <a
+                            href={`https://etherscan.io/tx/${burnStats.mostRecent.txHash}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-blue-400 hover:text-blue-300 font-mono transition-colors"
+                          >
+                            {burnStats.mostRecent.txHash.slice(0, 10)}...
+                          </a>
+                        </div>
+                        <div className="col-span-4 text-gray-500">Since last</div>
+                        <div className="col-span-8 text-gray-300">
+                          {formatDurationSeconds(burnStats.timeSinceMostRecentSec)}
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="bg-gray-900/20 border border-gray-800/30 rounded p-3">
+                      <div className="text-[8px] text-gray-600 uppercase tracking-wider mb-2">Aggregate Stats</div>
+                      <div className="grid grid-cols-12 gap-2 text-[9px]">
+                        <div className="col-span-6 text-gray-500">Total Tx</div>
+                        <div className="col-span-6 text-right text-gray-300">{burnStats.totalTransactions}</div>
+                        <div className="col-span-6 text-gray-500">Avg Time Between</div>
+                        <div className="col-span-6 text-right text-gray-300">
+                          {burnStats.avgDeltaSec === null ? "—" : formatDurationSeconds(burnStats.avgDeltaSec)}
+                        </div>
+                        <div className="col-span-6 text-gray-500">Total Initiators</div>
+                        <div className="col-span-6 text-right text-gray-300">{burnStats.totalInitiators}</div>
+                      </div>
+
+                      {burnStats.topInitiators.length > 0 && (
+                        <div className="mt-3 pt-3 border-t border-gray-800/30">
+                          <div className="text-[8px] text-gray-600 uppercase tracking-wider mb-2">Top Initiators</div>
+                          <div className="space-y-1">
+                            {burnStats.topInitiators.map((t, idx) => (
+                              <div key={t.address} className="flex items-center justify-between text-[9px]">
+                                <div className="flex items-center gap-2">
+                                  <span className="text-gray-600">{idx + 1}</span>
+                                  <a
+                                    href={`https://etherscan.io/address/${t.address}`}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="text-gray-300 hover:text-blue-400 font-mono transition-colors"
+                                  >
+                                    {truncateAddress(t.address)}
+                                  </a>
+                                </div>
+                                <span className="text-gray-500">{t.count} tx</span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+
                 {/* Table Header */}
                 <div className="grid grid-cols-12 gap-2 text-[8px] text-gray-600 uppercase tracking-wider pb-2 border-b border-gray-800/30">
                   <div className="col-span-3">Date</div>
                   <div className="col-span-3 text-right">Amount</div>
-                  <div className="col-span-4">From</div>
+                  <div className="col-span-4">Initiator</div>
                   <div className="col-span-2 text-right">Tx</div>
                 </div>
                 <div className="space-y-2 max-h-64 overflow-y-auto">
-                  {burnHistory.burns.slice(0, 15).map((burn, i) => {
+                  {filteredBurns.slice(0, 15).map((burn, i) => {
                     const amount = parseFloat(burn.uniAmount);
                     const isSignificant = amount >= 1000;
                     const isTreasuryBurn = amount >= 1000000;
+                    const isExact4000 = (() => {
+                      try {
+                        return BigInt(burn.uniAmountRaw) === FOUR_K_UNI_WEI;
+                      } catch {
+                        return false;
+                      }
+                    })();
+                    const initiator = burn.initiator ?? burn.burner;
 
                     return (
                       <div
@@ -773,16 +950,24 @@ export default function Home() {
                               ? `${(amount / 1000).toFixed(0)}K`
                               : amount.toLocaleString(undefined, { maximumFractionDigits: 0 })
                           } UNI
+                          {isExact4000 && (
+                            <span className="text-[7px] text-[#FF007A] block">4K</span>
+                          )}
                         </div>
                         <div className="col-span-4">
                           <a
-                            href={`https://etherscan.io/address/${burn.burner}`}
+                            href={`https://etherscan.io/address/${initiator}`}
                             target="_blank"
                             rel="noopener noreferrer"
                             className="text-gray-500 hover:text-blue-400 font-mono transition-colors"
                           >
-                            {burn.burner.slice(0, 6)}...{burn.burner.slice(-4)}
+                            {truncateAddress(initiator)}
                           </a>
+                          {burn.destinations && burn.destinations.length > 0 && (
+                            <div className="text-[7px] text-gray-700 mt-0.5">
+                              {burn.destinations.join("+")}
+                            </div>
+                          )}
                         </div>
                         <div className="col-span-2 text-right">
                           <a

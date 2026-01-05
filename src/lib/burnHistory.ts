@@ -37,6 +37,11 @@ export interface BurnEvent {
   uniAmount: string; // Formatted UNI amount
   uniAmountRaw: string;
   burner: string; // Address that triggered the burn
+  initiator?: string; // tx.from (can differ from burner for contract-based txs)
+  gasUsed?: string;
+  gasPriceWei?: string;
+  status?: "success" | "reverted";
+  destinations?: Array<"firepit" | "dead">;
   valueUsdAtTime?: number; // Estimated value at time of burn (if available)
 }
 
@@ -46,6 +51,7 @@ export interface BurnHistory {
   lastUpdated: number;
 }
 
+<<<<<<< Updated upstream
 const MAX_BLOCKS_PER_QUERY = 50_000n;
 
 async function fetchLogsInChunks({
@@ -81,6 +87,11 @@ async function fetchLogsInChunks({
   }
   return logs;
 }
+=======
+const UNI_DECIMALS = 18;
+const MAX_BURNS_RETURNED = 200;
+const MAX_TX_ENRICH = 75;
+>>>>>>> Stashed changes
 
 /**
  * Fetch burn history by looking at Transfer events to the Firepit and 0xdead
@@ -143,6 +154,7 @@ export async function getBurnHistory(): Promise<BurnHistory> {
     });
     console.log(`[BurnHistory] Found ${deadLogs.length} transfers to dead address`);
 
+<<<<<<< Updated upstream
     // Combine logs - use transfers to 0xdead as the primary source (actual burns)
     // but also include Firepit transfers in case mechanism changes
     const seenTxHashes = new Set<string>();
@@ -153,48 +165,132 @@ export async function getBurnHistory(): Promise<BurnHistory> {
       return true;
     });
     console.log(`[BurnHistory] Total unique burn transactions: ${logs.length}`);
+=======
+    // Build per-tx view. Prefer Firepit transfer for burner attribution (log.from is the user)
+    // and use dead address as a signal that a real burn to 0xdead occurred.
+    const byTxHash = new Map<
+      string,
+      {
+        firepitLog?: (typeof firepitLogs)[number];
+        deadLog?: (typeof deadLogs)[number];
+      }
+    >();
+>>>>>>> Stashed changes
 
-    // Process logs into burn events
-    const burns: BurnEvent[] = [];
-    let totalBurnedWei = 0n;
+    for (const log of firepitLogs) {
+      const entry = byTxHash.get(log.transactionHash) || {};
+      entry.firepitLog = log;
+      byTxHash.set(log.transactionHash, entry);
+    }
+    for (const log of deadLogs) {
+      const entry = byTxHash.get(log.transactionHash) || {};
+      entry.deadLog = log;
+      byTxHash.set(log.transactionHash, entry);
+    }
 
+<<<<<<< Updated upstream
     for (const log of logs) {
       // Only require value - from might be undefined in some edge cases
       if (!log.args.value) continue;
+=======
+    console.log(`[BurnHistory] Total unique burn transactions: ${byTxHash.size}`);
+>>>>>>> Stashed changes
 
-      const value = log.args.value;
-      totalBurnedWei += value;
+    const blockTimestampCache = new Map<bigint, number>();
+    async function getBlockTimestamp(blockNumber: bigint): Promise<number> {
+      const cachedTs = blockTimestampCache.get(blockNumber);
+      if (cachedTs !== undefined) return cachedTs;
 
+<<<<<<< Updated upstream
       // Use from address if available, otherwise use "Unknown"
       const burnerAddress = log.args.from || "0x0000000000000000000000000000000000000000";
 
       // Get block timestamp
       let timestamp = Date.now() / 1000;
+=======
+>>>>>>> Stashed changes
       try {
-        const block = await client.getBlock({ blockNumber: log.blockNumber });
-        timestamp = Number(block.timestamp);
+        const block = await client.getBlock({ blockNumber });
+        const ts = Number(block.timestamp);
+        blockTimestampCache.set(blockNumber, ts);
+        return ts;
       } catch {
         // Use approximate timestamp based on block number
-        const blocksAgo = Number(currentBlock - log.blockNumber);
-        timestamp = Math.floor(Date.now() / 1000) - blocksAgo * 12;
+        const blocksAgo = Number(currentBlock - blockNumber);
+        const ts = Math.floor(Date.now() / 1000) - blocksAgo * 12;
+        blockTimestampCache.set(blockNumber, ts);
+        return ts;
       }
+    }
+
+    // Build burn events (capped for return) while still computing total burned across all txs
+    const entries = Array.from(byTxHash.entries()).map(([txHash, entry]) => {
+      const primaryLog = entry.firepitLog || entry.deadLog;
+      return { txHash, entry, primaryLog };
+    });
+
+    // Sort by most recent block number first
+    entries.sort((a, b) => Number(b.primaryLog?.blockNumber || 0n) - Number(a.primaryLog?.blockNumber || 0n));
+
+    let totalBurnedWei = 0n;
+    const burns: BurnEvent[] = [];
+
+    for (const item of entries) {
+      const primaryLog = item.primaryLog;
+      if (!primaryLog?.args.value || !primaryLog?.args.from) continue;
+
+      const value = primaryLog.args.value;
+      totalBurnedWei += value;
+
+      if (burns.length >= MAX_BURNS_RETURNED) continue;
+
+      const timestamp = await getBlockTimestamp(primaryLog.blockNumber);
+      const destinations: Array<"firepit" | "dead"> = [];
+      if (item.entry.firepitLog) destinations.push("firepit");
+      if (item.entry.deadLog) destinations.push("dead");
 
       burns.push({
-        txHash: log.transactionHash,
-        blockNumber: Number(log.blockNumber),
+        txHash: item.txHash,
+        blockNumber: Number(primaryLog.blockNumber),
         timestamp,
-        uniAmount: formatUnits(value, 18),
+        uniAmount: formatUnits(value, UNI_DECIMALS),
         uniAmountRaw: value.toString(),
+<<<<<<< Updated upstream
         burner: burnerAddress,
+=======
+        burner: primaryLog.args.from,
+        destinations,
+>>>>>>> Stashed changes
       });
     }
 
     // Sort by timestamp descending (most recent first)
     burns.sort((a, b) => b.timestamp - a.timestamp);
 
+    // Enrich most recent burns with tx context (initiator, gas, status)
+    const enrichTargets = burns.slice(0, MAX_TX_ENRICH);
+    await Promise.all(
+      enrichTargets.map(async (burn) => {
+        try {
+          const hash = burn.txHash as `0x${string}`;
+          const [tx, receipt] = await Promise.all([
+            client.getTransaction({ hash }),
+            client.getTransactionReceipt({ hash }),
+          ]);
+
+          burn.initiator = tx.from;
+          burn.gasUsed = receipt.gasUsed.toString();
+          burn.gasPriceWei = (receipt.effectiveGasPrice ?? tx.gasPrice)?.toString();
+          burn.status = receipt.status;
+        } catch (error) {
+          console.warn(`[BurnHistory] Failed to enrich tx ${burn.txHash}:`, error);
+        }
+      })
+    );
+
     const result: BurnHistory = {
       burns,
-      totalBurned: formatUnits(totalBurnedWei, 18),
+      totalBurned: formatUnits(totalBurnedWei, UNI_DECIMALS),
       lastUpdated: Date.now(),
     };
 
