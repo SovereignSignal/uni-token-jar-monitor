@@ -52,6 +52,7 @@ export interface BurnHistory {
 }
 
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
 const MAX_BLOCKS_PER_QUERY = 50_000n;
 
 async function fetchLogsInChunks({
@@ -87,6 +88,11 @@ async function fetchLogsInChunks({
   }
   return logs;
 }
+=======
+const UNI_DECIMALS = 18;
+const MAX_BURNS_RETURNED = 200;
+const MAX_TX_ENRICH = 75;
+>>>>>>> Stashed changes
 =======
 const UNI_DECIMALS = 18;
 const MAX_BURNS_RETURNED = 200;
@@ -155,6 +161,7 @@ export async function getBurnHistory(): Promise<BurnHistory> {
     console.log(`[BurnHistory] Found ${deadLogs.length} transfers to dead address`);
 
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
     // Combine logs - use transfers to 0xdead as the primary source (actual burns)
     // but also include Firepit transfers in case mechanism changes
     const seenTxHashes = new Set<string>();
@@ -166,6 +173,8 @@ export async function getBurnHistory(): Promise<BurnHistory> {
     });
     console.log(`[BurnHistory] Total unique burn transactions: ${logs.length}`);
 =======
+=======
+>>>>>>> Stashed changes
     // Build per-tx view. Prefer Firepit transfer for burner attribution (log.from is the user)
     // and use dead address as a signal that a real burn to 0xdead occurred.
     const byTxHash = new Map<
@@ -175,6 +184,9 @@ export async function getBurnHistory(): Promise<BurnHistory> {
         deadLog?: (typeof deadLogs)[number];
       }
     >();
+<<<<<<< Updated upstream
+>>>>>>> Stashed changes
+=======
 >>>>>>> Stashed changes
 
     for (const log of firepitLogs) {
@@ -189,9 +201,13 @@ export async function getBurnHistory(): Promise<BurnHistory> {
     }
 
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
     for (const log of logs) {
       // Only require value - from might be undefined in some edge cases
       if (!log.args.value) continue;
+=======
+    console.log(`[BurnHistory] Total unique burn transactions: ${byTxHash.size}`);
+>>>>>>> Stashed changes
 =======
     console.log(`[BurnHistory] Total unique burn transactions: ${byTxHash.size}`);
 >>>>>>> Stashed changes
@@ -200,6 +216,7 @@ export async function getBurnHistory(): Promise<BurnHistory> {
     async function getBlockTimestamp(blockNumber: bigint): Promise<number> {
       const cachedTs = blockTimestampCache.get(blockNumber);
       if (cachedTs !== undefined) return cachedTs;
+<<<<<<< Updated upstream
 
 <<<<<<< Updated upstream
       // Use from address if available, otherwise use "Unknown"
@@ -208,6 +225,9 @@ export async function getBurnHistory(): Promise<BurnHistory> {
       // Get block timestamp
       let timestamp = Date.now() / 1000;
 =======
+>>>>>>> Stashed changes
+=======
+
 >>>>>>> Stashed changes
       try {
         const block = await client.getBlock({ blockNumber });
@@ -256,7 +276,12 @@ export async function getBurnHistory(): Promise<BurnHistory> {
         uniAmount: formatUnits(value, UNI_DECIMALS),
         uniAmountRaw: value.toString(),
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
         burner: burnerAddress,
+=======
+        burner: primaryLog.args.from,
+        destinations,
+>>>>>>> Stashed changes
 =======
         burner: primaryLog.args.from,
         destinations,
