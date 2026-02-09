@@ -1,5 +1,13 @@
 import type { Metadata } from "next";
+import { Press_Start_2P } from "next/font/google";
 import "./globals.css";
+
+const pressStart = Press_Start_2P({
+  weight: "400",
+  subsets: ["latin"],
+  display: "swap",
+  variable: "--font-press-start",
+});
 
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://uni-token-jar-monitor.up.railway.app";
 
@@ -16,22 +24,13 @@ export const metadata: Metadata = {
     description: "Monitor Uniswap TokenJar profitability - Track when burning 4,000 UNI to claim accumulated protocol fees becomes profitable",
     url: siteUrl,
     siteName: "UNI Jar Monitor",
-    images: [
-      {
-        url: `${siteUrl}/og-image.png`,
-        width: 1200,
-        height: 630,
-        alt: "UNI Jar Monitor - Uniswap Fee Burn Tracker",
-      },
-    ],
     locale: "en_US",
     type: "website",
   },
   twitter: {
-    card: "summary_large_image",
+    card: "summary",
     title: "UNI Jar Monitor | Uniswap Fee Burn Tracker",
     description: "Monitor Uniswap TokenJar profitability - Track when burning 4,000 UNI to claim accumulated protocol fees becomes profitable",
-    images: [`${siteUrl}/og-image.png`],
   },
 };
 
@@ -41,8 +40,11 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
-      <body>{children}</body>
+    <html lang="en" className={pressStart.variable}>
+      <body>
+        <a href="#main-content" className="skip-link">Skip to main content</a>
+        {children}
+      </body>
     </html>
   );
 }

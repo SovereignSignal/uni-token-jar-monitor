@@ -47,66 +47,60 @@ interface EnhancedProfitabilityData extends ProfitabilityData {
 }
 
 async function fetchFreshData(forceRefreshDune = false): Promise<EnhancedProfitabilityData> {
-  // Fetch token balances from TokenJar (Alchemy or fallback)
+  // Start Dune fetch immediately (independent of on-chain data)
+  const dunePromise = isDuneConfigured()
+    ? getDuneFeeSummary(forceRefreshDune).catch((error) => {
+        console.error("[Dune] Failed to fetch Dune data:", error);
+        return null;
+      })
+    : Promise.resolve(null);
+
+  // On-chain pipeline (sequential dependency chain)
   const balances = await getTokenJarBalances();
-
-  // Price the tokens
   const pricedBalances = await priceTokenBalances(balances);
-
-  // Calculate profitability from on-chain data
   const profitabilityData = calculateProfitability(pricedBalances);
 
-  // Try to get accurate data from Dune Analytics
+  // Now await the Dune result
   let duneData: EnhancedProfitabilityData["duneData"] | undefined;
   let dataSourceType: EnhancedProfitabilityData["dataSourceType"] = "alchemy";
 
-  if (isDuneConfigured()) {
+  const duneFeeSummary = await dunePromise;
+  if (duneFeeSummary) {
     try {
-      const duneFeeSummary = await getDuneFeeSummary(forceRefreshDune);
-      if (duneFeeSummary) {
-        // Use Dune's threshold calculation (more accurate than our own)
-        // thresholdDeltaUni = UNI still needed to reach 4000 burn threshold
-        const uniToThreshold = duneFeeSummary.thresholdDeltaUni;
+      // Use Dune's threshold calculation (more accurate than our own)
+      const uniToThreshold = duneFeeSummary.thresholdDeltaUni;
 
-        duneData = {
-          // USD values
-          tokenJarBalanceUsd: duneFeeSummary.tokenJarBalanceUsd,
-          unclaimedValueUsd: duneFeeSummary.unclaimedValueUsd,
-          collectibleUsd: duneFeeSummary.collectibleUsd,
-          // UNI values
-          tokenJarBalanceUni: duneFeeSummary.tokenJarBalanceUni,
-          unclaimedValueUni: duneFeeSummary.unclaimedValueUni,
-          collectibleUni: duneFeeSummary.collectibleUni,
-          // Threshold
-          uniToThreshold,
-          // Counts
-          tokenCount: duneFeeSummary.tokens.length,
-          poolCount: duneFeeSummary.topPools.length > 0 ? duneFeeSummary.topPools.length : 0,
-          // Top pools
-          topPools: duneFeeSummary.topPools,
-        };
-        dataSourceType = "dune";
-        console.log(`[Dune] Using Dune data: Total=$${duneData.collectibleUsd.toFixed(2)} (${duneData.collectibleUni.toFixed(2)} UNI), UNI to threshold=${uniToThreshold} (from Dune)`);
+      duneData = {
+        tokenJarBalanceUsd: duneFeeSummary.tokenJarBalanceUsd,
+        unclaimedValueUsd: duneFeeSummary.unclaimedValueUsd,
+        collectibleUsd: duneFeeSummary.collectibleUsd,
+        tokenJarBalanceUni: duneFeeSummary.tokenJarBalanceUni,
+        unclaimedValueUni: duneFeeSummary.unclaimedValueUni,
+        collectibleUni: duneFeeSummary.collectibleUni,
+        uniToThreshold,
+        tokenCount: duneFeeSummary.tokens.length,
+        poolCount: duneFeeSummary.topPools.length,
+        topPools: duneFeeSummary.topPools,
+      };
+      dataSourceType = "dune";
+      console.log(`[Dune] Using Dune data: Total=$${duneData.collectibleUsd.toFixed(2)} (${duneData.collectibleUni.toFixed(2)} UNI), UNI to threshold=${uniToThreshold}`);
 
-        // Override the totalJarValueUsd with Dune's more accurate data
-        // Dune tracks all 520+ tokens while Alchemy may miss some
-        const duneTotal = duneFeeSummary.collectibleUsd;
-        const burnCostUsd = profitabilityData.burnCostUsd;
-        const gasEstimateUsd = profitabilityData.gasEstimateUsd;
-        const totalCostUsd = burnCostUsd + gasEstimateUsd;
-        const netProfitUsd = duneTotal - totalCostUsd;
+      // Override with Dune's more accurate data (tracks 520+ tokens)
+      const duneTotal = duneFeeSummary.collectibleUsd;
+      const burnCostUsd = profitabilityData.burnCostUsd;
+      const gasEstimateUsd = profitabilityData.gasEstimateUsd;
+      const netProfitUsd = duneTotal - burnCostUsd - gasEstimateUsd;
 
-        return {
-          ...profitabilityData,
-          totalJarValueUsd: duneTotal,
-          netProfitUsd,
-          isProfitable: netProfitUsd > 0,
-          duneData,
-          dataSourceType,
-        };
-      }
+      return {
+        ...profitabilityData,
+        totalJarValueUsd: duneTotal,
+        netProfitUsd,
+        isProfitable: netProfitUsd > 0,
+        duneData,
+        dataSourceType,
+      };
     } catch (error) {
-      console.error("[Dune] Failed to fetch Dune data, using Alchemy fallback:", error);
+      console.error("[Dune] Failed to process Dune data, using Alchemy fallback:", error);
     }
   }
 

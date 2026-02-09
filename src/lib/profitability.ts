@@ -5,6 +5,7 @@ import type { PricedBalances, TokenWithValue } from "./pricing";
 export interface CategorizedToken {
   address: string;
   symbol: string;
+  name?: string;
   decimals: number;
   balanceFormatted: string;
   priceUsd: number | null;

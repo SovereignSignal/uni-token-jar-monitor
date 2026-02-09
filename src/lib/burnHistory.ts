@@ -1,6 +1,6 @@
-import { createPublicClient, http, parseAbiItem, formatUnits, getAddress, type AbiEvent, type Address, type Log } from "viem";
-import { mainnet } from "viem/chains";
+import { createPublicClient, parseAbiItem, formatUnits, getAddress, type AbiEvent, type Address, type Log } from "viem";
 import { FIREPIT_ADDRESS, UNI_TOKEN_ADDRESS, BURN_ADDRESS } from "./constants";
+import { getClient } from "./ethereum";
 import { serverCache, CACHE_KEYS, CACHE_TTL } from "./cache";
 
 // Type for ERC-20 Transfer event args
@@ -14,21 +14,6 @@ interface TransferEventArgs {
 type TransferLog = Log<bigint, number, false> & {
   args: TransferEventArgs;
 };
-
-// Use Alchemy if available, fallback to LlamaRPC
-function getClient() {
-  const alchemyKey = process.env.ALCHEMY_API_KEY;
-  if (alchemyKey) {
-    return createPublicClient({
-      chain: mainnet,
-      transport: http(`https://eth-mainnet.g.alchemy.com/v2/${alchemyKey}`),
-    });
-  }
-  return createPublicClient({
-    chain: mainnet,
-    transport: http("https://eth.llamarpc.com"),
-  });
-}
 
 export interface BurnEvent {
   txHash: string;
@@ -125,31 +110,29 @@ export async function getBurnHistory(): Promise<BurnHistory> {
 
     console.log(`[BurnHistory] Using addresses: UNI=${uniTokenAddress}, Firepit=${firepitAddress}, Burn=${burnAddress}`);
 
-    // Search for UNI transfers to Firepit
-    console.log(`[BurnHistory] Searching for UNI transfers to Firepit: ${firepitAddress}`);
-    const firepitLogs = await fetchLogsInChunks({
-      client,
-      address: uniTokenAddress,
-      event: transferEvent,
-      args: { to: firepitAddress },
-      fromBlock,
-      toBlock: currentBlock,
-      label: "Firepit",
-    });
-    console.log(`[BurnHistory] Found ${firepitLogs.length} transfers to Firepit`);
-
-    // Also search for UNI transfers to 0xdead (the actual burn destination)
-    console.log(`[BurnHistory] Searching for UNI transfers to dead address: ${burnAddress}`);
-    const deadLogs = await fetchLogsInChunks({
-      client,
-      address: uniTokenAddress,
-      event: transferEvent,
-      args: { to: burnAddress },
-      fromBlock,
-      toBlock: currentBlock,
-      label: "Burn",
-    });
-    console.log(`[BurnHistory] Found ${deadLogs.length} transfers to dead address`);
+    // Search for UNI transfers to Firepit and 0xdead in parallel
+    console.log(`[BurnHistory] Searching for UNI transfers to Firepit and dead address...`);
+    const [firepitLogs, deadLogs] = await Promise.all([
+      fetchLogsInChunks({
+        client,
+        address: uniTokenAddress,
+        event: transferEvent,
+        args: { to: firepitAddress },
+        fromBlock,
+        toBlock: currentBlock,
+        label: "Firepit",
+      }),
+      fetchLogsInChunks({
+        client,
+        address: uniTokenAddress,
+        event: transferEvent,
+        args: { to: burnAddress },
+        fromBlock,
+        toBlock: currentBlock,
+        label: "Burn",
+      }),
+    ]);
+    console.log(`[BurnHistory] Found ${firepitLogs.length} transfers to Firepit, ${deadLogs.length} to dead address`);
 
     // Build per-tx view. Prefer Firepit transfer for burner attribution (log.from is the user)
     // and use dead address as a signal that a real burn to 0xdead occurred.

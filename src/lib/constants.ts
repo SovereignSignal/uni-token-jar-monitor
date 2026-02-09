@@ -138,6 +138,13 @@ export const ERC20_ABI = [
     outputs: [{ name: "", type: "string" }],
   },
   {
+    name: "name",
+    type: "function",
+    stateMutability: "view",
+    inputs: [],
+    outputs: [{ name: "", type: "string" }],
+  },
+  {
     name: "Transfer",
     type: "event",
     inputs: [

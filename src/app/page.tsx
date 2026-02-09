@@ -1,10 +1,10 @@
 "use client";
 
-import { useEffect, useState, useCallback, useMemo } from "react";
+import { useEffect, useState, useMemo, startTransition } from "react";
+import useSWR from "swr";
 import Image from "next/image";
 import { REFRESH_INTERVAL_MS, TOKENJAR_ADDRESS, FIREPIT_ADDRESS } from "@/lib/constants";
 import type { TokenJarApiResponse } from "./api/tokenjar/route";
-import type { ProfitabilityData } from "@/lib/profitability";
 import type { BurnHistory } from "@/lib/burnHistory";
 import JarVisualization from "@/components/PixelJar";
 import TokenTabs from "@/components/TokenTabs";
@@ -12,6 +12,8 @@ import TokenTabs from "@/components/TokenTabs";
 type DataStatus = "loading" | "fresh" | "stale" | "error";
 
 const FOUR_K_UNI_WEI = 4000n * 10n ** 18n;
+
+const fetcher = (url: string) => fetch(url).then((res) => res.json());
 
 function getDataStatus(timestamp: number | null, error: boolean): DataStatus {
   if (error) return "error";
@@ -21,6 +23,14 @@ function getDataStatus(timestamp: number | null, error: boolean): DataStatus {
   if (age < 300_000) return "stale";
   return "error";
 }
+
+// Color hex values for StatusIndicator glow
+const STATUS_COLORS: Record<DataStatus, string> = {
+  loading: "#9ca3af",
+  fresh: "#4ade80",
+  stale: "#facc15",
+  error: "#f87171",
+};
 
 function StatusIndicator({ status }: { status: DataStatus }) {
   const configs = {
@@ -33,29 +43,38 @@ function StatusIndicator({ status }: { status: DataStatus }) {
 
   return (
     <div className="flex items-center gap-2">
-      <div 
+      <div
         className={`w-2 h-2 rounded-full ${config.bg} ${config.animate ? 'animate-pulse' : ''}`}
-        style={{ boxShadow: `0 0 8px currentColor` }} 
+        style={{ boxShadow: `0 0 8px ${STATUS_COLORS[status]}` }}
       />
       <span className={`text-[10px] ${config.color}`}>{config.label}</span>
     </div>
   );
 }
 
-function Tooltip({ children, text }: { children: React.ReactNode; text: string }) {
+function Tooltip({ children, text, id }: { children: React.ReactNode; text: string; id?: string }) {
   const [show, setShow] = useState(false);
-  
+  const tooltipId = id || `tooltip-${text.slice(0, 10).replace(/\s/g, '-')}`;
+
   return (
     <div className="relative inline-block">
       <div
         onMouseEnter={() => setShow(true)}
         onMouseLeave={() => setShow(false)}
+        onFocus={() => setShow(true)}
+        onBlur={() => setShow(false)}
         className="cursor-help"
+        tabIndex={0}
+        aria-describedby={show ? tooltipId : undefined}
       >
         {children}
       </div>
       {show && (
-        <div className="absolute z-50 bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-2 bg-[#1a1c22] border border-[rgba(255,0,122,0.3)] rounded text-[8px] text-gray-300 whitespace-nowrap shadow-lg">
+        <div
+          id={tooltipId}
+          role="tooltip"
+          className="absolute z-50 bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-2 bg-[#1a1c22] border border-[rgba(255,0,122,0.3)] rounded text-[8px] text-gray-300 whitespace-nowrap shadow-lg"
+        >
           {text}
           <div className="absolute top-full left-1/2 -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-[rgba(255,0,122,0.3)]" />
         </div>
@@ -70,15 +89,6 @@ function formatUsd(value: number, showSign = false): string {
   if (absValue >= 1_000_000) return `${sign}$${(absValue / 1_000_000).toFixed(2)}M`;
   if (absValue >= 1_000) return `${sign}$${(absValue / 1_000).toFixed(1)}K`;
   return `${sign}$${absValue.toFixed(0)}`;
-}
-
-function formatTimeAgo(timestamp: number): string {
-  const seconds = Math.floor((Date.now() - timestamp) / 1000);
-  if (seconds < 60) return `${seconds}s`;
-  const minutes = Math.floor(seconds / 60);
-  if (minutes < 60) return `${minutes}m`;
-  const hours = Math.floor(minutes / 60);
-  return `${hours}h`;
 }
 
 function formatDurationSeconds(totalSeconds: number): string {
@@ -104,7 +114,7 @@ function formatUtcTime(timestamp: number): string {
 
 // Floating ember particles
 function FloatingEmbers() {
-  const embers = useMemo(() => 
+  const embers = useMemo(() =>
     Array.from({ length: 6 }, (_, i) => ({
       id: i,
       left: 15 + Math.random() * 70,
@@ -139,7 +149,7 @@ function ProfitGauge({ currentValue, burnCost }: { currentValue: number; burnCos
   const needed = burnCost - currentValue;
   const progress = Math.min(100, Math.max(0, (currentValue / burnCost) * 100));
   const isProfitable = progress >= 100;
-  
+
   return (
     <div className="mt-6 pt-6 border-t border-gray-800/50">
       <div className="flex justify-between items-center mb-3">
@@ -148,26 +158,26 @@ function ProfitGauge({ currentValue, burnCost }: { currentValue: number; burnCos
           {progress.toFixed(1)}%
         </span>
       </div>
-      
+
       <div className="h-3 bg-gray-900 rounded-full overflow-hidden">
-        <div 
+        <div
           className="h-full rounded-full transition-all duration-500"
-          style={{ 
+          style={{
             width: `${progress}%`,
-            background: isProfitable 
-              ? 'linear-gradient(90deg, #27AE60, #58d858)' 
+            background: isProfitable
+              ? 'linear-gradient(90deg, #27AE60, #58d858)'
               : 'linear-gradient(90deg, #FF007A, #ff5fa2)',
-            boxShadow: isProfitable 
-              ? '0 0 10px rgba(39, 174, 96, 0.5)' 
+            boxShadow: isProfitable
+              ? '0 0 10px rgba(39, 174, 96, 0.5)'
               : '0 0 10px rgba(255, 0, 122, 0.5)'
           }}
         />
       </div>
-      
+
       <div className="flex justify-between mt-2 text-[8px]">
         <span className="text-gray-600">$0</span>
         <span className={isProfitable ? 'text-green-400' : 'text-yellow-400'}>
-          {needed > 0 ? `${formatUsd(needed)} needed` : '✓ PROFITABLE'}
+          {needed > 0 ? `${formatUsd(needed)} needed` : 'PROFITABLE'}
         </span>
         <span className="text-gray-600">{formatUsd(burnCost)}</span>
       </div>
@@ -178,29 +188,29 @@ function ProfitGauge({ currentValue, burnCost }: { currentValue: number; burnCos
 // Status badge based on profitability
 function StatusBadge({ netProfit, burnCost }: { netProfit: number; burnCost: number }) {
   const ratio = netProfit / burnCost;
-  
+
   let message: string;
   let bgClass: string;
   let textClass: string;
-  
+
   if (netProfit >= 0) {
-    message = '✨ READY TO CLAIM';
+    message = '>> READY TO CLAIM';
     bgClass = 'bg-green-500/20 border-green-500/40';
     textClass = 'text-green-400';
   } else if (ratio > -0.1) {
-    message = '🔥 ALMOST THERE';
+    message = '** ALMOST THERE';
     bgClass = 'bg-yellow-500/20 border-yellow-500/40';
     textClass = 'text-yellow-400';
   } else if (ratio > -0.5) {
-    message = '⏳ ACCUMULATING';
+    message = '.. ACCUMULATING';
     bgClass = 'bg-gray-500/20 border-gray-500/40';
     textClass = 'text-gray-400';
   } else {
-    message = '💀 VERY UNPROFITABLE';
+    message = '!! VERY UNPROFITABLE';
     bgClass = 'bg-red-500/20 border-red-500/40';
     textClass = 'text-red-400';
   }
-  
+
   return (
     <div className={`inline-flex items-center gap-2 px-4 py-2 rounded-full border ${bgClass}`}>
       <span className={`text-[10px] font-medium ${textClass}`}>{message}</span>
@@ -209,124 +219,71 @@ function StatusBadge({ netProfit, burnCost }: { netProfit: number; burnCost: num
 }
 
 export default function Home() {
-  const [data, setData] = useState<ProfitabilityData | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [lastFetch, setLastFetch] = useState<number | null>(null);
-  const [isRefreshing, setIsRefreshing] = useState(false);
-  const [burnHistory, setBurnHistory] = useState<BurnHistory | null>(null);
+  // SWR for main profitability data
+  const { data: apiResponse, error: apiError, isLoading, mutate } = useSWR<TokenJarApiResponse>(
+    '/api/tokenjar',
+    fetcher,
+    {
+      refreshInterval: REFRESH_INTERVAL_MS,
+      revalidateOnFocus: true,
+    }
+  );
+
+  // SWR for burn history (less frequent)
+  const { data: burnResponse } = useSWR<{ success: boolean; data: BurnHistory }>(
+    '/api/burns',
+    fetcher,
+    {
+      refreshInterval: 5 * 60 * 1000,
+    }
+  );
+
   const [burnFilter, setBurnFilter] = useState<"all" | "exact4000">("all");
-  const [dataSource, setDataSource] = useState<string>("");
-  const [dataAge, setDataAge] = useState<number>(0);
-  const [cacheStatus, setCacheStatus] = useState<string>("");
-  const [duneTokenCount, setDuneTokenCount] = useState<number | null>(null);
-  const [collectibleUsd, setCollectibleUsd] = useState<number | null>(null);
-  const [collectibleUni, setCollectibleUni] = useState<number | null>(null);
-  const [tokenJarBalanceUsd, setTokenJarBalanceUsd] = useState<number | null>(null);
-  const [unclaimedValueUsd, setUnclaimedValueUsd] = useState<number | null>(null);
-  const [uniToThreshold, setUniToThreshold] = useState<number | null>(null);
-  const [topPools, setTopPools] = useState<Array<{
-    tokenPair: string;
-    poolAddress: string;
-    token0Fees: string;
-    token1Fees: string;
-    valueUni: number;
-    valueUsd: number;
-  }>>([]);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [lastFetch, setLastFetch] = useState<number | null>(null);
 
-  const fetchData = useCallback(async () => {
-    setIsRefreshing(true);
-    try {
-      const response = await fetch("/api/tokenjar");
-      const result: TokenJarApiResponse = await response.json();
-      if (result.success && result.data) {
-        setData(result.data);
-        setError(null);
-        setLastFetch(Date.now());
-        // Extract cache metadata and Dune data
-        const extendedData = result.data as ProfitabilityData & {
-          dataSource?: string;
-          dataAge?: number;
-          cacheStatus?: string;
-          duneData?: {
-            tokenCount: number;
-            collectibleUsd: number;
-            collectibleUni: number;
-            tokenJarBalanceUsd: number;
-            unclaimedValueUsd: number;
-            uniToThreshold: number;
-            topPools: Array<{
-              tokenPair: string;
-              poolAddress: string;
-              token0Fees: string;
-              token1Fees: string;
-              valueUni: number;
-              valueUsd: number;
-            }>;
-          };
-        };
-        if (extendedData.dataSource) setDataSource(extendedData.dataSource);
-        if (extendedData.dataAge !== undefined) setDataAge(extendedData.dataAge);
-        if (extendedData.cacheStatus) setCacheStatus(extendedData.cacheStatus);
-        if (extendedData.duneData) {
-          setDuneTokenCount(extendedData.duneData.tokenCount);
-          setCollectibleUsd(extendedData.duneData.collectibleUsd);
-          setCollectibleUni(extendedData.duneData.collectibleUni);
-          setTokenJarBalanceUsd(extendedData.duneData.tokenJarBalanceUsd);
-          setUnclaimedValueUsd(extendedData.duneData.unclaimedValueUsd);
-          setUniToThreshold(extendedData.duneData.uniToThreshold);
-          setTopPools(extendedData.duneData.topPools || []);
-        } else {
-          // Reset Dune-specific values when not available
-          setDuneTokenCount(null);
-          setCollectibleUsd(null);
-          setCollectibleUni(null);
-          setTokenJarBalanceUsd(null);
-          setUnclaimedValueUsd(null);
-          setUniToThreshold(null);
-          setTopPools([]);
-        }
-      } else {
-        setError(result.error || "Failed to fetch data");
-      }
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Network error");
-    } finally {
-      setIsRefreshing(false);
-    }
-  }, []);
-
-  // Fetch burn history separately (less frequent)
-  const fetchBurnHistory = useCallback(async () => {
-    try {
-      const response = await fetch("/api/burns");
-      const result = await response.json();
-      if (result.success && result.data) {
-        setBurnHistory(result.data);
-      }
-    } catch (err) {
-      console.error("Failed to fetch burn history:", err);
-    }
-  }, []);
-
+  // Track lastFetch time when data arrives
   useEffect(() => {
-    fetchData();
-    fetchBurnHistory();
-    const interval = setInterval(fetchData, REFRESH_INTERVAL_MS);
-    // Refresh burn history every 5 minutes
-    const burnInterval = setInterval(fetchBurnHistory, 5 * 60 * 1000);
-    return () => {
-      clearInterval(interval);
-      clearInterval(burnInterval);
-    };
-  }, [fetchData, fetchBurnHistory]);
+    if (apiResponse?.success && apiResponse.data) {
+      setLastFetch(Date.now());
+    }
+  }, [apiResponse]);
 
+  // 1-second tick for live timers (wrapped in startTransition for non-urgent updates)
   const [, setTick] = useState(0);
   useEffect(() => {
-    const interval = setInterval(() => setTick((t) => t + 1), 1000);
+    const interval = setInterval(() => {
+      startTransition(() => setTick((t) => t + 1));
+    }, 1000);
     return () => clearInterval(interval);
   }, []);
 
+  // Derive all values from SWR response
+  const data = apiResponse?.success ? apiResponse.data : null;
+  const error = apiError ? "Network error" : (apiResponse && !apiResponse.success ? apiResponse.error || "Failed to fetch data" : null);
+  const burnHistory = burnResponse?.success ? burnResponse.data : null;
+
+  // Dune-derived values
+  const dataSource = data?.dataSource ?? "";
+  const duneTokenCount = data?.duneData?.tokenCount ?? null;
+  const collectibleUsd = data?.duneData?.collectibleUsd ?? null;
+  const collectibleUni = data?.duneData?.collectibleUni ?? null;
+  const tokenJarBalanceUsd = data?.duneData?.tokenJarBalanceUsd ?? null;
+  const unclaimedValueUsd = data?.duneData?.unclaimedValueUsd ?? null;
+  const uniToThreshold = data?.duneData?.uniToThreshold ?? null;
+  const topPools = data?.duneData?.topPools ?? [];
+
   const status = getDataStatus(lastFetch, !!error);
+
+  // Manual refresh handler
+  const handleRefresh = async () => {
+    setIsRefreshing(true);
+    try {
+      await mutate();
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
 
   const filteredBurns = useMemo(() => {
     const burns = burnHistory?.burns ?? [];
@@ -344,7 +301,6 @@ export default function Home() {
     if (!burnHistory || filteredBurns.length === 0) return null;
 
     const mostRecent = filteredBurns[0];
-    const timeSinceMostRecentSec = Math.floor(Date.now() / 1000) - mostRecent.timestamp;
 
     const timestamps = filteredBurns
       .map((b) => b.timestamp)
@@ -369,7 +325,6 @@ export default function Home() {
 
     return {
       mostRecent,
-      timeSinceMostRecentSec,
       avgDeltaSec,
       totalTransactions: filteredBurns.length,
       totalInitiators: counts.size,
@@ -377,8 +332,22 @@ export default function Home() {
     };
   }, [burnHistory, filteredBurns]);
 
+  // Compute timeSinceMostRecentSec outside useMemo so it updates with tick
+  const timeSinceMostRecentSec = burnStats?.mostRecent
+    ? Math.floor(Date.now() / 1000) - burnStats.mostRecent.timestamp
+    : null;
+
+  // Pre-compute net profit card values (extracted from JSX IIFE)
+  const jarValue = data ? (collectibleUsd ?? data.totalJarValueUsd) : 0;
+  const totalCost = data ? (data.burnCostUsd + data.gasEstimateUsd) : 0;
+  const netProfit = jarValue - totalCost;
+  const isProfitableNet = netProfit > 0;
+
   return (
-    <main className="min-h-screen p-4 md:p-8 max-w-4xl mx-auto">
+    <main id="main-content" className="min-h-screen p-4 md:p-8 max-w-4xl mx-auto">
+      {/* Visually hidden h1 for screen readers */}
+      <h1 className="sr-only">UNI Jar Monitor - Uniswap Fee Burn Tracker</h1>
+
       {/* Header - Full Width Banner */}
       <header className="mb-6">
         <div className="card p-6 flex justify-center">
@@ -388,17 +357,17 @@ export default function Home() {
             width={600}
             height={180}
             className="pixel-sprite w-full max-w-2xl"
-            style={{ 
+            style={{
               imageRendering: 'pixelated',
               filter: 'drop-shadow(0 0 20px rgba(255,0,122,0.6))'
             }}
             priority
           />
         </div>
-        
+
         {/* Explainer Section with Decorative Icons */}
-        <div className="card p-5 mt-4">
-          <div className="flex items-center justify-center gap-6">
+        <div className="card p-4 xs:p-5 mt-4">
+          <div className="flex items-center justify-center gap-4 xs:gap-6">
             {/* Left decorative icons */}
             <div className="hidden md:flex items-center gap-3 opacity-60">
               <Image
@@ -418,15 +387,15 @@ export default function Home() {
                 style={{ imageRendering: 'pixelated' }}
               />
             </div>
-            
+
             {/* Explainer text */}
             <div className="text-center flex-1 max-w-xl">
-              <p className="text-[11px] text-gray-400 leading-relaxed">
-                <span className="text-[#FF007A] font-medium">Uniswap Fee Switch Monitor</span> — Track the TokenJar vault that collects protocol fees. 
+              <p className="text-[10px] xs:text-[11px] text-gray-400 leading-relaxed">
+                <span className="text-[#FF007A] font-medium">Uniswap Fee Switch Monitor</span> -- Track the TokenJar vault that collects protocol fees.
                 When the vault value exceeds the cost to burn <span className="text-yellow-400">4,000 UNI</span> tokens, anyone can trigger a burn and claim the rewards.
               </p>
             </div>
-            
+
             {/* Right decorative icons */}
             <div className="hidden md:flex items-center gap-3 opacity-60">
               <Image
@@ -447,33 +416,89 @@ export default function Home() {
               />
             </div>
           </div>
+
+          {/* How It Works - Collapsible */}
+          <details className="mt-4 pt-4 border-t border-gray-800/50">
+            <summary className="text-[9px] xs:text-[10px] text-[#FF007A] cursor-pointer hover:text-[#ff5fa2] transition-colors">
+              How It Works &gt;
+            </summary>
+            <div className="mt-3 grid gap-2 xs:gap-3 text-[8px] xs:text-[9px] text-gray-400">
+              <div className="flex gap-2 xs:gap-3 items-start">
+                <span className="text-yellow-400 font-bold shrink-0">1.</span>
+                <div>
+                  <span className="text-gray-300 font-medium">Fees Accumulate</span>
+                  <span className="hidden xs:inline"> --</span>
+                  <span className="block xs:inline"> Uniswap V3 pools collect protocol fees in the TokenJar contract.</span>
+                </div>
+              </div>
+              <div className="flex gap-2 xs:gap-3 items-start">
+                <span className="text-yellow-400 font-bold shrink-0">2.</span>
+                <div>
+                  <span className="text-gray-300 font-medium">Burn Requirement</span>
+                  <span className="hidden xs:inline"> --</span>
+                  <span className="block xs:inline"> To claim fees, 4,000 UNI must be burned (sent to the Firepit).</span>
+                </div>
+              </div>
+              <div className="flex gap-2 xs:gap-3 items-start">
+                <span className="text-yellow-400 font-bold shrink-0">3.</span>
+                <div>
+                  <span className="text-gray-300 font-medium">Profitability Check</span>
+                  <span className="hidden xs:inline"> --</span>
+                  <span className="block xs:inline"> If jar value &gt; burn cost + gas, claiming is profitable.</span>
+                </div>
+              </div>
+              <div className="flex gap-2 xs:gap-3 items-start">
+                <span className="text-green-400 font-bold shrink-0">4.</span>
+                <div>
+                  <span className="text-gray-300 font-medium">Claim &amp; Profit</span>
+                  <span className="hidden xs:inline"> --</span>
+                  <span className="block xs:inline"> Anyone can trigger the burn and receive the jar contents.</span>
+                </div>
+              </div>
+            </div>
+          </details>
         </div>
       </header>
 
       {/* Status HUD */}
-      <div className="card p-4 mb-6">
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
-          <div className="flex items-center justify-between md:justify-start gap-4">
+      <div className="card p-3 xs:p-4 mb-4 xs:mb-6">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 xs:gap-3">
+          <div className="flex items-center justify-between sm:justify-start gap-3 xs:gap-4">
             <div className="flex items-center gap-2">
               <StatusIndicator status={status} />
               {lastFetch && (
-                <span className="text-[9px] text-gray-500">
+                <span className="text-[8px] xs:text-[9px] text-gray-500">
                   {formatUtcTime(lastFetch)}
                 </span>
               )}
             </div>
 
             <button
-              onClick={fetchData}
+              onClick={handleRefresh}
               disabled={isRefreshing}
-              className="retro-btn text-[9px] px-3 py-2"
+              aria-label={isRefreshing ? "Refreshing data" : "Refresh data"}
+              aria-busy={isRefreshing}
+              title="Refresh jar data"
+              className="retro-btn text-[8px] xs:text-[9px] px-2 xs:px-3 py-1.5 xs:py-2 flex items-center gap-1.5"
             >
-              {isRefreshing ? "..." : "SCOUT"}
+              {isRefreshing ? (
+                <>
+                  <div className="animate-spin h-3 w-3">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                  </div>
+                  <span className="hidden xs:inline">...</span>
+                </>
+              ) : (
+                "REFRESH"
+              )}
             </button>
           </div>
 
-          <div className="text-center md:text-right text-[8px] text-gray-600">
-            <p>Auto-refreshes every 30 seconds • Prices via DeFiLlama</p>
+          <div className="text-center sm:text-right text-[7px] xs:text-[8px] text-gray-600">
+            <p>Auto-refreshes every 30 seconds | Prices via DeFiLlama</p>
             {dataSource && (
               <p className="mt-1 text-gray-500">
                 Data: {dataSource}
@@ -485,19 +510,30 @@ export default function Home() {
 
       {/* Error State */}
       {error && (
-        <div className="card p-5 mb-6 border-red-500/30">
-          <div className="flex items-center gap-4">
-            <span className="text-2xl">💀</span>
-            <div>
-              <h2 className="text-red-400 text-[11px] mb-1">ERROR</h2>
-              <p className="text-red-400/70 text-[10px]">{error}</p>
+        <div className="card p-4 xs:p-5 mb-6 border-red-500/30">
+          <div className="flex items-start gap-3 xs:gap-4">
+            <span className="text-xl xs:text-2xl text-red-400">!!</span>
+            <div className="flex-1">
+              <h2 className="text-red-400 text-[10px] xs:text-[11px] mb-1">UNABLE TO LOAD DATA</h2>
+              <p className="text-red-400/70 text-[9px] xs:text-[10px] mb-3">
+                {error.includes("fetch") || error.includes("Network")
+                  ? "Network connection failed. Please check your internet connection and try again."
+                  : error}
+              </p>
+              <button
+                onClick={handleRefresh}
+                disabled={isRefreshing}
+                className="retro-btn text-[8px] xs:text-[9px] px-3 py-1.5"
+              >
+                {isRefreshing ? "Retrying..." : "Try Again"}
+              </button>
             </div>
           </div>
         </div>
       )}
 
       {/* Loading State */}
-      {!data && !error && (
+      {isLoading && !data && !error && (
         <div className="flex flex-col items-center justify-center py-24">
           <Image
             src="/assets/logo.png"
@@ -519,14 +555,14 @@ export default function Home() {
           {/* Jar Visualization Card */}
           <div className="card p-6 md:p-8 relative overflow-hidden">
             <FloatingEmbers />
-            
+
             <h2 className="text-[10px] text-center mb-4 text-[#FF007A] tracking-widest">
               BURN vs VAULT
             </h2>
 
             {/* Jar with glow effect */}
             <div className="flex justify-center relative">
-              <div 
+              <div
                 className="absolute inset-0 flex justify-center items-center pointer-events-none"
                 style={{
                   background: 'radial-gradient(ellipse at center, rgba(255,0,122,0.15) 0%, transparent 60%)',
@@ -541,38 +577,28 @@ export default function Home() {
           </div>
 
           {/* Net Profit Card */}
-          {(() => {
-            // Use Dune values when available for accurate calculations
-            const jarValue = collectibleUsd ?? data.totalJarValueUsd;
-            const totalCost = data.burnCostUsd + data.gasEstimateUsd;
-            const netProfit = jarValue - totalCost;
-            const isProfitable = netProfit > 0;
-
-            return (
-              <div className="card p-6">
-                <div className="text-center">
-                  <span className="text-[11px] text-gray-400 uppercase tracking-wider font-medium">Net Profit</span>
-                  <div
-                    className={`text-3xl md:text-4xl font-bold mt-2 mb-4 ${
-                      isProfitable ? 'text-green-400' : 'text-red-400'
-                    }`}
-                    style={{
-                      textShadow: isProfitable
-                        ? '0 0 30px rgba(39,174,96,0.5)'
-                        : '0 0 30px rgba(253,64,64,0.5)'
-                    }}
-                  >
-                    {formatUsd(netProfit, true)}
-                  </div>
-
-                  <StatusBadge netProfit={netProfit} burnCost={data.burnCostUsd} />
-                </div>
-
-                {/* Profit Gauge */}
-                <ProfitGauge currentValue={jarValue} burnCost={data.burnCostUsd} />
+          <div className="card p-6">
+            <div className="text-center">
+              <span className="text-[11px] text-gray-400 uppercase tracking-wider font-medium">Net Profit</span>
+              <div
+                className={`text-3xl md:text-4xl font-bold mt-2 mb-4 ${
+                  isProfitableNet ? 'text-green-400' : 'text-red-400'
+                }`}
+                style={{
+                  textShadow: isProfitableNet
+                    ? '0 0 30px rgba(39,174,96,0.5)'
+                    : '0 0 30px rgba(253,64,64,0.5)'
+                }}
+              >
+                {formatUsd(netProfit, true)}
               </div>
-            );
-          })()}
+
+              <StatusBadge netProfit={netProfit} burnCost={data.burnCostUsd} />
+            </div>
+
+            {/* Profit Gauge */}
+            <ProfitGauge currentValue={jarValue} burnCost={data.burnCostUsd} />
+          </div>
 
           {/* Stats Grid - Separate Cards */}
           <div className="grid md:grid-cols-2 gap-5">
@@ -652,7 +678,7 @@ export default function Home() {
                       <span className="text-[10px] text-gray-400">UNI TO THRESHOLD</span>
                     </Tooltip>
                     <span className={`text-[11px] font-medium ${uniToThreshold <= 0 ? 'text-green-400' : 'text-orange-400'}`}>
-                      {uniToThreshold <= 0 ? '✓ Ready' : `${uniToThreshold.toLocaleString(undefined, { maximumFractionDigits: 0 })} UNI`}
+                      {uniToThreshold <= 0 ? 'Ready' : `${uniToThreshold.toLocaleString(undefined, { maximumFractionDigits: 0 })} UNI`}
                     </span>
                   </div>
                 )}
@@ -679,6 +705,7 @@ export default function Home() {
                     href={`https://etherscan.io/address/${TOKENJAR_ADDRESS}`}
                     target="_blank"
                     rel="noopener noreferrer"
+                    aria-label="View TokenJar contract on Etherscan (opens in new tab)"
                     className="text-[10px] text-blue-400 hover:text-blue-300 font-mono transition-colors break-all"
                   >
                     {TOKENJAR_ADDRESS}
@@ -690,6 +717,7 @@ export default function Home() {
                     href={`https://etherscan.io/address/${FIREPIT_ADDRESS}`}
                     target="_blank"
                     rel="noopener noreferrer"
+                    aria-label="View Firepit contract on Etherscan (opens in new tab)"
                     className="text-[10px] text-blue-400 hover:text-blue-300 font-mono transition-colors break-all"
                   >
                     {FIREPIT_ADDRESS}
@@ -701,9 +729,10 @@ export default function Home() {
                   href="https://etherscan.io/address/0xf38521f130fcCF29dB1961597bc5d2B60F995f85#tokentxns"
                   target="_blank"
                   rel="noopener noreferrer"
+                  aria-label="View all TokenJar transactions on Etherscan (opens in new tab)"
                   className="text-[9px] text-gray-500 hover:text-[#FF007A] transition-colors"
                 >
-                  View all transactions →
+                  View all transactions &gt;
                 </a>
               </div>
             </div>
@@ -716,75 +745,110 @@ export default function Home() {
 
           {/* Top Pools Section */}
           {topPools.length > 0 && (
-            <div className="card p-5">
-              <div className="flex justify-between items-center mb-4">
-                <h2 className="text-[9px] text-[#FF007A] tracking-widest">TOP POOLS BY FEES</h2>
-                <span className="text-[8px] text-gray-500">{topPools.length} pools</span>
+            <div className="card p-3 xs:p-4 sm:p-5">
+              <div className="flex justify-between items-center mb-3 xs:mb-4">
+                <h2 className="text-[8px] xs:text-[9px] text-[#FF007A] tracking-widest">TOP POOLS BY FEES</h2>
+                <span className="text-[7px] xs:text-[8px] text-gray-500">{topPools.length} pools</span>
               </div>
 
-              {/* Table Header */}
-              <div className="grid grid-cols-12 gap-2 text-[8px] text-gray-600 uppercase tracking-wider pb-2 border-b border-gray-800/30 mb-2">
+              {/* Desktop Table Header - hidden on mobile */}
+              <div className="hidden sm:grid grid-cols-12 gap-2 text-[8px] text-gray-600 uppercase tracking-wider pb-2 border-b border-gray-800/30 mb-2">
                 <div className="col-span-3">Pair</div>
                 <div className="col-span-3">Token0 Fees</div>
                 <div className="col-span-3">Token1 Fees</div>
                 <div className="col-span-3 text-right">Value</div>
               </div>
 
-              {/* Pool Rows */}
-              <div className="space-y-1 max-h-64 overflow-y-auto">
+              {/* Pool Rows - Desktop Table / Mobile Cards */}
+              <div className="space-y-2 sm:space-y-1 max-h-64 overflow-y-auto">
                 {topPools.map((pool, i) => (
-                  <div
-                    key={`${pool.poolAddress}-${i}`}
-                    className="grid grid-cols-12 gap-2 items-center text-[9px] py-2 hover:bg-[#FF007A]/5 rounded transition-colors group"
-                  >
-                    <div className="col-span-3">
-                      <a
-                        href={`https://etherscan.io/address/${pool.poolAddress}#readContract`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-gray-200 hover:text-[#FF007A] font-medium transition-colors"
-                      >
-                        {pool.tokenPair}
-                      </a>
-                      <span className="text-[7px] text-gray-600 block font-mono opacity-0 group-hover:opacity-100 transition-opacity">
-                        {pool.poolAddress.slice(0, 8)}...
-                      </span>
+                  <div key={`${pool.poolAddress}-${i}`}>
+                    {/* Mobile Card View */}
+                    <div className="sm:hidden bg-gray-900/30 rounded-lg p-3 border border-gray-800/30">
+                      <div className="flex justify-between items-start mb-2">
+                        <a
+                          href={`https://etherscan.io/address/${pool.poolAddress}#readContract`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          aria-label={`View ${pool.tokenPair} pool on Etherscan (opens in new tab)`}
+                          className="text-[10px] text-gray-200 hover:text-[#FF007A] font-medium transition-colors"
+                        >
+                          {pool.tokenPair}
+                        </a>
+                        <div className="text-right">
+                          <span className="text-[10px] text-green-400 font-medium">
+                            ${pool.valueUsd.toLocaleString(undefined, { maximumFractionDigits: 0 })}
+                          </span>
+                          <span className="text-[7px] text-gray-600 block">
+                            {pool.valueUni.toFixed(1)} UNI
+                          </span>
+                        </div>
+                      </div>
+                      <div className="grid grid-cols-2 gap-2 text-[8px]">
+                        <div>
+                          <span className="text-gray-600 block">Token0</span>
+                          <span className="text-gray-400 font-mono">{pool.token0Fees}</span>
+                        </div>
+                        <div>
+                          <span className="text-gray-600 block">Token1</span>
+                          <span className="text-gray-400 font-mono">{pool.token1Fees}</span>
+                        </div>
+                      </div>
                     </div>
-                    <div className="col-span-3 text-gray-400 font-mono text-[8px]">
-                      {pool.token0Fees}
-                    </div>
-                    <div className="col-span-3 text-gray-400 font-mono text-[8px]">
-                      {pool.token1Fees}
-                    </div>
-                    <div className="col-span-3 text-right">
-                      <span className="text-green-400 font-medium">
-                        ${pool.valueUsd.toLocaleString(undefined, { maximumFractionDigits: 0 })}
-                      </span>
-                      <span className="text-[7px] text-gray-600 block">
-                        {pool.valueUni.toFixed(1)} UNI
-                      </span>
+
+                    {/* Desktop Table Row */}
+                    <div className="hidden sm:grid grid-cols-12 gap-2 items-center text-[9px] py-2 hover:bg-[#FF007A]/5 rounded transition-colors group">
+                      <div className="col-span-3">
+                        <a
+                          href={`https://etherscan.io/address/${pool.poolAddress}#readContract`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          aria-label={`View ${pool.tokenPair} pool on Etherscan (opens in new tab)`}
+                          className="text-gray-200 hover:text-[#FF007A] font-medium transition-colors"
+                        >
+                          {pool.tokenPair}
+                        </a>
+                        <span className="text-[7px] text-gray-600 block font-mono opacity-0 group-hover:opacity-100 transition-opacity">
+                          {pool.poolAddress.slice(0, 8)}...
+                        </span>
+                      </div>
+                      <div className="col-span-3 text-gray-400 font-mono text-[8px]">
+                        {pool.token0Fees}
+                      </div>
+                      <div className="col-span-3 text-gray-400 font-mono text-[8px]">
+                        {pool.token1Fees}
+                      </div>
+                      <div className="col-span-3 text-right">
+                        <span className="text-green-400 font-medium">
+                          ${pool.valueUsd.toLocaleString(undefined, { maximumFractionDigits: 0 })}
+                        </span>
+                        <span className="text-[7px] text-gray-600 block">
+                          {pool.valueUni.toFixed(1)} UNI
+                        </span>
+                      </div>
                     </div>
                   </div>
                 ))}
               </div>
 
-              <div className="mt-3 pt-3 border-t border-gray-800/30 text-[8px] text-gray-600">
+              <div className="mt-3 pt-3 border-t border-gray-800/30 text-[7px] xs:text-[8px] text-gray-600">
                 Click pool pair to view on Etherscan for manual claiming
               </div>
             </div>
           )}
 
           {/* Burn History Card */}
-          <div className="card p-5">
-            <div className="flex justify-between items-center mb-4">
-              <h2 className="text-[9px] text-[#FF007A] tracking-widest">BURN HISTORY</h2>
+          <div className="card p-3 xs:p-4 sm:p-5">
+            <div className="flex justify-between items-center mb-3 xs:mb-4">
+              <h2 className="text-[8px] xs:text-[9px] text-[#FF007A] tracking-widest">BURN HISTORY</h2>
               <a
                 href={`https://etherscan.io/token/0x1f9840a85d5af5bf1d1762f925bdaddc4201f984?a=0x000000000000000000000000000000000000dead`}
                 target="_blank"
                 rel="noopener noreferrer"
+                aria-label="View all burns on Etherscan (opens in new tab)"
                 className="text-[8px] text-blue-400 hover:text-blue-300 transition-colors"
               >
-                View all on Etherscan →
+                View all on Etherscan &gt;
               </a>
             </div>
             {burnHistory && burnHistory.burns.length > 0 ? (
@@ -800,6 +864,7 @@ export default function Home() {
                   <div className="flex items-center gap-2">
                     <button
                       onClick={() => setBurnFilter("all")}
+                      aria-pressed={burnFilter === "all"}
                       className={`text-[8px] px-2 py-1 rounded border transition-colors ${
                         burnFilter === "all"
                           ? "bg-[#FF007A]/15 border-[#FF007A]/30 text-[#FF007A]"
@@ -810,6 +875,7 @@ export default function Home() {
                     </button>
                     <button
                       onClick={() => setBurnFilter("exact4000")}
+                      aria-pressed={burnFilter === "exact4000"}
                       className={`text-[8px] px-2 py-1 rounded border transition-colors ${
                         burnFilter === "exact4000"
                           ? "bg-[#FF007A]/15 border-[#FF007A]/30 text-[#FF007A]"
@@ -836,12 +902,13 @@ export default function Home() {
                               href={`https://etherscan.io/address/${burnStats.mostRecent.initiator}`}
                               target="_blank"
                               rel="noopener noreferrer"
+                              aria-label={`View initiator address on Etherscan (opens in new tab)`}
                               className="text-gray-300 hover:text-blue-400 font-mono transition-colors break-all"
                             >
                               {truncateAddress(burnStats.mostRecent.initiator)}
                             </a>
                           ) : (
-                            <span className="text-gray-600">—</span>
+                            <span className="text-gray-600">--</span>
                           )}
                         </div>
                         <div className="col-span-4 text-gray-500">Tx</div>
@@ -850,6 +917,7 @@ export default function Home() {
                             href={`https://etherscan.io/tx/${burnStats.mostRecent.txHash}`}
                             target="_blank"
                             rel="noopener noreferrer"
+                            aria-label={`View transaction on Etherscan (opens in new tab)`}
                             className="text-blue-400 hover:text-blue-300 font-mono transition-colors"
                           >
                             {burnStats.mostRecent.txHash.slice(0, 10)}...
@@ -857,7 +925,7 @@ export default function Home() {
                         </div>
                         <div className="col-span-4 text-gray-500">Since last</div>
                         <div className="col-span-8 text-gray-300">
-                          {formatDurationSeconds(burnStats.timeSinceMostRecentSec)}
+                          {timeSinceMostRecentSec !== null ? formatDurationSeconds(timeSinceMostRecentSec) : '--'}
                         </div>
                       </div>
                     </div>
@@ -869,7 +937,7 @@ export default function Home() {
                         <div className="col-span-6 text-right text-gray-300">{burnStats.totalTransactions}</div>
                         <div className="col-span-6 text-gray-500">Avg Time Between</div>
                         <div className="col-span-6 text-right text-gray-300">
-                          {burnStats.avgDeltaSec === null ? "—" : formatDurationSeconds(burnStats.avgDeltaSec)}
+                          {burnStats.avgDeltaSec === null ? "--" : formatDurationSeconds(burnStats.avgDeltaSec)}
                         </div>
                         <div className="col-span-6 text-gray-500">Total Initiators</div>
                         <div className="col-span-6 text-right text-gray-300">{burnStats.totalInitiators}</div>
@@ -887,6 +955,7 @@ export default function Home() {
                                     href={`https://etherscan.io/address/${t.address}`}
                                     target="_blank"
                                     rel="noopener noreferrer"
+                                    aria-label={`View address on Etherscan (opens in new tab)`}
                                     className="text-gray-300 hover:text-blue-400 font-mono transition-colors"
                                   >
                                     {truncateAddress(t.address)}
@@ -902,15 +971,17 @@ export default function Home() {
                   </div>
                 )}
 
-                {/* Table Header */}
-                <div className="grid grid-cols-12 gap-2 text-[8px] text-gray-600 uppercase tracking-wider pb-2 border-b border-gray-800/30">
+                {/* Desktop Table Header - hidden on mobile */}
+                <div className="hidden sm:grid grid-cols-12 gap-2 text-[8px] text-gray-600 uppercase tracking-wider pb-2 border-b border-gray-800/30">
                   <div className="col-span-3">Date</div>
                   <div className="col-span-3 text-right">Amount</div>
                   <div className="col-span-4">Initiator</div>
                   <div className="col-span-2 text-right">Tx</div>
                 </div>
-                <div className="space-y-2 max-h-64 overflow-y-auto">
-                  {filteredBurns.slice(0, 15).map((burn, i) => {
+
+                {/* Burn entries - Desktop Table / Mobile Cards */}
+                <div className="space-y-2 sm:space-y-2 max-h-64 overflow-y-auto">
+                  {filteredBurns.slice(0, 15).map((burn) => {
                     const amount = parseFloat(burn.uniAmount);
                     const isSignificant = amount >= 1000;
                     const isTreasuryBurn = amount >= 1000000;
@@ -922,62 +993,109 @@ export default function Home() {
                       }
                     })();
                     const initiator = burn.initiator ?? burn.burner;
+                    const formattedAmount = amount >= 1000000
+                      ? `${(amount / 1000000).toFixed(0)}M`
+                      : amount >= 1000
+                        ? `${(amount / 1000).toFixed(0)}K`
+                        : amount.toLocaleString(undefined, { maximumFractionDigits: 0 });
 
                     return (
-                      <div
-                        key={i}
-                        className={`grid grid-cols-12 gap-2 items-center text-[9px] py-1 ${
-                          isTreasuryBurn ? 'bg-orange-500/10 -mx-2 px-2 rounded' : ''
-                        }`}
-                      >
-                        <div className="col-span-3 flex items-center gap-1">
-                          <span className={isTreasuryBurn ? 'text-orange-400' : 'text-gray-500'}>
-                            {isTreasuryBurn ? '🔥' : '•'}
-                          </span>
-                          <span className="text-gray-400">
-                            {new Date(burn.timestamp * 1000).toLocaleDateString("en-US", {
-                              month: "short",
-                              day: "numeric",
-                            })}
-                          </span>
-                        </div>
-                        <div className={`col-span-3 text-right font-medium ${
-                          isTreasuryBurn ? 'text-orange-400' : isSignificant ? 'text-gray-300' : 'text-gray-500'
+                      <div key={burn.txHash} className="burn-row-item">
+                        {/* Mobile Card View */}
+                        <div className={`sm:hidden bg-gray-900/30 rounded-lg p-2.5 border border-gray-800/30 ${
+                          isTreasuryBurn ? 'border-orange-500/30 bg-orange-500/5' : ''
                         }`}>
-                          {amount >= 1000000
-                            ? `${(amount / 1000000).toFixed(0)}M`
-                            : amount >= 1000
-                              ? `${(amount / 1000).toFixed(0)}K`
-                              : amount.toLocaleString(undefined, { maximumFractionDigits: 0 })
-                          } UNI
-                          {isExact4000 && (
-                            <span className="text-[7px] text-[#FF007A] block">4K</span>
-                          )}
-                        </div>
-                        <div className="col-span-4">
-                          <a
-                            href={`https://etherscan.io/address/${initiator}`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-gray-500 hover:text-blue-400 font-mono transition-colors"
-                          >
-                            {truncateAddress(initiator)}
-                          </a>
-                          {burn.destinations && burn.destinations.length > 0 && (
-                            <div className="text-[7px] text-gray-700 mt-0.5">
-                              {burn.destinations.join("+")}
+                          <div className="flex justify-between items-start mb-1.5">
+                            <div className="flex items-center gap-1.5">
+                              <span className={isTreasuryBurn ? 'text-orange-400' : 'text-gray-500'}>
+                                {isTreasuryBurn ? '*' : '-'}
+                              </span>
+                              <span className="text-[9px] text-gray-400">
+                                {new Date(burn.timestamp * 1000).toLocaleDateString("en-US", {
+                                  month: "short",
+                                  day: "numeric",
+                                })}
+                              </span>
                             </div>
-                          )}
+                            <div className={`text-[10px] font-medium ${
+                              isTreasuryBurn ? 'text-orange-400' : isSignificant ? 'text-gray-300' : 'text-gray-500'
+                            }`}>
+                              {formattedAmount} UNI
+                              {isExact4000 && <span className="text-[7px] text-[#FF007A] ml-1">4K</span>}
+                            </div>
+                          </div>
+                          <div className="flex justify-between items-center text-[8px]">
+                            <a
+                              href={`https://etherscan.io/address/${initiator}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              aria-label={`View address on Etherscan (opens in new tab)`}
+                              className="text-gray-500 hover:text-blue-400 font-mono transition-colors"
+                            >
+                              {truncateAddress(initiator)}
+                            </a>
+                            <a
+                              href={`https://etherscan.io/tx/${burn.txHash}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              aria-label={`View transaction on Etherscan (opens in new tab)`}
+                              className="text-blue-400 hover:text-blue-300 font-mono transition-colors"
+                            >
+                              tx &gt;
+                            </a>
+                          </div>
                         </div>
-                        <div className="col-span-2 text-right">
-                          <a
-                            href={`https://etherscan.io/tx/${burn.txHash}`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-blue-400 hover:text-blue-300 font-mono transition-colors"
-                          >
-                            {burn.txHash.slice(0, 6)}...
-                          </a>
+
+                        {/* Desktop Table Row */}
+                        <div className={`hidden sm:grid grid-cols-12 gap-2 items-center text-[9px] py-1 ${
+                          isTreasuryBurn ? 'bg-orange-500/10 -mx-2 px-2 rounded' : ''
+                        }`}>
+                          <div className="col-span-3 flex items-center gap-1">
+                            <span className={isTreasuryBurn ? 'text-orange-400' : 'text-gray-500'}>
+                              {isTreasuryBurn ? '*' : '-'}
+                            </span>
+                            <span className="text-gray-400">
+                              {new Date(burn.timestamp * 1000).toLocaleDateString("en-US", {
+                                month: "short",
+                                day: "numeric",
+                              })}
+                            </span>
+                          </div>
+                          <div className={`col-span-3 text-right font-medium ${
+                            isTreasuryBurn ? 'text-orange-400' : isSignificant ? 'text-gray-300' : 'text-gray-500'
+                          }`}>
+                            {formattedAmount} UNI
+                            {isExact4000 && (
+                              <span className="text-[7px] text-[#FF007A] block">4K</span>
+                            )}
+                          </div>
+                          <div className="col-span-4">
+                            <a
+                              href={`https://etherscan.io/address/${initiator}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              aria-label={`View address on Etherscan (opens in new tab)`}
+                              className="text-gray-500 hover:text-blue-400 font-mono transition-colors"
+                            >
+                              {truncateAddress(initiator)}
+                            </a>
+                            {burn.destinations && burn.destinations.length > 0 && (
+                              <div className="text-[7px] text-gray-700 mt-0.5">
+                                {burn.destinations.join("+")}
+                              </div>
+                            )}
+                          </div>
+                          <div className="col-span-2 text-right">
+                            <a
+                              href={`https://etherscan.io/tx/${burn.txHash}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              aria-label={`View transaction on Etherscan (opens in new tab)`}
+                              className="text-blue-400 hover:text-blue-300 font-mono transition-colors"
+                            >
+                              {burn.txHash.slice(0, 6)}...
+                            </a>
+                          </div>
                         </div>
                       </div>
                     );
@@ -996,27 +1114,69 @@ export default function Home() {
         </div>
       )}
 
-      {/* Footer with Status Controls */}
-      <footer className="mt-12 pt-6 border-t border-gray-800/30">
-        <div className="text-center text-[8px] text-gray-600">
-          <p className="mt-1 text-gray-700">Not financial advice</p>
+      {/* Footer with Links and Disclaimer */}
+      <footer className="mt-8 xs:mt-12 pt-6 border-t border-gray-800/30">
+        <div className="flex flex-col items-center gap-4">
+          {/* Links */}
+          <div className="flex flex-wrap justify-center gap-3 xs:gap-4 text-[8px] xs:text-[9px]">
+            <a
+              href="https://github.com/SovereignSignal/uni-token-jar-monitor"
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label="View source code on GitHub (opens in new tab)"
+              className="text-gray-500 hover:text-[#FF007A] transition-colors"
+            >
+              GitHub
+            </a>
+            <span className="text-gray-700">|</span>
+            <a
+              href="https://app.uniswap.org"
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label="Visit Uniswap (opens in new tab)"
+              className="text-gray-500 hover:text-[#FF007A] transition-colors"
+            >
+              Uniswap
+            </a>
+            <span className="text-gray-700">|</span>
+            <a
+              href={`https://etherscan.io/address/${TOKENJAR_ADDRESS}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label="View TokenJar contract on Etherscan (opens in new tab)"
+              className="text-gray-500 hover:text-[#FF007A] transition-colors"
+            >
+              TokenJar Contract
+            </a>
+            <span className="text-gray-700">|</span>
+            <a
+              href={`https://etherscan.io/address/${FIREPIT_ADDRESS}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label="View Firepit contract on Etherscan (opens in new tab)"
+              className="text-gray-500 hover:text-[#FF007A] transition-colors"
+            >
+              Firepit Contract
+            </a>
+          </div>
+
+          {/* Disclaimer */}
+          <div className="text-center text-[7px] xs:text-[8px] text-gray-600 max-w-md">
+            <p className="text-gray-700 mb-1">Not financial advice. Use at your own risk.</p>
+            <p>
+              Data from{" "}
+              <a href="https://defillama.com" target="_blank" rel="noopener noreferrer" aria-label="DeFiLlama (opens in new tab)" className="hover:text-gray-400 transition-colors">
+                DeFiLlama
+              </a>
+              {" "}&amp;{" "}
+              <a href="https://dune.com" target="_blank" rel="noopener noreferrer" aria-label="Dune Analytics (opens in new tab)" className="hover:text-gray-400 transition-colors">
+                Dune Analytics
+              </a>
+              . Prices update every 30 seconds.
+            </p>
+          </div>
         </div>
       </footer>
     </main>
   );
-}
-
-function getTokenColor(symbol: string): string {
-  const colors: Record<string, string> = {
-    WETH: "#627eea",
-    USDC: "#2775ca",
-    USDT: "#26a17b",
-    WBTC: "#f7931a",
-    DAI: "#f5ac37",
-    UNI: "#ff007a",
-    LINK: "#2a5ada",
-    AAVE: "#b6509e",
-    PAXG: "#e4ce4e",
-  };
-  return colors[symbol] || "#FF007A";
 }

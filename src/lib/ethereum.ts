@@ -7,7 +7,7 @@ import {
 } from "./constants";
 
 // Create Ethereum client - prefer Alchemy if available
-function getClient() {
+export function getClient() {
   const alchemyKey = process.env.ALCHEMY_API_KEY;
   if (alchemyKey) {
     console.log("Using Alchemy RPC");
@@ -28,6 +28,7 @@ function getClient() {
 export interface TokenBalance {
   address: Address;
   symbol: string;
+  name?: string;
   decimals: number;
   balance: bigint;
   balanceFormatted: string;
@@ -157,6 +158,7 @@ async function fetchTokenBalancesFromAlchemy(): Promise<TokenBalance[]> {
           return {
             address: tokenAddress,
             symbol: known.symbol,
+            name: undefined, // Known tokens don't store name
             decimals: known.decimals,
             balance,
             balanceFormatted: formatUnits(balance, known.decimals),
@@ -187,6 +189,7 @@ async function fetchTokenBalancesFromAlchemy(): Promise<TokenBalance[]> {
             return {
               address: tokenAddress,
               symbol: metadata.symbol || "UNKNOWN",
+              name: metadata.name || undefined,
               decimals: metadata.decimals,
               balance,
               balanceFormatted: formatUnits(balance, metadata.decimals),
@@ -201,6 +204,7 @@ async function fetchTokenBalancesFromAlchemy(): Promise<TokenBalance[]> {
         return {
           address: tokenAddress,
           symbol: "UNKNOWN",
+          name: undefined,
           decimals: 18,
           balance,
           balanceFormatted: formatUnits(balance, 18),
@@ -220,12 +224,12 @@ async function fetchTokenBalancesFromAlchemy(): Promise<TokenBalance[]> {
 }
 
 /**
- * Get token metadata (symbol, decimals) with fallback to known tokens
+ * Get token metadata (symbol, name, decimals) with fallback to known tokens
  */
 async function getTokenMetadata(
   client: ReturnType<typeof getClient>,
   tokenAddress: Address
-): Promise<{ symbol: string; decimals: number; coingeckoId?: string }> {
+): Promise<{ symbol: string; name?: string; decimals: number; coingeckoId?: string }> {
   const normalizedAddress = tokenAddress.toLowerCase();
 
   // Check known tokens first
@@ -236,7 +240,7 @@ async function getTokenMetadata(
 
   // Try to fetch from contract
   try {
-    const [symbol, decimals] = await Promise.all([
+    const [symbol, decimals, name] = await Promise.all([
       client.readContract({
         address: tokenAddress,
         abi: ERC20_ABI,
@@ -247,9 +251,18 @@ async function getTokenMetadata(
         abi: ERC20_ABI,
         functionName: "decimals",
       }),
+      client.readContract({
+        address: tokenAddress,
+        abi: ERC20_ABI,
+        functionName: "name",
+      }).catch(() => undefined), // name() is optional, don't fail if missing
     ]);
 
-    return { symbol: symbol as string, decimals: Number(decimals) };
+    return {
+      symbol: symbol as string,
+      name: name as string | undefined,
+      decimals: Number(decimals),
+    };
   } catch (error) {
     console.error(`Failed to get metadata for ${tokenAddress}:`, error);
     return { symbol: "UNKNOWN", decimals: 18 };
@@ -308,6 +321,7 @@ export async function getTokenJarBalances(): Promise<TokenBalance[]> {
           return {
             address: tokenAddress as Address,
             symbol: metadata.symbol,
+            name: metadata.name,
             decimals: metadata.decimals,
             balance: balance as bigint,
             balanceFormatted: formatUnits(balance as bigint, metadata.decimals),

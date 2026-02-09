@@ -138,6 +138,7 @@ async function getPrices(addresses: string[]): Promise<Record<string, { price: n
 export interface TokenWithValue {
   address: string;
   symbol: string;
+  name?: string;
   decimals: number;
   balanceFormatted: string;
   priceUsd: number | null;
@@ -210,6 +211,7 @@ export async function priceTokenBalances(balances: TokenBalance[]): Promise<Pric
     return {
       address: balance.address,
       symbol: balance.symbol,
+      name: balance.name,
       decimals: balance.decimals,
       balanceFormatted: balance.balanceFormatted,
       priceUsd,

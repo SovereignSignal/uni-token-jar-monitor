@@ -15,20 +15,22 @@ interface PixelJarProps {
 
 // Fill level based on jar value vs burn cost ratio
 // The jar fills up as it gets closer to being profitable
-function getFillLevel(jarValue: number, burnCost: number): "empty" | "quarter" | "half" | "threequarter" | "full" {
+// Available sprites: jar-fill-1.png (empty), jar-fill-2.png (quarter), jar-fill-3.png (half), jar-fill-5.png (full)
+type FillLevel = "empty" | "quarter" | "half" | "full";
+
+function getFillLevel(jarValue: number, burnCost: number): FillLevel {
   if (burnCost <= 0) return "empty";
-  
+
   const fillRatio = jarValue / burnCost; // 0 to 1+ (1 = break even, >1 = profitable)
-  
-  if (fillRatio < 0.2) return "empty";           // < 20% - nearly empty
-  if (fillRatio < 0.4) return "quarter";         // 20-40% - quarter full
-  if (fillRatio < 0.6) return "half";            // 40-60% - half full
-  if (fillRatio < 0.8) return "threequarter";    // 60-80% - three quarters
-  return "full";                                  // 80%+ - full (close to/at profitability!)
+
+  if (fillRatio < 0.25) return "empty";     // < 25% - nearly empty (sprite 1)
+  if (fillRatio < 0.50) return "quarter";   // 25-50% - quarter full (sprite 2)
+  if (fillRatio < 0.75) return "half";      // 50-75% - half full (sprite 3)
+  return "full";                             // 75%+ - full (sprite 5)
 }
 
 // Map fill level to sprite filename
-function getJarSprite(fillLevel: "empty" | "quarter" | "half" | "threequarter" | "full"): string {
+function getJarSprite(fillLevel: FillLevel): string {
   switch (fillLevel) {
     case "empty":
       return "/assets/jar/jar-fill-1.png";
@@ -36,8 +38,6 @@ function getJarSprite(fillLevel: "empty" | "quarter" | "half" | "threequarter" |
       return "/assets/jar/jar-fill-2.png";
     case "half":
       return "/assets/jar/jar-fill-3.png";
-    case "threequarter":
-      return "/assets/jar/jar-fill-5.png";
     case "full":
       return "/assets/jar/jar-fill-5.png";
   }
@@ -46,16 +46,20 @@ function getJarSprite(fillLevel: "empty" | "quarter" | "half" | "threequarter" |
 export function PixelJar({ jarValue, burnCost, size = "normal" }: PixelJarProps) {
   const fillLevel = useMemo(() => getFillLevel(jarValue, burnCost), [jarValue, burnCost]);
   const spritePath = useMemo(() => getJarSprite(fillLevel), [fillLevel]);
-  
+  const fillPercent = useMemo(() => {
+    if (burnCost <= 0) return 0;
+    return Math.min(100, Math.round((jarValue / burnCost) * 100));
+  }, [jarValue, burnCost]);
+
   // Larger sizes for better visual impact
-  const dimensions = size === "large" 
+  const dimensions = size === "large"
     ? { width: 320, height: 480 }
     : { width: 200, height: 300 };
 
   return (
     <div className="pixel-jar-container relative flex flex-col items-center">
       {/* Glow effect behind jar */}
-      <div 
+      <div
         className="absolute blur-3xl opacity-50"
         style={{
           background: 'radial-gradient(ellipse at center, rgba(255,0,122,0.7) 0%, rgba(255,95,162,0.4) 30%, rgba(255,0,122,0.15) 60%, transparent 80%)',
@@ -67,7 +71,7 @@ export function PixelJar({ jarValue, burnCost, size = "normal" }: PixelJarProps)
       />
       <Image
         src={spritePath}
-        alt={`Unicorn Jar - ${fillLevel}`}
+        alt={`Unicorn Jar - ${fillPercent}% full`}
         width={dimensions.width}
         height={dimensions.height}
         className="pixel-sprite relative z-10"
@@ -77,6 +81,26 @@ export function PixelJar({ jarValue, burnCost, size = "normal" }: PixelJarProps)
         }}
         priority
       />
+      {/* Fill percentage overlay */}
+      <div
+        className="absolute z-20 text-center"
+        style={{
+          bottom: size === "large" ? '15%' : '12%',
+        }}
+      >
+        <span
+          className={`text-${size === "large" ? "lg" : "sm"} font-bold ${
+            fillPercent >= 100 ? 'text-green-400' : 'text-white'
+          }`}
+          style={{
+            textShadow: fillPercent >= 100
+              ? '0 0 10px rgba(39, 174, 96, 0.8), 0 2px 4px rgba(0,0,0,0.8)'
+              : '0 0 10px rgba(255, 0, 122, 0.6), 0 2px 4px rgba(0,0,0,0.8)',
+          }}
+        >
+          {fillPercent}%
+        </span>
+      </div>
     </div>
   );
 }
