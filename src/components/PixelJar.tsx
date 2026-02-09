@@ -142,30 +142,31 @@ export function BurnPile({ jarValue, burnCost, size = "normal" }: BurnPileProps)
   const flameLevel = useMemo(() => getFlameLevel(jarValue, burnCost), [jarValue, burnCost]);
   const spritePath = useMemo(() => getBurnPileSprite(flameLevel), [flameLevel]);
   
-  // Match jar proportions
-  const dimensions = size === "large" 
-    ? { width: 280, height: 280 }
-    : { width: 180, height: 180 };
+  // Scale up to better balance against the taller jar sprite
+  const dimensions = size === "large"
+    ? { width: 340, height: 340 }
+    : { width: 200, height: 200 };
 
-  // Glow color changes based on flame level
+  // Glow color and intensity based on flame level
   const glowColor = flameLevel === "medium"
-    ? 'rgba(255,100,0,0.5)'
+    ? 'rgba(255,80,0,0.4)'
     : flameLevel === "small"
-    ? 'rgba(255,150,50,0.4)'
-    : 'rgba(255,180,100,0.3)';
+    ? 'rgba(255,120,40,0.3)'
+    : 'rgba(255,150,80,0.15)';
+  const glowOpacity = flameLevel === "none" ? 0.2 : flameLevel === "small" ? 0.4 : 0.6;
 
   return (
     <div className="burn-pile-container relative flex flex-col items-center justify-center">
       {/* Glow effect behind pile */}
-      <div 
-        className="absolute blur-3xl"
+      <div
+        className="absolute rounded-full blur-3xl"
         style={{
-          background: `radial-gradient(ellipse at center, ${glowColor} 0%, transparent 70%)`,
-          width: '160%',
-          height: '140%',
-          top: '-20%',
-          left: '-30%',
-          opacity: flameLevel === "none" ? 0.3 : flameLevel === "small" ? 0.5 : flameLevel === "medium" ? 0.7 : 0.9,
+          background: `radial-gradient(ellipse at center, ${glowColor} 0%, transparent 60%)`,
+          width: '120%',
+          height: '120%',
+          top: '-10%',
+          left: '-10%',
+          opacity: glowOpacity,
         }}
       />
       <Image

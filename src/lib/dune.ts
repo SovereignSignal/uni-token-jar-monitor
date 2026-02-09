@@ -5,14 +5,15 @@
 
 import { serverCache, CACHE_TTL } from "./cache";
 
-// Dune query IDs from official Uniswap dashboards
+// Dune query IDs - configurable via env vars, defaults to Marcov's public dashboard
+// (dune.com/Marcov/uniswap-fee-and-uni-burn-tracker)
 const DUNE_QUERIES = {
-  // Fee Monitoring - Unclaimed Fees and TokenJar per Token (ETH Mainnet)
-  FEES_BY_TOKEN: 6432620,
-  // Fee Monitoring - Fees by Pool (ETH Mainnet)
-  FEES_BY_POOL: 6432870,
-  // Fee Monitoring - Summary (has Unclaimed vs TokenJar breakdown)
-  SUMMARY: 6432715,
+  // Fees by token breakdown (daily fees per token with USD values)
+  FEES_BY_TOKEN: Number(process.env.DUNE_QUERY_FEES_BY_TOKEN) || 6430883,
+  // Fees by pool breakdown (optional, set via env var if available)
+  FEES_BY_POOL: Number(process.env.DUNE_QUERY_FEES_BY_POOL) || 0,
+  // Summary / total fees (aggregate totals)
+  SUMMARY: Number(process.env.DUNE_QUERY_SUMMARY) || 6430884,
 };
 
 interface DuneQueryResult<T> {
@@ -161,10 +162,12 @@ export async function getDuneFeeSummary(forceRefresh = false): Promise<FeeSummar
     console.log("[Dune] Force refresh requested, bypassing cache");
   }
 
-  // Fetch token breakdown, pool data, and summary in parallel
+  // Fetch token breakdown, pool data (if configured), and summary in parallel
   const [tokenData, poolData, summaryData] = await Promise.all([
     fetchDuneQuery<FeeByTokenRow>(DUNE_QUERIES.FEES_BY_TOKEN),
-    fetchDuneQuery<FeeByPoolRow>(DUNE_QUERIES.FEES_BY_POOL),
+    DUNE_QUERIES.FEES_BY_POOL > 0
+      ? fetchDuneQuery<FeeByPoolRow>(DUNE_QUERIES.FEES_BY_POOL)
+      : Promise.resolve(null),
     fetchDuneQuery<SummaryRow>(DUNE_QUERIES.SUMMARY),
   ]);
 
@@ -369,6 +372,7 @@ export async function getRawDuneData(): Promise<{
     );
 
     if (!response.ok) {
+      console.error(`[Dune] Token query HTTP error: ${response.status}`);
       return { columnNames: [], sampleRow: null, rowCount: 0 };
     }
 
@@ -391,6 +395,10 @@ export async function getRawPoolData(): Promise<{
   sampleRow: Record<string, unknown> | null;
   rowCount: number;
 }> {
+  if (!DUNE_QUERIES.FEES_BY_POOL) {
+    return { columnNames: [], sampleRow: null, rowCount: 0 };
+  }
+
   const apiKey = process.env.DUNE_API_KEY;
   if (!apiKey) {
     return { columnNames: [], sampleRow: null, rowCount: 0 };

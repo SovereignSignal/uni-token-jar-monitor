@@ -8,7 +8,7 @@ interface HealthCheck {
   timestamp: string;
   env: {
     hasAlchemyKey: boolean;
-    alchemyKeyLength: number;
+    alchemyKeyValid: boolean;
     hasDuneKey: boolean;
     nodeEnv: string;
   };
@@ -120,8 +120,9 @@ async function checkDune(): Promise<{ status: string; latencyMs?: number; error?
 
   const start = Date.now();
   try {
-    // Test with a simple API call to check auth
-    const response = await fetch("https://api.dune.com/api/v1/query/6432620/results?limit=1", {
+    // Test with a simple API call to check auth (use configured query ID)
+    const queryId = Number(process.env.DUNE_QUERY_SUMMARY) || 6430884;
+    const response = await fetch(`https://api.dune.com/api/v1/query/${queryId}/results?limit=1`, {
       headers: {
         "X-Dune-API-Key": duneKey,
       },
@@ -148,8 +149,6 @@ export async function GET(): Promise<NextResponse<HealthCheck>> {
     checkDune(),
   ]);
 
-  const alchemyKey = process.env.ALCHEMY_API_KEY || "";
-
   // Core services (Alchemy, DeFiLlama, LlamaRpc) determine overall status
   // Dune is optional enhancement
   const coreOk = alchemy.status === "ok" && defiLlama.status === "ok" && llamaRpc.status === "ok";
@@ -160,7 +159,7 @@ export async function GET(): Promise<NextResponse<HealthCheck>> {
     timestamp: new Date().toISOString(),
     env: {
       hasAlchemyKey: !!process.env.ALCHEMY_API_KEY,
-      alchemyKeyLength: alchemyKey.length,
+      alchemyKeyValid: (process.env.ALCHEMY_API_KEY?.length ?? 0) >= 20,
       hasDuneKey: !!process.env.DUNE_API_KEY,
       nodeEnv: process.env.NODE_ENV || "unknown",
     },

@@ -58,25 +58,26 @@ export interface ProfitabilityData {
 /**
  * Detect if a token is a Uniswap LP token
  */
-function isLPToken(symbol: string, address: string): boolean {
-  const lpSymbols = ["UNI-V2", "UNI-V3", "SLP", "BPT", "CAKE-LP", "PGL", "JLP", "SPIRIT-LP"];
+function isLPToken(symbol: string): boolean {
   const symbolUpper = symbol.toUpperCase();
-  
-  // Check for common LP token symbols
-  if (lpSymbols.some(lp => symbolUpper.includes(lp))) {
+
+  // Exact-match LP symbols
+  const exactLpSymbols = ["UNI-V2", "UNI-V3", "CAKE-LP", "SPIRIT-LP"];
+  if (exactLpSymbols.some(lp => symbolUpper === lp)) {
     return true;
   }
-  
+
+  // Starts-with matches for prefixed symbols (e.g., "SLP-WETH-USDC", "BPT-50WETH-50DAI")
+  const prefixLpSymbols = ["SLP", "BPT", "PGL", "JLP"];
+  if (prefixLpSymbols.some(prefix => symbolUpper.startsWith(prefix))) {
+    return true;
+  }
+
   // Check for LP-like patterns
   if (symbolUpper.includes("-LP") || symbolUpper.includes("LP-")) {
     return true;
   }
-  
-  // Check for pair patterns like "TOKEN/TOKEN" or "TOKEN-TOKEN"
-  if (symbolUpper.includes("/") && symbolUpper.split("/").length === 2) {
-    return true;
-  }
-  
+
   return false;
 }
 
@@ -86,7 +87,7 @@ function isLPToken(symbol: string, address: string): boolean {
 function categorizeToken(token: TokenWithValue): CategorizedToken {
   let category: "priced" | "lp" | "unknown";
   
-  if (isLPToken(token.symbol, token.address)) {
+  if (isLPToken(token.symbol)) {
     category = "lp";
   } else if (token.priceUsd !== null && token.valueUsd !== null) {
     category = "priced";

@@ -1,4 +1,4 @@
-import { createPublicClient, parseAbiItem, formatUnits, getAddress, type AbiEvent, type Address, type Log } from "viem";
+import { parseAbiItem, formatUnits, getAddress, type AbiEvent, type Address, type Log } from "viem";
 import { FIREPIT_ADDRESS, UNI_TOKEN_ADDRESS, BURN_ADDRESS } from "./constants";
 import { getClient } from "./ethereum";
 import { serverCache, CACHE_KEYS, CACHE_TTL } from "./cache";
@@ -51,7 +51,7 @@ async function fetchLogsInChunks({
   toBlock,
   label,
 }: {
-  client: ReturnType<typeof createPublicClient>;
+  client: ReturnType<typeof getClient>;
   address: Address;
   event: AbiEvent;
   args: { to: Address };
@@ -183,19 +183,37 @@ export async function getBurnHistory(): Promise<BurnHistory> {
     // Sort by most recent block number first
     entries.sort((a, b) => Number(b.primaryLog?.blockNumber || 0n) - Number(a.primaryLog?.blockNumber || 0n));
 
+    // Collect unique block numbers that need timestamps (only for entries we'll return)
     let totalBurnedWei = 0n;
-    const burns: BurnEvent[] = [];
-
+    const validEntries: typeof entries = [];
     for (const item of entries) {
       const primaryLog = item.primaryLog;
       if (!primaryLog?.args.value || !primaryLog?.args.from) continue;
+      totalBurnedWei += primaryLog.args.value;
+      if (validEntries.length < MAX_BURNS_RETURNED) {
+        validEntries.push(item);
+      }
+    }
 
+    // Batch-fetch all block timestamps in parallel
+    const uniqueBlocks = [...new Set(
+      validEntries
+        .map(e => e.primaryLog!.blockNumber)
+        .filter((bn): bn is bigint => bn !== null)
+    )];
+    const TIMESTAMP_BATCH = 20;
+    for (let i = 0; i < uniqueBlocks.length; i += TIMESTAMP_BATCH) {
+      await Promise.all(
+        uniqueBlocks.slice(i, i + TIMESTAMP_BATCH).map(bn => getBlockTimestamp(bn))
+      );
+    }
+
+    const burns: BurnEvent[] = [];
+    for (const item of validEntries) {
+      const primaryLog = item.primaryLog!;
       const value = primaryLog.args.value;
-      totalBurnedWei += value;
+      const timestamp = await getBlockTimestamp(primaryLog.blockNumber); // cached from batch above
 
-      if (burns.length >= MAX_BURNS_RETURNED) continue;
-
-      const timestamp = await getBlockTimestamp(primaryLog.blockNumber);
       const destinations: Array<"firepit" | "dead"> = [];
       if (item.entry.firepitLog) destinations.push("firepit");
       if (item.entry.deadLog) destinations.push("dead");

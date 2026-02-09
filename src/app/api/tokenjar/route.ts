@@ -38,8 +38,10 @@ export interface TokenJarApiResponse {
   error?: string;
 }
 
-// Background refresh flag to prevent multiple simultaneous refreshes
+// Background refresh guard with timeout to prevent stuck state
 let isRefreshing = false;
+let refreshStartedAt = 0;
+const REFRESH_TIMEOUT_MS = 60_000; // 1 minute max
 
 interface EnhancedProfitabilityData extends ProfitabilityData {
   duneData?: DuneDataResponse;
@@ -112,9 +114,14 @@ async function fetchFreshData(forceRefreshDune = false): Promise<EnhancedProfita
 }
 
 async function refreshInBackground(): Promise<void> {
-  if (isRefreshing) return;
+  // Allow retry if previous refresh has been stuck for too long
+  if (isRefreshing && Date.now() - refreshStartedAt < REFRESH_TIMEOUT_MS) return;
+  if (isRefreshing) {
+    console.warn(`[TokenJar] Previous refresh timed out after ${REFRESH_TIMEOUT_MS}ms, retrying`);
+  }
 
   isRefreshing = true;
+  refreshStartedAt = Date.now();
   try {
     const freshData = await fetchFreshData();
     serverCache.set(CACHE_KEYS.PROFITABILITY_DATA, freshData, CACHE_TTL.PROFITABILITY_DATA);

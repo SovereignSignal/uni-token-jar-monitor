@@ -87,7 +87,7 @@ function getTokenColor(symbol: string): string {
   return colors[symbol] || "#FF007A";
 }
 
-function TokenRow({ token, showValue, rank }: { token: CategorizedToken; showValue: boolean; rank: number }) {
+function TokenRow({ token, showValue, rank, alwaysShowAddress }: { token: CategorizedToken; showValue: boolean; rank: number; alwaysShowAddress?: boolean }) {
   const truncatedAddress = `${token.address.slice(0, 6)}...${token.address.slice(-4)}`;
 
   // Display name fallback: use symbol, or name if symbol is UNKNOWN, or truncated address as last resort
@@ -95,6 +95,7 @@ function TokenRow({ token, showValue, rank }: { token: CategorizedToken; showVal
     ? token.symbol
     : token.name || truncatedAddress;
   const isAddressDisplay = displayName === truncatedAddress;
+  const tokenColor = getTokenColor(token.symbol);
 
   return (
     <div className="token-row-item flex items-center justify-between py-2 xs:py-2.5 px-2 xs:px-3 hover:bg-[#FF007A]/5 rounded-lg transition-all duration-200 group">
@@ -108,8 +109,8 @@ function TokenRow({ token, showValue, rank }: { token: CategorizedToken; showVal
         <div
           className="w-2 xs:w-2.5 h-2 xs:h-2.5 rounded-full flex-shrink-0 ring-2 ring-gray-800/50"
           style={{
-            backgroundColor: getTokenColor(token.symbol),
-            boxShadow: `0 0 6px ${getTokenColor(token.symbol)}40`
+            backgroundColor: tokenColor,
+            boxShadow: `0 0 6px ${tokenColor}40`
           }}
         />
 
@@ -122,7 +123,9 @@ function TokenRow({ token, showValue, rank }: { token: CategorizedToken; showVal
               href={`https://etherscan.io/token/${token.address}`}
               target="_blank"
               rel="noopener noreferrer"
-              className="text-[7px] xs:text-[8px] text-gray-600 hover:text-[#FF007A] transition-colors font-mono opacity-0 group-hover:opacity-100"
+              className={`text-[7px] xs:text-[8px] text-gray-600 hover:text-[#FF007A] transition-colors font-mono ${
+                alwaysShowAddress ? 'opacity-70' : 'opacity-0 group-hover:opacity-100 focus:opacity-100'
+              }`}
               aria-label={`View ${displayName} on Etherscan (opens in new tab)`}
             >
               {truncatedAddress} &gt;
@@ -312,6 +315,7 @@ export default function TokenTabs({ categorizedTokens, duneTokenCount }: TokenTa
               token={token}
               showValue={activeTab !== "unknown"}
               rank={i + 1}
+              alwaysShowAddress={activeTab === "lp"}
             />
           ))
         )}

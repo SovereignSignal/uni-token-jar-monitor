@@ -13,14 +13,18 @@ type DataStatus = "loading" | "fresh" | "stale" | "error";
 
 const FOUR_K_UNI_WEI = 4000n * 10n ** 18n;
 
-const fetcher = (url: string) => fetch(url).then((res) => res.json());
+const fetcher = (url: string) =>
+  fetch(url).then((res) => {
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    return res.json();
+  });
 
 function getDataStatus(timestamp: number | null, error: boolean): DataStatus {
   if (error) return "error";
   if (!timestamp) return "loading";
   const age = Date.now() - timestamp;
-  if (age < 60_000) return "fresh";
-  if (age < 300_000) return "stale";
+  if (age < 120_000) return "fresh";     // 2 minutes
+  if (age < 600_000) return "stale";     // 10 minutes
   return "error";
 }
 
@@ -163,7 +167,7 @@ function ProfitGauge({ currentValue, burnCost }: { currentValue: number; burnCos
         <div
           className="h-full rounded-full transition-all duration-500"
           style={{
-            width: `${progress}%`,
+            width: `max(${progress > 0 ? '6px' : '0px'}, ${progress}%)`,
             background: isProfitable
               ? 'linear-gradient(90deg, #27AE60, #58d858)'
               : 'linear-gradient(90deg, #FF007A, #ff5fa2)',
@@ -187,7 +191,7 @@ function ProfitGauge({ currentValue, burnCost }: { currentValue: number; burnCos
 
 // Status badge based on profitability
 function StatusBadge({ netProfit, burnCost }: { netProfit: number; burnCost: number }) {
-  const ratio = netProfit / burnCost;
+  const ratio = burnCost > 0 ? netProfit / burnCost : 0;
 
   let message: string;
   let bgClass: string;
@@ -467,7 +471,7 @@ export default function Home() {
             <div className="flex items-center gap-2">
               <StatusIndicator status={status} />
               {lastFetch && (
-                <span className="text-[8px] xs:text-[9px] text-gray-500">
+                <span className="text-[8px] xs:text-[9px] text-gray-500 whitespace-nowrap">
                   {formatUtcTime(lastFetch)}
                 </span>
               )}
@@ -593,11 +597,11 @@ export default function Home() {
                 {formatUsd(netProfit, true)}
               </div>
 
-              <StatusBadge netProfit={netProfit} burnCost={data.burnCostUsd} />
+              <StatusBadge netProfit={netProfit} burnCost={data.burnCostUsd + data.gasEstimateUsd} />
             </div>
 
             {/* Profit Gauge */}
-            <ProfitGauge currentValue={jarValue} burnCost={data.burnCostUsd} />
+            <ProfitGauge currentValue={jarValue} burnCost={data.burnCostUsd + data.gasEstimateUsd} />
           </div>
 
           {/* Stats Grid - Separate Cards */}
@@ -1128,7 +1132,7 @@ export default function Home() {
             >
               GitHub
             </a>
-            <span className="text-gray-700">|</span>
+            <span className="text-gray-700 hidden xs:inline">|</span>
             <a
               href="https://app.uniswap.org"
               target="_blank"
@@ -1138,7 +1142,7 @@ export default function Home() {
             >
               Uniswap
             </a>
-            <span className="text-gray-700">|</span>
+            <span className="text-gray-700 hidden xs:inline">|</span>
             <a
               href={`https://etherscan.io/address/${TOKENJAR_ADDRESS}`}
               target="_blank"
@@ -1148,7 +1152,7 @@ export default function Home() {
             >
               TokenJar Contract
             </a>
-            <span className="text-gray-700">|</span>
+            <span className="text-gray-700 hidden xs:inline">|</span>
             <a
               href={`https://etherscan.io/address/${FIREPIT_ADDRESS}`}
               target="_blank"

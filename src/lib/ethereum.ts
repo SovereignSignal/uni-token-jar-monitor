@@ -6,23 +6,31 @@ import {
   KNOWN_TOKENS,
 } from "./constants";
 
-// Create Ethereum client - prefer Alchemy if available
+// Singleton Ethereum client - prefer Alchemy if available
+let clientInstance: ReturnType<typeof createPublicClient> | null = null;
+let clientAlchemyKey: string | undefined;
+
 export function getClient() {
-  const alchemyKey = process.env.ALCHEMY_API_KEY;
-  if (alchemyKey) {
-    console.log("Using Alchemy RPC");
-    return createPublicClient({
+  // Re-create client if Alchemy key changed (e.g., hot env var injection)
+  const currentKey = process.env.ALCHEMY_API_KEY;
+  if (clientInstance && currentKey === clientAlchemyKey) return clientInstance;
+
+  clientAlchemyKey = currentKey;
+  if (currentKey) {
+    console.log("[Ethereum] Using Alchemy RPC");
+    clientInstance = createPublicClient({
       chain: mainnet,
-      transport: http(`https://eth-mainnet.g.alchemy.com/v2/${alchemyKey}`),
+      transport: http(`https://eth-mainnet.g.alchemy.com/v2/${currentKey}`),
+    });
+  } else {
+    console.log("[Ethereum] Using free RPC (llamarpc)");
+    clientInstance = createPublicClient({
+      chain: mainnet,
+      transport: http("https://eth.llamarpc.com"),
     });
   }
 
-  // Fallback to free RPC
-  console.log("Using free RPC (llamarpc)");
-  return createPublicClient({
-    chain: mainnet,
-    transport: http("https://eth.llamarpc.com"),
-  });
+  return clientInstance;
 }
 
 export interface TokenBalance {
