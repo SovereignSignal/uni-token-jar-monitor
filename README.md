@@ -23,10 +23,12 @@ This dashboard shows you:
 - **JAR VALUE** - Total USD value of tokens in the TokenJar
 - **BURN COST** - 4,000 UNI at current market price
 - **GAS EST.** - Estimated transaction fee
-- **NET REWARD** - Profit or loss if you claimed now
-- **TOKENS** - Individual holdings worth > $1,000
+- **NET PROFIT** - Profit or loss if you claimed now
+- **TOKEN EXPLORER** - Individual holdings by category (Priced/LP/Unknown)
+- **BURN HISTORY** - Past UNI burn transactions with stats
+- **TOP POOLS** - Highest fee-generating pools (via Dune Analytics)
 
-Data refreshes every 30 seconds.
+Data refreshes every 30 seconds via SWR.
 
 ## Contracts
 
@@ -62,14 +64,15 @@ git push -u origin main
 ### Step 3: Deploy on Railway
 
 1. Go to [railway.app](https://railway.app/) and sign in
-2. Click **"New Project"** → **"Deploy from GitHub repo"**
+2. Click **"New Project"** -> **"Deploy from GitHub repo"**
 3. Select your repository
 4. **Add the API key**:
    - Click on the service
    - Go to **"Variables"** tab
    - Add: `ALCHEMY_API_KEY` = (your Alchemy key)
+   - Optionally add: `DUNE_API_KEY` = (your Dune key)
 5. Railway will redeploy automatically
-6. Go to **Settings** → **Networking** → **Generate Domain**
+6. Go to **Settings** -> **Networking** -> **Generate Domain**
 7. Done!
 
 ---
@@ -112,6 +115,10 @@ pnpm start
 | Variable | Required | Description |
 |----------|----------|-------------|
 | `ALCHEMY_API_KEY` | Yes | Alchemy API key for Ethereum mainnet |
+| `DUNE_API_KEY` | No | Dune Analytics API key for enhanced fee data |
+| `DUNE_QUERY_FEES_BY_TOKEN` | No | Override Dune query ID for token fees (default: 6430883) |
+| `DUNE_QUERY_FEES_BY_POOL` | No | Override Dune query ID for pool fees (default: disabled) |
+| `DUNE_QUERY_SUMMARY` | No | Override Dune query ID for summary (default: 6430884) |
 | `PORT` | No | Server port (Railway sets automatically) |
 
 ---
@@ -121,31 +128,30 @@ pnpm start
 ### Stack
 
 - **Framework**: Next.js 16 with App Router
+- **UI**: React 19 with SWR for data fetching
 - **Blockchain**: viem for Ethereum RPC calls
-- **Pricing**: CoinGecko API (free tier)
+- **Pricing**: DeFiLlama (primary), CoinGecko (UNI fallback)
+- **Analytics**: Dune Analytics (optional)
 - **Deployment**: Standalone output for Railway/Docker
 
 ### How Token Discovery Works
 
-Instead of a hardcoded token list, the app:
-
-1. Scans ERC-20 Transfer events to the TokenJar (~30 days)
-2. Caches discovered tokens for 10 minutes
-3. Queries balances for all discovered tokens
-4. Prices tokens via CoinGecko
-5. Shows tokens worth > $1,000 individually
+1. **Alchemy mode** (preferred): Single `alchemy_getTokenBalances` API call discovers all ERC-20 tokens held by the TokenJar
+2. **Fallback mode**: Queries balances for ~73 hardcoded known tokens if Alchemy is unavailable
+3. Prices tokens via DeFiLlama batch API (100 tokens per request)
+4. Categorizes tokens as Priced, LP, or Unknown
+5. Shows tokens worth > $1,000 individually in display view
 6. Sums smaller tokens as "other"
-7. Counts unpriced tokens separately
 
 ### Visual Features
 
 - 16-bit pixel art aesthetic (SNES/Genesis era)
 - Uniswap pink (#FF007A) color scheme
-- Animated pixel unicorn mascot
-- Spinning UNI tokens
-- Pink magic particles
-- Health hearts showing profitability
-- CRT scanlines effect
+- Animated jar fill level based on value vs. burn cost
+- Burn pile with flame intensity based on proximity to profitability
+- Floating ember particle effects
+- Profit threshold gauge with progress bar
+- Status badge (READY TO CLAIM / ALMOST THERE / ACCUMULATING / VERY UNPROFITABLE)
 
 ---
 
@@ -153,9 +159,9 @@ Instead of a hardcoded token list, the app:
 
 - Ethereum mainnet only
 - Gas estimate is fixed at $50 (actual varies)
-- Some tokens may be unpriced (not in CoinGecko)
+- Some tokens may be unpriced (not in DeFiLlama)
 - LP tokens show raw amounts, not underlying value
-- CoinGecko has rate limits (~10-30 queries/minute)
+- Dune queries may become unavailable (configurable via env vars)
 
 ---
 
@@ -169,13 +175,15 @@ Add `ALCHEMY_API_KEY` in Railway Variables.
 - Check it's configured for Ethereum Mainnet
 - Check Railway logs
 
-### Tokens showing "-" or $0
-- CoinGecko may be rate limited
+### Tokens showing "--" or $0
+- DeFiLlama may be temporarily unavailable
 - Wait 60 seconds and refresh
-- Some tokens aren't in CoinGecko
+- Some tokens aren't in DeFiLlama's price index
 
-### Hearts are empty
-The jar is currently **not profitable** to claim. The token value is less than the 4,000 UNI burn cost.
+### No Dune data (Top Pools missing)
+- Check if `DUNE_API_KEY` is set
+- The default Dune queries may have been moved or made private
+- Set `DUNE_QUERY_*` env vars to point to updated query IDs
 
 ---
 
